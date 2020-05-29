@@ -10,7 +10,10 @@
  */
 
 
+#include <string>
+
 #include "atlas-orca/Library.h"
+#include "atlas-orca/atlas_orca_config.h"
 
 
 namespace atlas {
@@ -35,12 +38,13 @@ const void* Library::addr() const {
 
 
 std::string Library::version() const {
-    return "not available";
+    return atlas_orca_version();
 }
 
 
-std::string Library::gitsha1( unsigned int ) const {
-    return "not available";
+std::string Library::gitsha1( unsigned int count ) const {
+    std::string sha1 = atlas_orca_git_sha1();
+    return sha1.empty() ? "not available" : sha1.substr( 0, std::min( count, 40U ) );
 }
 
 
