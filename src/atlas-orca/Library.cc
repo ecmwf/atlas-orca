@@ -10,17 +10,17 @@
  */
 
 
-#include "atlas-data/Library.h"
+#include "atlas-orca/Library.h"
 
 
 namespace atlas {
-namespace data {
+namespace orca {
 
 
 REGISTER_LIBRARY( Library );
 
 
-Library::Library() : eckit::system::Library( "atlas-data" ) {}
+Library::Library() : eckit::system::Library( "atlas-orca" ) {}
 
 
 const Library& Library::instance() {
@@ -44,5 +44,5 @@ std::string Library::gitsha1( unsigned int ) const {
 }
 
 
-}  // namespace data
+}  // namespace orca
 }  // namespace atlas

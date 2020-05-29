@@ -1,2 +1,2 @@
-add_subdirectory("atlas-data")
+add_subdirectory("atlas-orca")
 

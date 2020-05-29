@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 
-find_package(ecbuild 3.0 REQUIRED)
+find_package(ecbuild 3.1 REQUIRED)
 
-project(atlas-data VERSION 0.0.0 LANGUAGES CXX)
+cmake_policy(SET CMP0048 NEW)
+project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
 find_package(eckit REQUIRED)
 
