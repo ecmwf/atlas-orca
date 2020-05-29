@@ -10,14 +10,14 @@
  */
 
 
-#ifndef atlas_data_Library_h
-#define atlas_data_Library_h
+#ifndef atlas_orca_Library_h
+#define atlas_orca_Library_h
 
 #include "eckit/system/Library.h"
 
 
 namespace atlas {
-namespace data {
+namespace orca {
 
 
 class Library : public eckit::system::Library {
@@ -32,7 +32,7 @@ private:
 };
 
 
-}  // namespace data
+}  // namespace orca
 }  // namespace atlas
 
 
