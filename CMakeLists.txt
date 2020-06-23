@@ -9,10 +9,13 @@ find_package(ecbuild 3.1 REQUIRED)
 
 project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
-find_package(eckit REQUIRED)
+find_package(atlas 0.21.0 REQUIRED)
+
+atlas_create_plugin( orca LIBRARY atlas_orca )
 
 add_subdirectory("share")
 add_subdirectory("src")
+
 
 ecbuild_install_project(NAME ${PROJECT_NAME})
 

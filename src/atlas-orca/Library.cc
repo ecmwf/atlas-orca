@@ -23,7 +23,7 @@ namespace orca {
 REGISTER_LIBRARY( Library );
 
 
-Library::Library() : eckit::system::Library( "atlas-orca" ) {}
+Library::Library() : Plugin( "orca", "atlas_orca" ) {}
 
 
 const Library& Library::instance() {

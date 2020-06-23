@@ -10,17 +10,15 @@
  */
 
 
-#ifndef atlas_orca_Library_h
-#define atlas_orca_Library_h
+#pragma once
 
-#include "eckit/system/Library.h"
-
+#include "atlas/library/Plugin.h"
 
 namespace atlas {
 namespace orca {
 
 
-class Library : public eckit::system::Library {
+class Library : public Plugin {
 public:
     Library();
     static const Library& instance();
@@ -34,6 +32,3 @@ private:
 
 }  // namespace orca
 }  // namespace atlas
-
-
-#endif
