@@ -8,20 +8,15 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+// clang-format off
 
-
-#ifndef atlas_orca_config_h
-#define atlas_orca_config_h
+#pragma once
 
 #define ATLAS_ORCA_MAJOR_VERSION @atlas-orca_VERSION_MAJOR@
 #define ATLAS_ORCA_MINOR_VERSION @atlas-orca_VERSION_MINOR@
 #define ATLAS_ORCA_PATCH_VERSION @atlas-orca_VERSION_PATCH@
 
-
 const char* atlas_orca_git_sha1();
 const char* atlas_orca_version();
 const char* atlas_orca_version_str();
 unsigned int atlas_orca_version_int();
-
-
-#endif

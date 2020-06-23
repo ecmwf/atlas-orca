@@ -23,7 +23,7 @@ namespace orca {
 REGISTER_LIBRARY( Library );
 
 
-Library::Library() : Plugin( "orca", "atlas_orca" ) {}
+Library::Library() : Plugin( "atlas-orca" ) {}
 
 
 const Library& Library::instance() {

@@ -47,10 +47,10 @@ ecbuild_add_test( TARGET  atlas_test_orca_plugin
                   LIBS    atlas
                   ENVIRONMENT
                       ${ATLAS_TEST_ENVIRONMENT}
-                      ATLAS_PLUGINS=orca
+                      ATLAS_PLUGINS=atlas-orca
                       ATLAS_PLUGINS_SEARCH_PATHS=${CMAKE_BINARY_DIR} )
 
 ecbuild_add_test( TARGET  atlas_test_orca
                 SOURCES test_orca.cc
-                LIBS    atlas_orca
+                LIBS    atlas-orca
                 ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )

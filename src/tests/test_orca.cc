@@ -34,7 +34,7 @@ size_t peakMemory() {
 }
 
 CASE( "test generate orca mesh" ) {
-    std::string gridname = "orca1_V";
+    std::string gridname = "ORCA1_V";
     SECTION( gridname ) {
         auto grid = Grid{gridname};
         Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;

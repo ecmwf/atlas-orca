@@ -175,10 +175,11 @@ static class orca : public GridBuilder {
     using Config         = Grid::Config;
 
 public:
-    orca() : GridBuilder( Orca::static_type(), {"^e?orca([0-9]+)_([UVTF])$"}, {"[e]orca<deg>_{U,V,T,F}"} ) {}
+    orca() :
+        GridBuilder( Orca::static_type(), {"^e?[Oo][Rr][Cc][Aa]([0-9]+)_([UVTF])$"}, {"[e]ORCA<deg>_{U,V,T,F}"} ) {}
 
     void print( std::ostream& os ) const override {
-        os << std::left << std::setw( 30 ) << "[e]orca<deg>_{U,V,T,F}"
+        os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{U,V,T,F}"
            << "ORCA Tripolar grid. Possible increasing resolutions <deg>: 2,1,025,12";
     }
 
@@ -191,7 +192,15 @@ public:
 
         auto computePath = []( std::string name ) {
             using atlas::orca::Library;
-            return "~" + Library::instance().libraryName() + "/share/atlas-orca/orca/" + name + ".ascii";
+            auto to_lower = []( std::string str ) {
+                std::for_each( str.begin(), str.end(), []( char& c ) {
+                    c = static_cast<char>( std::tolower( static_cast<unsigned char>( c ) ) );
+                } );
+                return str;
+            };
+            name        = to_lower( name );
+            name.back() = std::toupper( name.back() );
+            return "~" + Library::instance().libraryName() + "/share/atlas-orca/data/" + name + ".ascii";
         };
 
         return new Orca{name, computePath( name )};

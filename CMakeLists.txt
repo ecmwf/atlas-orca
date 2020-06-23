@@ -11,7 +11,7 @@ project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
 find_package(atlas 0.21.0 REQUIRED)
 
-atlas_create_plugin( orca LIBRARY atlas_orca )
+atlas_create_plugin( atlas-orca )
 
 add_subdirectory("share")
 add_subdirectory("src")

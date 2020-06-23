@@ -1,9 +1,9 @@
 
-configure_file(atlas_orca_config.h.in atlas_orca_config.h)
-configure_file(atlas_orca_config.cc.in atlas_orca_config.cc)
+configure_file(version.h.in  version.h)
+configure_file(version.cc.in version.cc)
 
 ecbuild_add_library(
-    TARGET atlas_orca
+    TARGET atlas-orca
     SOURCES 
         Library.cc
         Library.h
@@ -13,8 +13,9 @@ ecbuild_add_library(
         OrcaGrid.cc
         OrcaMeshGenerator.cc
         OrcaMeshGenerator.h
-        ${CMAKE_CURRENT_BINARY_DIR}/atlas_orca_config.cc
-    HEADER_DESTINATION "${INSTALL_INCLUDE_DIR}/atlas-orca"
+        ${CMAKE_CURRENT_BINARY_DIR}/version.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/version.h
+    HEADER_DESTINATION "include/atlas-orca"
     PUBLIC_LIBS atlas
     PUBLIC_INCLUDES 
        $<INSTALL_INTERFACE:include/atlas-orca>

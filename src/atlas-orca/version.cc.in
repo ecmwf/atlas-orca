@@ -10,7 +10,7 @@
  */
 
 
-#include "atlas-orca/atlas_orca_config.h"
+#include "version.h"
 
 
 const char* atlas_orca_git_sha1() {

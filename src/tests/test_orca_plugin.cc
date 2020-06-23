@@ -32,7 +32,7 @@ CASE( "test plugin" ) {
     // ATLAS_PLUGINS_SEARCH_PATHS=<path-to-binary-dir>
     // ATLAS_PLUGINS=orca
 
-    EXPECT( eckit::system::Library::exists( "atlas_orca" ) );
+    EXPECT( eckit::system::Library::exists( "atlas-orca" ) );
     EXPECT( bool( MeshGenerator( "orca" ) ) );
 }
 
