@@ -31,6 +31,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Statistics.h"
+#include "eckit/utils/Hash.h"
 
 namespace atlas {
 namespace grid {
@@ -145,7 +146,9 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     domain_ = GlobalDomain{};
 }
 
-void Orca::hash( eckit::Hash& h ) const {}
+void Orca::hash( eckit::Hash& h ) const {
+    h.add( name_ );
+}
 
 idx_t Orca::size() const {
     return static_cast<idx_t>( points_.size() );
@@ -190,6 +193,20 @@ public:
             return nullptr;
         }
 
+        auto standard_name = []( std::string name ) {
+            using atlas::orca::Library;
+            auto to_upper = []( std::string str ) {
+                std::for_each( str.begin(), str.end(), []( char& c ) {
+                    c = static_cast<char>( std::toupper( static_cast<unsigned char>( c ) ) );
+                } );
+                return str;
+            };
+            name = to_upper( name );
+            if ( name.front() == 'E' ) {
+                name.front() = 'e';
+            }
+            return name;
+        };
         auto computePath = []( std::string name ) {
             using atlas::orca::Library;
             auto to_lower = []( std::string str ) {
@@ -203,7 +220,7 @@ public:
             return "~" + Library::instance().libraryName() + "/share/atlas-orca/data/" + name + ".ascii";
         };
 
-        return new Orca{name, computePath( name )};
+        return new Orca{standard_name( name ), computePath( name )};
     }
 
     const Implementation* create( const Config& config ) const override {

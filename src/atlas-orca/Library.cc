@@ -13,7 +13,7 @@
 #include <string>
 
 #include "atlas-orca/Library.h"
-#include "atlas-orca/atlas_orca_config.h"
+#include "atlas-orca/version.h"
 
 
 namespace atlas {
