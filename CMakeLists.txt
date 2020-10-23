@@ -1,21 +1,25 @@
-cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+# (C) Copyright 1996- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation nor
+# does it submit to any jurisdiction.
 
-cmake_policy(SET CMP0048 NEW)
-if( POLICY CMP0074 )
-  cmake_policy(SET CMP0074 NEW)
-endif()
 
-find_package(ecbuild 3.1 REQUIRED)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+
+find_package(ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
 
 project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
-find_package(atlas 0.21.0 REQUIRED)
+find_package(atlas 0.22.0 REQUIRED)
 
-atlas_create_plugin( atlas-orca )
+atlas_create_plugin(atlas-orca)
 
-add_subdirectory("share")
-add_subdirectory("src")
-
+add_subdirectory(share)
+add_subdirectory(src)
 
 ecbuild_install_project(NAME ${PROJECT_NAME})
 

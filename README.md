@@ -6,7 +6,7 @@ This is a Atlas plugin that adds support for ORCA grids and mesh generation
 
 Requirements:
 -------------
-- atlas 0.21.0 or greater
+- atlas 0.22.0 or greater
 - git lfs
 
 NOTE! Before cloning this repository, make sure git is recent enough to support git lfs,
