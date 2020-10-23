@@ -37,10 +37,12 @@ public:
     using MeshGenerator::Implementation::generate;
 
 private:
-    void reassign_coordinates(const OrcaGrid&, Mesh&) const;
+    void reassign_coordinates( const OrcaGrid&, Mesh& ) const;
 
     void hash( eckit::Hash& ) const override;
 
+    std::string type() const override { return static_type(); }
+    static std::string static_type() { return "orca"; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
