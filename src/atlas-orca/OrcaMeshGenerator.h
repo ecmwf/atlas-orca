@@ -31,18 +31,19 @@ class OrcaMeshGenerator : public MeshGenerator::Implementation {
 public:
     OrcaMeshGenerator( const eckit::Parametrisation& = util::NoConfig() ) {}
 
+    using MeshGenerator::Implementation::generate;
+
+    void generate( const Grid&, const grid::Partitioner&, Mesh& ) const override;
     void generate( const Grid&, const grid::Distribution&, Mesh& ) const override;
     void generate( const Grid&, Mesh& ) const override;
 
-    using MeshGenerator::Implementation::generate;
+    std::string type() const override { return "orca"; }
+    static std::string static_type() { return "orca"; }
 
 private:
-    void reassign_coordinates( const OrcaGrid&, Mesh& ) const;
-
     void hash( eckit::Hash& ) const override;
 
-    std::string type() const override { return static_type(); }
-    static std::string static_type() { return "orca"; }
+    util::Config options_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

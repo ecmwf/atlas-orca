@@ -32,11 +32,6 @@ const Library& Library::instance() {
 }
 
 
-const void* Library::addr() const {
-    return this;
-}
-
-
 std::string Library::version() const {
     return atlas_orca_version();
 }

@@ -65,11 +65,7 @@ private:
 
     public:
         OrcaIterator( const Orca& grid, bool begin = true ) :
-            grid_( grid ),
-            size_( static_cast<idx_t>( grid_.points_.size() ) ),
-            i_( 0 ),
-            j_( 0 ),
-            compute_point_{grid_} {
+            grid_( grid ), size_( grid_.size() ), i_( 0 ), j_( 0 ), compute_point_{grid_} {
             compute_point_( i_, j_, point_ );
         }
 
@@ -151,16 +147,6 @@ public:  // methods
     /// Constructor taking a path of an orca grid
     Orca( const std::string& name, const eckit::PathName& path );
 
-private:
-    /// Constructor taking a list of points (takes ownership)
-    Orca( std::vector<PointXY>&& pts );
-
-    /// Constructor taking a list of points (makes copy)
-    Orca( const std::vector<PointXY>& pts );
-
-    /// Constructor from initializer list
-    Orca( std::initializer_list<PointXY> );
-
 public:
     idx_t size() const override;
 
@@ -172,7 +158,7 @@ public:
     std::string name() const override;
     std::string type() const override;
 
-    const PointXY& xy( idx_t i, idx_t j ) const { return points_[i + j * nx()]; }
+    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
     void xy( idx_t i, idx_t j, double crd[] ) const {
         const PointXY& p = xy( i, j );
@@ -180,12 +166,12 @@ public:
         crd[1]           = p[1];
     }
 
-    PointLonLat lonlat( idx_t i, idx_t j ) const { return projection_.lonlat( xy( i, j ) ); }
+    PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
-    void lonlat( idx_t i, idx_t j, double crd[] ) const {
-        xy( i, j, crd );
-        projection_.xy2lonlat( crd );
-    }
+    void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
+
+    bool lsm( idx_t i, idx_t j ) const { return lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool core( idx_t i, idx_t j ) const { return core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
     virtual std::unique_ptr<Grid::IteratorXY> xy_begin() const override {
         return std::unique_ptr<Grid::IteratorXY>( new IteratorXY( *this ) );
@@ -200,7 +186,16 @@ public:
         return std::unique_ptr<Grid::IteratorLonLat>( new IteratorLonLat( *this, false ) );
     }
 
+    int haloSouth() const { return halo_south_; }
+    int haloNorth() const { return halo_north_; }
+    int haloWest() const { return halo_west_; }
+    int haloEast() const { return halo_east_; }
+
     size_t footprint() const override;
+
+    Config meshgenerator() const override;
+
+    Config partitioner() const override;
 
 private:  // methods
     void print( std::ostream& ) const override;
@@ -215,7 +210,12 @@ private:
     idx_t nx_, ny_, periodicity_, halo_east_, halo_west_, halo_south_, halo_north_;
 
     /// Storage of coordinate points
-    std::vector<PointXY> points_;
+    std::vector<PointXY> points_halo_;
+    std::vector<bool> lsm_;
+    std::vector<bool> core_;
+
+    idx_t imin_, jmin_;
+    idx_t istride_, jstride_;
 
     /// name of the grid
     mutable std::string name_;

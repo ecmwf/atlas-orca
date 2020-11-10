@@ -32,11 +32,34 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Statistics.h"
 #include "eckit/utils/Hash.h"
+#include "eckit/utils/Translator.h"
 
 namespace atlas {
 namespace grid {
 namespace detail {
 namespace grid {
+
+namespace {
+double hardcoded_west( const std::string& name ) {  // should come from file instead!
+    static std::map<std::string, double> west = []() {
+        std::map<std::string, double> west;
+        std::vector<std::string> prefixes = {"ORCA", "eORCA"};
+        std::vector<std::string> suffixes = {"_T", "_U", "_V", "_F"};
+        for ( auto& prefix : prefixes ) {
+            for ( auto& suffix : suffixes ) {
+                west[prefix + "2" + suffix]   = 80.;
+                west[prefix + "1" + suffix]   = 73.;
+                west[prefix + "025" + suffix] = 73.;
+                west[prefix + "12" + suffix]  = 73.;
+            }
+        }
+        return west;
+    }();
+    return west.at( name );
+}
+
+}  // namespace
+
 
 std::string Orca::static_type() {
     return "orca";
@@ -66,84 +89,50 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     std::getline( ifstrm, line );
     std::istringstream iss{line};
 
-    idx_t nx, ny;
-    ATLAS_ASSERT( iss >> nx >> ny >> periodicity_ >> halo_east_ >> halo_west_ >> halo_south_ >> halo_north_,
+    idx_t nx_halo, ny_halo;
+    ATLAS_ASSERT( iss >> nx_halo >> ny_halo >> periodicity_ >> halo_east_ >> halo_west_ >> halo_south_ >> halo_north_,
                   "Error while reading header " );
 
-    nx_ = nx - halo_east_ - halo_west_;
-    ny_ = ny - halo_north_ - halo_south_;
-    points_.reserve( nx_ * ny_ );
-
-#if EXPERIMENT_WITH_COARSENING
-    // halo_south_ = 9 * ny / 10;   // Increase to decrease latitudes from South Pole
-    int skipx = 2;
-    int skipy = 2;
-    nx_       = 0;
-    ny_       = 0;
-#endif
-    auto is_halo = [&]( idx_t i, idx_t j ) {
-        if ( i < halo_west_ ) {
-            return true;
+    auto getEnv = []( const std::string& env, int default_value ) {
+        if ( ::getenv( env.c_str() ) ) {
+            return eckit::Translator<std::string, int>()( ::getenv( env.c_str() ) );
         }
-        if ( i >= nx - halo_east_ ) {
-            return true;
-        }
-        if ( j < halo_south_ ) {
-            return true;
-        }
-        if ( j >= ny - halo_north_ ) {
-            return true;
-        }
-        return false;
+        return default_value;
     };
+
+    halo_south_ = getEnv( "halo_south", halo_south_ );
+
+    nx_      = nx_halo - halo_east_ - halo_west_;
+    ny_      = ny_halo - halo_north_ - halo_south_;
+    jstride_ = nx_halo;
+
+    halo_north_ = std::min( halo_north_, getEnv( "halo_north", halo_north_ ) );
+    imin_       = halo_east_;
+    jmin_       = halo_south_;
+
+    ATLAS_DEBUG_VAR( jmin_ );
+    ATLAS_DEBUG_VAR( ny_ );
+    ATLAS_DEBUG_VAR( halo_north_ );
+
+    points_halo_.reserve( nx_halo * ny_halo );
+    lsm_.reserve( nx_halo * ny_halo );
+    core_.reserve( nx_halo * ny_halo );
 
     // Reading coordinates
     PointXY p;
-    for ( auto jj = 0; jj != ny; ++jj ) {
-#if EXPERIMENT_WITH_COARSENING
-        bool consider_j     = false;
-        idx_t diff_from_top = ny - halo_north_ - 1 - jj;
-        if ( diff_from_top % skipy == 0 ) {
-            consider_j = true;
-        }
-        bool j_added = false;
-        idx_t _nx    = 0;
-#endif
-
-        for ( auto ii = 0; ii != nx; ++ii ) {
+    double f1, f2;
+    for ( auto jj = 0; jj != ny_halo; ++jj ) {
+        for ( auto ii = 0; ii != nx_halo; ++ii ) {
             std::getline( ifstrm, line );
             std::istringstream iss{line};
-            ATLAS_ASSERT( iss >> p[1] >> p[0], "Error while reading coordinates" );
-
-            if ( is_halo( ii, jj ) ) {
-                continue;
-            }
-#if !EXPERIMENT_WITH_COARSENING
-            points_.emplace_back( p );
+            ATLAS_ASSERT( iss >> p[1] >> p[0] >> f1 >> f2, "Error while reading coordinates" );
+            lsm_.emplace_back( f1 );
+            core_.emplace_back( f2 );
+            points_halo_.emplace_back( p );
         }
-#else
-            if ( consider_j ) {
-                j_added = true;
-                if ( ( halo_west_ + ii ) % skipx == 0 ) {
-                    points_.push_back( p );
-                    ++_nx;
-                }
-            }
-        }
-        if ( jj == ny - halo_north_ - 1 ) {
-            ATLAS_ASSERT( j_added );
-        }
-        if ( j_added ) {
-            if ( nx_ == 0 ) {
-                nx_ = _nx;
-            }
-            ++ny_;
-        }
-#endif
     }
-    ATLAS_ASSERT( points_.size() == nx_ * ny_ );
 
-    domain_ = GlobalDomain{};
+    domain_ = GlobalDomain{hardcoded_west( name )};
 }
 
 void Orca::hash( eckit::Hash& h ) const {
@@ -151,7 +140,7 @@ void Orca::hash( eckit::Hash& h ) const {
 }
 
 idx_t Orca::size() const {
-    return static_cast<idx_t>( points_.size() );
+    return nx_ * ny_;
 }
 
 /// @return parallel/meridian limits containing the grid
@@ -167,8 +156,22 @@ void Orca::print( std::ostream& os ) const {
     os << "Orca(" << name() << ")";
 }
 
+namespace {
+template <typename T>
+size_t memory( const T& container ) {
+    return sizeof( typename T::value_type ) * container.size();
+}
+}  // namespace
 size_t Orca::footprint() const {
-    return sizeof( PointXY ) * points_.size();
+    return memory( points_halo_ ) + memory( lsm_ ) + memory( core_ );
+}
+
+Grid::Config Orca::meshgenerator() const {
+    return Config( "type", "orca" );
+}
+
+Grid::Config Orca::partitioner() const {
+    return Config( "type", "checkerboard" );
 }
 
 namespace {

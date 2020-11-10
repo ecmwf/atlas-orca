@@ -49,6 +49,8 @@ CASE( "test generate orca mesh" ) {
         }
         ATLAS_DEBUG( "Peak memory: " << eckit::Bytes( peakMemory() ) );
     }
+
+    SECTION( "auto_generate" ) { auto mesh = Mesh{Grid{gridname}}; }
 }
 
 //-----------------------------------------------------------------------------

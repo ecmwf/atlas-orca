@@ -39,7 +39,8 @@ public:
     using grid_t = grid::detail::grid::Orca;
 
 public:
-    using Grid::Grid;
+    OrcaGrid();
+    OrcaGrid( const std::string& name );
     OrcaGrid( const Grid& );
 
     bool valid() const { return grid_; }
@@ -56,6 +57,12 @@ public:
 
     PointXY xy( idx_t i, idx_t j ) const { return grid_->xy( i, j ); }
     PointLonLat lonlat( idx_t i, idx_t j ) const { return grid_->lonlat( i, j ); }
+
+    double f1( idx_t i, idx_t j ) const { return grid_->lsm( i, j ); }
+    double f2( idx_t i, idx_t j ) const { return grid_->core( i, j ); }
+
+    const grid_t* get() const { return grid_; }
+    const grid_t* operator->() const { return get(); }
 
 private:
     const grid_t* grid_ = nullptr;

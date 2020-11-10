@@ -23,10 +23,8 @@ public:
     Library();
     static const Library& instance();
 
-private:
-    const void* addr() const;
-    virtual std::string version() const;
-    virtual std::string gitsha1( unsigned int count ) const;
+    std::string version() const override;
+    std::string gitsha1( unsigned int count ) const override;
 };
 
 
