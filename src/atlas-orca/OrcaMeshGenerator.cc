@@ -84,12 +84,20 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nx      = rg.nx();
     int ny      = rg.ny();
     int ny_halo = ny + orca->haloNorth();
+    int ny_halo_NS = ny + orca->haloNorth() + orca->haloSouth();
+    int iy_glb_max = ny+orca->haloNorth()-1;
+    int iy_glb_min = -orca->haloSouth();
+
+    ATLAS_DEBUG_VAR( ny_halo );
+    ATLAS_DEBUG_VAR( ny_halo_NS );
+    ATLAS_DEBUG_VAR( iy_glb_min );
+    ATLAS_DEBUG_VAR( iy_glb_max );
 
     bool periodic_x = true;  // options.get<bool>( "periodic_x" ) or rg.periodic();
 
 // for asynchronous output
 #if DEBUG_OUTPUT
-    sleep( mypart );
+    //sleep( mypart );
 #endif
 
     // this function should do the following:
@@ -124,12 +132,23 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int ncells;
 
     // vector of local indices: necessary for remote indices of ghost nodes
-    std::vector<idx_t> local_idx( nx * ny_halo, -1 );
+    std::vector<idx_t> local_idx( (nx+1) * ny_halo_NS, -1 );
+    idx_t local_idx_offset = - ( nx* iy_glb_min );
+    auto global_to_local = [&](idx_t i, idx_t j) {
+        return local_idx[local_idx_offset + j*nx + i];
+    };
+
     std::vector<int> current_idx( nparts, 0 );  // index counter for each proc
 
+
+
+    auto clamp = [](idx_t value, idx_t lower, idx_t upper) {
+        // in C++17 this is std::clamp
+        return std::max(lower,std::min(value,upper));
+    };
     auto partition = [&]( idx_t i, idx_t j ) -> int {
-        j = std::min( ny - 1, j );
-        i = std::min( nx - 1, i );
+        i = clamp(i,0,nx-1);
+        j = clamp(j,0,ny-1);
         return distribution.partition( j * nx + i );
     };
 
@@ -148,7 +167,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     nnodes_nonghost = 0;
 
     ii_glb = 0;
-    for ( iy = 0; iy < ny_halo; iy++ ) {
+    for ( iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
         for ( ix = 0; ix < nx; ix++ ) {
             int p             = partition( ix, iy );
             local_idx[ii_glb] = current_idx[p]++;  // store local index on
@@ -167,11 +186,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // add one row/column for ghost nodes (which include periodicity points)
     ix_max++;
-    iy_max = std::min( ny_halo - 1, iy_max + 1 );
-#if DEBUG_OUTPUT_DETAIL
+    iy_max = std::min( iy_glb_max, iy_max + 1 );
+//#if DEBUG_OUTPUT_DETAIL
     std::cout << "[" << mypart << "] : "
               << "SR = " << ix_min << ":" << ix_max << " x " << iy_min << ":" << iy_max << std::endl;
-#endif
+//#endif
 
     // dimensions of surrounding rectangle (SR)
     int nxl = ix_max - ix_min + 1;
@@ -197,7 +216,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             parts_SR[ii] = partition( ix_glb, iy_glb );
 
             if ( ix_glb < nx && iy_glb < ny_halo ) {
-                local_idx_SR[ii] = local_idx[iy_glb * nx + ix_glb];
+                local_idx_SR[ii] = global_to_local( ix_glb, iy_glb );
                 is_ghost_SR[ii]  = ( parts_SR[ii] != mypart );
             }
             else {
@@ -235,6 +254,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     nnodes     = 0;
     ncells     = 0;
     auto index = [&]( idx_t i, idx_t j ) { return j * nxl + i; };
+    int nnodes_prev = 0;
     for ( iy = 0; iy < nyl - 1; iy++ ) {  // don't loop into ghost/periodicity row
         iy_glb = iy_min + iy;
         for ( ix = 0; ix < nxl - 1; ix++ ) {  // don't loop into ghost/periodicity column
@@ -268,10 +288,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 }
             }
         }
+        std::cout << "iy_glb=" << iy_glb << "    added=" << nnodes-nnodes_prev << std::endl;
+        nnodes_prev = nnodes;
     }
-    ATLAS_DEBUG_VAR( nx * ny_halo );
-    ATLAS_DEBUG_VAR( ( nx + 1 ) * ny_halo );
+    ATLAS_DEBUG_VAR( nx * ny_halo_NS );
+    ATLAS_DEBUG_VAR( ( nx + 1 ) * ny_halo_NS );
     ATLAS_DEBUG_VAR( nnodes );
+    ATLAS_ASSERT( (nx+1)*ny_halo_NS == nnodes );
 
 #if DEBUG_OUTPUT_DETAIL
     std::cout << "[" << mypart << "] : "
@@ -314,10 +337,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int inode, inode_nonghost, inode_ghost;
 
     // global indices for periodicity points
-    inode = nx * ny_halo;
-    std::vector<int> glb_idx_px( ny_halo, -1 );
+    inode = nx * ny_halo_NS;
+    std::vector<int> glb_idx_px( ny_halo_NS, -1 );
     if ( periodic_x ) {
-        for ( iy = 0; iy < ny_halo; iy++ ) {
+        for ( iy = 0; iy < ny_halo_NS; iy++ ) {
             glb_idx_px[iy] = inode++;
         }
     }
@@ -361,10 +384,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 }
                 // global index
                 if ( ix_glb < nx ) {
-                    ii_glb = iy_glb * nx + ix_glb;  // no periodic point
+                    ii_glb = local_idx_offset + iy_glb * nx + ix_glb;  // no periodic point
                 }
                 else {
-                    ii_glb = glb_idx_px[iy_glb];
+                    ii_glb = glb_idx_px[iy_glb - iy_glb_min];
                 }
                 glb_idx( inode ) = ii_glb + 1;  // starting from 1
 
@@ -457,7 +480,19 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 }
                 lsm( inode )  = orca->lsm( ix_glb, iy_glb );
                 core( inode ) = orca->core( ix_glb, iy_glb );
-                halo( inode ) = 0;  // this is not yet correct
+                halo( inode ) = [&]() -> int {
+                        if( iy_glb < 0 ) {
+                            return -iy_glb;
+                        }
+                        else if( iy_glb > ny ){
+                            int h=0;
+                            while( not orca->core(ix_glb,iy_glb-1-h) && iy_glb-1-h >= ny ) {
+                                h++;
+                            }
+                            return h;
+                        }
+                        return 0;
+                }();
             }
             ++ii;
         }
@@ -467,6 +502,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // loop over nodes and define cells
     for ( iy = 0; iy < nyl - 1; iy++ ) {      // don't loop into ghost/periodicity row
+        std::cout << "index(0,"<<iy<<")=" << index(0,iy) << std::endl;
         for ( ix = 0; ix < nxl - 1; ix++ ) {  // don't loop into ghost/periodicity column
             ii = index( ix, iy );
             if ( !is_ghost_SR[ii] ) {
