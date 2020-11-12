@@ -82,6 +82,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 //        bool periodic_x = true;  // options.get<bool>( "periodic_x" ) or rg.periodic();
         bool periodic_x = false;  // options.get<bool>( "periodic_x" ) or rg.periodic();
 
+    bool include_south_pole = true;
 
     int mypart  = options_.getInt( "part", mpi::rank() );
     int nparts  = options_.getInt( "nb_parts", mpi::size() );
@@ -95,12 +96,18 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int ix_glb_min = periodic_x ? 0  : -orca->haloWest();
     int nx_halo_WE = nx+orca->haloEast() + orca->haloWest();
 
+    if( nparts > 1 ) {
+        include_south_pole = false;
+    }
+    int nb_extra_nodes = include_south_pole ? 1 : 0;
+
     ATLAS_DEBUG_VAR( ny_halo );
     ATLAS_DEBUG_VAR( ny_halo_NS );
     ATLAS_DEBUG_VAR( iy_glb_min );
     ATLAS_DEBUG_VAR( iy_glb_max );
     ATLAS_DEBUG_VAR( ix_glb_min );
     ATLAS_DEBUG_VAR( ix_glb_max );
+
 
 // for asynchronous output
 #if DEBUG_OUTPUT
@@ -183,7 +190,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nyl = iy_max - iy_min + 1;
 
     // upper estimate for number of nodes
-    nnodes_SR = nxl * nyl;
+    nnodes_SR = nxl * nyl + nb_extra_nodes;
     ATLAS_DEBUG_VAR( nxl );
     ATLAS_DEBUG_VAR( nyl );
     ATLAS_DEBUG_VAR( ny );
@@ -212,6 +219,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
             ++ii;
         }
+    }
+    if( include_south_pole ) {
+        local_idx_SR.at(ii) = -1;
+        is_ghost_SR.at(ii) = true;
     }
 
 #if DEBUG_OUTPUT_DETAIL
@@ -276,11 +287,12 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
         nnodes_prev = nnodes;
     }
+    nnodes += nb_extra_nodes;
     ATLAS_DEBUG_VAR( nx_halo_WE * ny_halo_NS );
     ATLAS_DEBUG_VAR( ( nx + 1 ) * ny_halo_NS );
     ATLAS_DEBUG_VAR( nnodes );
     if( nparts == 1 ) {
-        ATLAS_ASSERT( (periodic_x ? (nx+1)*ny_halo_NS : nx_halo_WE*ny_halo_NS) == nnodes );
+        ATLAS_ASSERT( (periodic_x ? (nx+1)*ny_halo_NS : nx_halo_WE*ny_halo_NS )+ nb_extra_nodes == nnodes );
     }
 
 #if DEBUG_OUTPUT_DETAIL
@@ -311,8 +323,12 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     auto core = array::make_view<int, 1>(
         nodes.add( Field( "core", array::make_datatype<int>(), array::make_shape( nodes.size() ) ) ) );
 
+
     // define cells and associated properties
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
+    if( include_south_pole ) {
+        mesh.cells().add( new mesh::temporary::Triangle(), nxl-1 );
+    }
     int quad_begin                                        = mesh.cells().elements( 0 ).begin();
     auto cells_part                                       = array::make_view<int, 1>( mesh.cells().partition() );
     auto cells_halo = array::make_view<int,1>( mesh.cells().halo());
@@ -320,7 +336,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     auto flags = [&]( idx_t i ) { return Topology::view( node_flags( i ) ); };
 
-    idx_t quad_nodes[4];
+    std::array<int,4> quad_nodes;
     int jcell = quad_begin;
     int inode, inode_nonghost, inode_ghost;
 
@@ -339,7 +355,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     inode_nonghost = 0;
     inode_ghost    = nnodes_nonghost;  // ghost nodes start counting after nonghost nodes
 
-    bool patch = orca->core( nx / 2 + 1, ny - 1 );
+    int ix_pivot = nx / 2;
+    bool patch = orca->core( ix_pivot + 1, ny - 1 );
     ATLAS_DEBUG_VAR( patch );
 
     for ( iy = 0; iy < nyl; iy++ ) {
@@ -410,7 +427,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 ghost( inode ) = is_ghost_SR[ii] || !orca->core( ix_glb, iy_glb );
 
                 if ( !orca->core( ix_glb, iy_glb ) ) {
-                    int ix_pivot = nx / 2;
                     if ( not patch && iy_glb >= ny - 1 ) {  // ORCA2_T, ORCA025_T, ORCA12_T
                         int iy_pivot = ny - 1;
                         int ix_fold  = ix_pivot - ( ix_glb - ix_pivot );
@@ -486,10 +502,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                             return -iy_glb;
                         }
                         else if( iy_glb >= ny ) {
-                            int h=0;
-                            while( not orca->core(std::min(ix_glb,nx-1),iy_glb-1-h) ) {
-                                h++;
+                            int h = 1;
+                            if ( patch && ix_glb < ix_pivot ) {               // case of eg ORCA1_T
+                                h = 0;
                             }
+//                            while( not orca->core(std::min(ix_glb,nx-1),iy_glb-1-h) ) {
+//                                h++;
+//                            }
                             return h;
                         }
                         else {
@@ -500,6 +519,23 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             ++ii;
         }
     }
+    int inode_south = ii;
+    if( include_south_pole ) {
+        inode = inode_south;
+        PointXY p{orca.xy(0,0).x()+180.,-90.};
+        lonlat(inode,LON) = p.x();
+        lonlat(inode,LAT) = p.y();
+        ij(inode,XX) = 0;
+        ij(inode,YY) = iy_glb_min - 1;
+        ghost(inode) = true;
+        lsm(inode) = 0; // land
+        flags(inode).set( Topology::LAND | Topology::SOUTH );
+        halo(inode) = orca->haloSouth()+1;
+        core(inode) = 0;
+        remote_idx(inode) = -1;
+        ++ii;
+    }
+
     auto elem_flags_view = array::make_view<int, 1>( mesh.cells().flags() );
     auto elem_flags      = [&]( idx_t i ) { return Topology::view( elem_flags_view( i ) ); };
 
@@ -521,13 +557,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         // std::swap( quad_nodes[2], quad_nodes[3] );
                     }
 
-                    node_connectivity.set( jcell, quad_nodes );
+                    node_connectivity.set( jcell, quad_nodes.data() );
                     cells_part( jcell ) = part( quad_nodes[0] );
 
-                    int ix_pivot = nx / 2;
                     if ( iy_glb >= ny - 1 ) {
                         elem_flags( jcell ).set( Topology::GHOST );
-                        bool patch = orca->core( ix_pivot + 1, ny - 1 );
                         if ( patch && ix_glb < ix_pivot ) {               // case of eg ORCA1_T
                             cells_part( jcell ) = part( quad_nodes[0] );  // lower left
                             elem_flags(jcell).unset( Topology::GHOST );
@@ -538,16 +572,16 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }
 
                     bool elem_contains_water_point = [&] {
-                        for ( idx_t jnode = 0; jnode < 4; ++jnode ) {
-                            if ( flags( quad_nodes[jnode] ).check( Topology::WATER ) ) {
+                        for ( idx_t inode: quad_nodes ) {
+                            if ( flags( inode ).check( Topology::WATER ) ) {
                                 return true;
                             }
                         }
                         return false;
                     }();
                     bool elem_contains_land_point = [&] {
-                        for ( idx_t jnode = 0; jnode < 4; ++jnode ) {
-                            if ( flags( quad_nodes[jnode] ).check( Topology::LAND ) ) {
+                        for ( idx_t inode: quad_nodes ) {
+                            if ( flags( inode ).check( Topology::LAND ) ) {
                                 return true;
                             }
                         }
@@ -555,8 +589,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }();
                     cells_halo(jcell) = [&] {
                         int h=0;
-                        for ( idx_t jnode = 0; jnode < 4; ++jnode ) {
-                            h = std::max(h,halo( quad_nodes[jnode]));
+                        for ( idx_t inode: quad_nodes ) {
+                            h = std::max(h,halo(inode));
                         }
                         return h;
                     }();
@@ -602,6 +636,30 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
+    if( include_south_pole ) {
+        int triag_begin  = mesh.cells().elements( 1 ).begin();
+        int jcell = triag_begin;
+        std::array<int,3> triag_nodes;
+        for( int ix=0; ix<nxl-1; ++ix ) {
+            ATLAS_ASSERT(jcell < mesh.cells().size());
+            triag_nodes[0] = local_idx_SR[ index(ix,0) ];
+            triag_nodes[2] = local_idx_SR[ index(ix+1,0) ];
+            triag_nodes[1] = inode_south;
+            node_connectivity.set(jcell,triag_nodes.data());
+            elem_flags(jcell).set( Topology::LAND | Topology::GHOST );
+            cells_halo(jcell) = [&] {
+                int h=0;
+                for( idx_t inode: triag_nodes ) {
+                    h = std::max(h,halo(inode));
+                }
+                return h;
+            }();
+            cells_part(jcell) = 0;
+            ++jcell;
+        }
+        ATLAS_ASSERT(jcell == mesh.cells().size());
+    }
+
 #if DEBUG_OUTPUT
     // list nodes
     for ( inode = 0; inode < nnodes; inode++ ) {
@@ -622,6 +680,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     generateGlobalElementNumbering( mesh );
 
     nodes.metadata().set( "parallel", true );
+    nodes.metadata().set<size_t>( "nbRealPts", nnodes - nb_extra_nodes );
+    nodes.metadata().set<size_t>( "NbVirtualPts", size_t( nb_extra_nodes ) );
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
