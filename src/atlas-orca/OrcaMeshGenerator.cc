@@ -80,12 +80,12 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     OrcaGrid rg{grid};
 
 //        bool periodic_x = true;  // options.get<bool>( "periodic_x" ) or rg.periodic();
-        bool periodic_x = false;  // options.get<bool>( "periodic_x" ) or rg.periodic();
+    bool periodic_x = false;  // options.get<bool>( "periodic_x" ) or rg.periodic();
 
-    bool include_south_pole = true;
+    bool include_south_pole = include_pole_ ;
 
-    int mypart  = options_.getInt( "part", mpi::rank() );
-    int nparts  = options_.getInt( "nb_parts", mpi::size() );
+    int mypart  = mypart_;
+    int nparts  = nparts_;
     int nx      = rg.nx();
     int ny      = rg.ny();
     int ny_halo = ny + orca->haloNorth();
@@ -203,25 +203,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         is_ghost_SR.at(ii) = true;
     }
 
-#if DEBUG_OUTPUT_DETAIL
-    std::cout << "[" << mypart << "] : "
-              << "parts_SR = ";
-    for ( ii = 0; ii < nnodes_SR; ii++ )
-        std::cout << parts_SR[ii] << ",";
-    std::cout << std::endl;
-    std::cout << "[" << mypart << "] : "
-              << "local_idx_SR = ";
-
-    for ( ii = 0; ii < nnodes_SR; ii++ )
-        std::cout << local_idx_SR[ii] << ",";
-    std::cout << std::endl;
-    std::cout << "[" << mypart << "] : "
-              << "is_ghost_SR = ";
-    for ( ii = 0; ii < nnodes_SR; ii++ )
-        std::cout << is_ghost_SR[ii] << ",";
-    std::cout << std::endl;
-#endif
-
     // vectors marking nodes that are necessary for this proc's cells
     std::vector<bool> is_node_SR( nnodes_SR, false );
 
@@ -270,16 +251,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     if( nparts == 1 ) {
         ATLAS_ASSERT( (periodic_x ? (nx+1)*ny_halo_NS : nx_halo_WE*ny_halo_NS )+ nb_extra_nodes == nnodes );
     }
-
-#if DEBUG_OUTPUT_DETAIL
-    std::cout << "[" << mypart << "] : "
-              << "nnodes = " << nnodes << std::endl;
-    std::cout << "[" << mypart << "] : "
-              << "is_node_SR = ";
-    for ( ii = 0; ii < nnodes_SR; ii++ )
-        std::cout << is_node_SR[ii] << ",";
-    std::cout << std::endl;
-#endif
 
     // define nodes and associated properties
     mesh.nodes().resize( nnodes );
@@ -350,7 +321,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         for ( ix = 0; ix < nxl; ix++ ) {
             ix_glb = ( ix_min + ix );  // don't take modulus here: periodicity points
                                        // have their own global index.
-            //const double periodicity = ( ix_glb >= nx ) ? 360. : ( ix_glb < 0 ) ? -360. : 0.;
             // node properties
             if ( is_node_SR[ii] ) {
                 // set node counter
@@ -381,12 +351,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 // normal calculation
                 orca.xy( ix_glb, iy_glb, _xy );
                 normalise( _xy );
-
-                // testing Hack to get unique id (Don't ever do this)
-                //                if ( orca.ghost( ix_glb, iy_glb ) || iy_glb >= ny - 1 ) {
-                //                    _xy[LAT] -= double( iy_glb ) * 0.00001;
-                //                    _xy[LON] += double( ix_glb ) * 0.00001;
-                //                }
 
                 xy( inode, LON ) = _xy[LON];
                 xy( inode, LAT ) = _xy[LAT];
@@ -609,6 +573,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     nodes.metadata().set( "parallel", true );
     nodes.metadata().set<size_t>( "nbRealPts", nnodes - nb_extra_nodes );
     nodes.metadata().set<size_t>( "NbVirtualPts", size_t( nb_extra_nodes ) );
+}
+
+OrcaMeshGenerator::OrcaMeshGenerator(const eckit::Parametrisation & config) {
+    config.get("include_pole",include_pole_);
+    config.get("force_include_south_pole",include_pole_);
+    config.get("part", mypart_ = mpi::rank() );
+    config.get("nb_parts", nparts_ = mpi::size() );
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {

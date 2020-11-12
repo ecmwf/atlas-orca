@@ -29,6 +29,7 @@
 #include "atlas/util/Point.h"
 #include "atlas/util/UnitSphere.h"
 
+#include "eckit/log/ProgressTimer.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Statistics.h"
 #include "eckit/utils/Hash.h"
@@ -76,7 +77,7 @@ std::string Orca::type() const {
 Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_( name ) {
 #define EXPERIMENT_WITH_COARSENING 0
 
-    ATLAS_TRACE( "Orca(" + name + ")" );
+    auto trace = atlas::Trace( Here(), "Orca(" + name + ")" );
 
     if ( not path_name.exists() ) {
         ATLAS_THROW_EXCEPTION( "Could not locate orca grid file " << path_name );
@@ -114,20 +115,34 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     core_.reserve( nx_halo_ * ny_halo_ );
 
     // Reading coordinates
-    PointXY p;
-    double f1, f2;
-    for ( auto jj = 0; jj != ny_halo_; ++jj ) {
-        for ( auto ii = 0; ii != nx_halo_; ++ii ) {
-            std::getline( ifstrm, line );
-            std::istringstream iss{line};
-            ATLAS_ASSERT( iss >> p[1] >> p[0] >> f1 >> f2, "Error while reading coordinates" );
-            lsm_.emplace_back( f1 );
-            core_.emplace_back( f2 );
-            points_halo_.emplace_back( p );
+
+    size_t npts = nx_halo_*ny_halo_;
+    {
+        eckit::Channel blackhole;
+        eckit::ProgressTimer progress( "Reading "+name+" from file "+path_name.asString(), npts, " point", double( 1 ),
+                                   npts > 2.e6 ? Log::info() : blackhole );
+
+        PointXY p;
+        double lsm, core;
+        for ( auto jj = 0; jj != ny_halo_; ++jj ) {
+            for ( auto ii = 0; ii != nx_halo_; ++ii, ++progress ) {
+                std::getline( ifstrm, line );
+                std::istringstream iss{line};
+                ATLAS_ASSERT( iss >> p[1] >> p[0] >> lsm >> core, "Error while reading coordinates" );
+                lsm_.emplace_back( lsm );
+                core_.emplace_back( core );
+                points_halo_.emplace_back( p );
+            }
         }
     }
-
     domain_ = GlobalDomain{hardcoded_west( name )};
+    trace.stop();
+    if( trace.elapsed() > 1. ) {
+        if( npts <= 2.e6 ){
+            Log::info() << "Reading " << name << " from file " << path_name << " took " << trace.elapsed() << " seconds." << std::endl;
+        }
+        Log::info() << "  --> This will be greatly optimized soon when input is replaced with binary format." << std::endl;
+    }
 }
 
 void Orca::hash( eckit::Hash& h ) const {

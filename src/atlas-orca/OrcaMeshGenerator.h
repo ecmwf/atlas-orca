@@ -29,7 +29,7 @@ namespace meshgenerator {
 
 class OrcaMeshGenerator : public MeshGenerator::Implementation {
 public:
-    OrcaMeshGenerator( const eckit::Parametrisation& = util::NoConfig() ) {}
+    OrcaMeshGenerator( const eckit::Parametrisation& = util::NoConfig() );
 
     using MeshGenerator::Implementation::generate;
 
@@ -43,7 +43,9 @@ public:
 private:
     void hash( eckit::Hash& ) const override;
 
-    util::Config options_;
+    bool include_pole_{false};
+    int nparts_;
+    int mypart_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

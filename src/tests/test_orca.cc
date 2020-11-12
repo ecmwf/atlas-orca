@@ -55,22 +55,47 @@ CASE( "test generate orca mesh" ) {
 
 
 CASE( "test orca grid iterator" ) {
-    std::string gridname = "ORCA2_T";
-    SECTION( gridname ) {
-        auto grid = Grid{gridname};
-        Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
+    struct Section{
+        std::string gridname;
+        size_t size;
+    };
 
-        idx_t n = 0;
-        ATLAS_TRACE_SCOPE("iterating") {
-            for( auto& p : grid.lonlat() ) {
-                ++n;
+    std::vector<Section> sections{
+        {"ORCA2_T",27118},
+        {"ORCA1_T",105704},
+        {"ORCA025_T",1472282},
+    };
+    for( auto& section: sections ) {
+        std::string gridname = section.gridname;
+        SECTION( gridname ) {
+            auto grid = Grid{gridname};
+
+            EXPECT_EQ( grid.size(), section.size );
+
+            Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
+
+            idx_t n = 0;
+            {
+                auto trace = Trace(Here(),"iterating");
+                for( auto& p : grid.lonlat() ) {
+                    ++n;
+                }
+                trace.stop();
+                Log::info() << "iterating took " << trace.elapsed() << " seconds" << std::endl;
             }
+            EXPECT_EQ( n, grid.size() );
+            Log::info() << "First point: " << grid.lonlat().front() << std::endl;
+            Log::info() << "Last point: " << grid.lonlat().back() << std::endl;
+
+            ATLAS_TRACE_SCOPE( "Mesh generation" ) {
+                auto mesh = Mesh{grid};
+                EXPECT_EQ(mesh.nodes().size(),grid.size());
+            }
+
+            // Now with extra virtual point at south pole
+            EXPECT_EQ((MeshGenerator{"orca",util::Config("include_pole",true)}.generate(grid).nodes().size()),grid.size()+1);
+            EXPECT_EQ((MeshGenerator{"orca",util::Config("force_include_south_pole",true)}.generate(grid).nodes().size()),grid.size()+1);
         }
-        EXPECT_EQ( n, grid.size() );
-        Log::info() << "First point: " << grid.lonlat().front() << std::endl;
-        Log::info() << "Last point: " << grid.lonlat().back() << std::endl;
-        auto mesh = Mesh{grid};
-        EXPECT_EQ(mesh.nodes().size(),grid.size()+1); // One extra virtual point at south pole
     }
 }
 
