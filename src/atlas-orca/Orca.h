@@ -174,8 +174,9 @@ public:
 
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
 
-    bool lsm( idx_t i, idx_t j ) const { return lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
-    bool core( idx_t i, idx_t j ) const { return core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool water( idx_t i, idx_t j ) const { return lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool land( idx_t i, idx_t j ) const { return not lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool ghost( idx_t i, idx_t j ) const { return not core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
     virtual std::unique_ptr<Grid::IteratorXY> xy_begin() const override {
         return std::unique_ptr<Grid::IteratorXY>( new IteratorXY( *this ) );

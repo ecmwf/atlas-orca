@@ -356,7 +356,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     inode_ghost    = nnodes_nonghost;  // ghost nodes start counting after nonghost nodes
 
     int ix_pivot = nx / 2;
-    bool patch = orca->core( ix_pivot + 1, ny - 1 );
+    bool patch = not orca->ghost( ix_pivot + 1, ny - 1 );
     ATLAS_DEBUG_VAR( patch );
 
     for ( iy = 0; iy < nyl; iy++ ) {
@@ -409,7 +409,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 normalise( _xy );
 
                 // testing Hack to get unique id (Don't ever do this)
-                //                if ( !orca->core( ix_glb, iy_glb ) || iy_glb >= ny - 1 ) {
+                //                if ( orca->ghost( ix_glb, iy_glb ) || iy_glb >= ny - 1 ) {
                 //                    _xy[LAT] -= double( iy_glb ) * 0.00001;
                 //                    _xy[LON] += double( ix_glb ) * 0.00001;
                 //                }
@@ -424,9 +424,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 // part
                 part( inode ) = parts_SR[ii];
                 // ghost nodes
-                ghost( inode ) = is_ghost_SR[ii] || !orca->core( ix_glb, iy_glb );
+                ghost( inode ) = is_ghost_SR[ii] || orca->ghost( ix_glb, iy_glb );
 
-                if ( !orca->core( ix_glb, iy_glb ) ) {
+                if ( orca->ghost( ix_glb, iy_glb ) ) {
                     if ( not patch && iy_glb >= ny - 1 ) {  // ORCA2_T, ORCA025_T, ORCA12_T
                         int iy_pivot = ny - 1;
                         int ix_fold  = ix_pivot - ( ix_glb - ix_pivot );
@@ -483,14 +483,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     remote_idx( inode ) = -1;
                 }
 
-                if ( orca->lsm( ix_glb, iy_glb ) == 0 ) {
+                if ( orca.land( ix_glb, iy_glb ) == 0 ) {
                     flags( inode ).set( Topology::LAND );
                 }
                 else {
                     flags( inode ).set( Topology::WATER );
                 }
-                lsm( inode )  = orca->lsm( ix_glb, iy_glb );
-                core( inode ) = orca->core( ix_glb, iy_glb );
+                lsm( inode )  = orca.water( ix_glb, iy_glb );
+                core( inode ) = not orca.ghost( ix_glb, iy_glb );
                 halo( inode ) = [&]() -> int {
                         if( ix_glb < 0 ) {
                             return -ix_glb;

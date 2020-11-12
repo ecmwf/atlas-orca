@@ -58,8 +58,9 @@ public:
     PointXY xy( idx_t i, idx_t j ) const { return grid_->xy( i, j ); }
     PointLonLat lonlat( idx_t i, idx_t j ) const { return grid_->lonlat( i, j ); }
 
-    double f1( idx_t i, idx_t j ) const { return grid_->lsm( i, j ); }
-    double f2( idx_t i, idx_t j ) const { return grid_->core( i, j ); }
+    bool water( idx_t i, idx_t j ) const { return grid_->water( i, j ); }
+    bool land( idx_t i, idx_t j ) const { return not grid_->land( i, j ); }
+    bool ghost( idx_t i, idx_t j ) const { return grid_->ghost( i, j ); }
 
     const grid_t* get() const { return grid_; }
     const grid_t* operator->() const { return get(); }
