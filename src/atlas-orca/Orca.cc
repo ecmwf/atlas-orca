@@ -135,7 +135,7 @@ void Orca::hash( eckit::Hash& h ) const {
 }
 
 idx_t Orca::size() const {
-    return nx_ * ny_;
+    return nx_halo_ * ny_halo_;
 }
 
 /// @return parallel/meridian limits containing the grid

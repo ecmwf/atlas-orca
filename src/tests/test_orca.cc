@@ -67,8 +67,10 @@ CASE( "test orca grid iterator" ) {
             }
         }
         EXPECT_EQ( n, grid.size() );
-        Log::info() << "First point: " << *grid.lonlat().begin() << std::endl;
-        Log::info() << "Last point: " << *(grid.lonlat().begin()+(grid.size()-1)) << std::endl;
+        Log::info() << "First point: " << grid.lonlat().front() << std::endl;
+        Log::info() << "Last point: " << grid.lonlat().back() << std::endl;
+        auto mesh = Mesh{grid};
+        EXPECT_EQ(mesh.nodes().size(),grid.size()+1); // One extra virtual point at south pole
     }
 }
 

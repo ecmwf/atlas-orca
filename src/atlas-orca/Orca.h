@@ -57,6 +57,10 @@ private:
     class OrcaIterator : public Base {
     protected:
         const Orca& grid_;
+        idx_t ibegin_;
+        idx_t iend_;
+        idx_t jbegin_;
+        idx_t jend_;
         idx_t i_;
         idx_t j_;
         typename Base::value_type point_;
@@ -64,20 +68,27 @@ private:
 
     public:
         OrcaIterator( const Orca& grid, bool begin = true ) :
-            grid_( grid ), i_( 0 ), j_( 0 ), compute_point_{grid_} {
+            grid_( grid ),
+            ibegin_( -grid.haloWest() ),
+            iend_(grid.nx()+grid.haloEast()),
+            jbegin_(-grid.haloSouth()),
+            jend_(grid.ny()+grid.haloNorth()),
+            i_( -grid.haloWest() ),
+            j_( -grid.haloSouth() ),
+            compute_point_{grid_} {
             if( not begin ) {
-                i_ = 0;
-                j_ = grid_.ny();
+                i_ = ibegin_;
+                j_ = jend_;
             }
             compute_point_( i_, j_, point_ );
         }
 
         bool next( typename Base::value_type& point ) override {
-            if ( j_ < grid_.ny() && i_ < grid_.nx() ) {
+            if ( j_ < jend_ && i_ < iend_ ) {
                 compute_point_( i_++, j_, point );
-                if ( i_ == grid_.nx() ) {
+                if ( i_ == iend_ ) {
                     ++j_;
-                    i_ = 0;
+                    i_ = ibegin_;
                 }
                 return true;
             }
@@ -88,9 +99,9 @@ private:
 
         const Base& operator++() override {
             ++i_;
-            if ( i_ == grid_.nx() ) {
+            if ( i_ == iend_ ) {
                 ++j_;
-                i_ = 0;
+                i_ = ibegin_;
             }
             compute_point_( i_, j_, point_ );
             return *this;
@@ -99,10 +110,10 @@ private:
 
         const Base& operator+=( typename Base::difference_type distance ) override {
             idx_t d = distance;
-            while ( j_ != grid_.ny() && d >= ( grid_.nx() - i_ ) ) {
-                d -= ( grid_.nx() - i_ );
+            while ( j_ != jend_ && d >= ( iend_ - i_ ) ) {
+                d -= ( iend_ - i_ );
                 ++j_;
-                i_ = 0;
+                i_ = ibegin_;
             }
             i_ += d;
             compute_point_( i_, j_, point_ );
@@ -115,7 +126,7 @@ private:
             idx_t j                          = j_;
             idx_t i                          = i_;
             while ( j < _other.j_ ) {
-                d += grid_.nx() - i;
+                d += iend_ - i;
                 ++j;
                 i = 0;
             }
