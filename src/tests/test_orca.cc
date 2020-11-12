@@ -53,6 +53,25 @@ CASE( "test generate orca mesh" ) {
     SECTION( "auto_generate" ) { auto mesh = Mesh{Grid{gridname}}; }
 }
 
+
+CASE( "test orca grid iterator" ) {
+    std::string gridname = "ORCA2_T";
+    SECTION( gridname ) {
+        auto grid = Grid{gridname};
+        Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
+
+        idx_t n = 0;
+        ATLAS_TRACE_SCOPE("iterating") {
+            for( auto& p : grid.lonlat() ) {
+                ++n;
+            }
+        }
+        EXPECT_EQ( n, grid.size() );
+        Log::info() << "First point: " << *grid.lonlat().begin() << std::endl;
+        Log::info() << "Last point: " << *(grid.lonlat().begin()+(grid.size()-1)) << std::endl;
+    }
+}
+
 //-----------------------------------------------------------------------------
 
 }  // namespace test

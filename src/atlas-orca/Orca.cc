@@ -89,8 +89,7 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     std::getline( ifstrm, line );
     std::istringstream iss{line};
 
-    idx_t nx_halo, ny_halo;
-    ATLAS_ASSERT( iss >> nx_halo >> ny_halo >> periodicity_ >> halo_east_ >> halo_west_ >> halo_south_ >> halo_north_,
+    ATLAS_ASSERT( iss >> nx_halo_ >> ny_halo_ >> periodicity_ >> halo_east_ >> halo_west_ >> halo_south_ >> halo_north_,
                   "Error while reading header " );
 
     auto getEnv = []( const std::string& env, int default_value ) {
@@ -102,27 +101,23 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
 
     halo_south_ = getEnv( "halo_south", halo_south_ );
 
-    nx_      = nx_halo - halo_east_ - halo_west_;
-    ny_      = ny_halo - halo_north_ - halo_south_;
-    jstride_ = nx_halo;
+    nx_      = nx_halo_ - halo_east_ - halo_west_;
+    ny_      = ny_halo_ - halo_north_ - halo_south_;
+    jstride_ = nx_halo_;
 
     halo_north_ = std::min( halo_north_, getEnv( "halo_north", halo_north_ ) );
     imin_       = halo_east_;
     jmin_       = halo_south_;
 
-    ATLAS_DEBUG_VAR( jmin_ );
-    ATLAS_DEBUG_VAR( ny_ );
-    ATLAS_DEBUG_VAR( halo_north_ );
-
-    points_halo_.reserve( nx_halo * ny_halo );
-    lsm_.reserve( nx_halo * ny_halo );
-    core_.reserve( nx_halo * ny_halo );
+    points_halo_.reserve( nx_halo_ * ny_halo_ );
+    lsm_.reserve( nx_halo_ * ny_halo_ );
+    core_.reserve( nx_halo_ * ny_halo_ );
 
     // Reading coordinates
     PointXY p;
     double f1, f2;
-    for ( auto jj = 0; jj != ny_halo; ++jj ) {
-        for ( auto ii = 0; ii != nx_halo; ++ii ) {
+    for ( auto jj = 0; jj != ny_halo_; ++jj ) {
+        for ( auto ii = 0; ii != nx_halo_; ++ii ) {
             std::getline( ifstrm, line );
             std::istringstream iss{line};
             ATLAS_ASSERT( iss >> p[1] >> p[0] >> f1 >> f2, "Error while reading coordinates" );

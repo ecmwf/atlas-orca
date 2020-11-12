@@ -57,7 +57,6 @@ private:
     class OrcaIterator : public Base {
     protected:
         const Orca& grid_;
-        idx_t size_;
         idx_t i_;
         idx_t j_;
         typename Base::value_type point_;
@@ -65,14 +64,17 @@ private:
 
     public:
         OrcaIterator( const Orca& grid, bool begin = true ) :
-            grid_( grid ), size_( grid_.size() ), i_( 0 ), j_( 0 ), compute_point_{grid_} {
+            grid_( grid ), i_( 0 ), j_( 0 ), compute_point_{grid_} {
+            if( not begin ) {
+                i_ = 0;
+                j_ = grid_.ny();
+            }
             compute_point_( i_, j_, point_ );
         }
 
         bool next( typename Base::value_type& point ) override {
             if ( j_ < grid_.ny() && i_ < grid_.nx() ) {
                 compute_point_( i_++, j_, point );
-
                 if ( i_ == grid_.nx() ) {
                     ++j_;
                     i_ = 0;
@@ -126,7 +128,9 @@ private:
                    i_ == static_cast<const OrcaIterator&>( other ).i_;
         }
 
-        bool operator!=( const Base& other ) const override { return !( *this == other ); }
+        bool operator!=( const Base& other ) const override {
+            return !( *this == other );
+        }
 
         std::unique_ptr<Base> clone() const override {
             auto result    = new OrcaIterator( grid_, false );
@@ -208,6 +212,7 @@ private:  // methods
 private:
     /// Grid size
     idx_t nx_, ny_, periodicity_, halo_east_, halo_west_, halo_south_, halo_north_;
+    idx_t nx_halo_, ny_halo_;
 
     /// Storage of coordinate points
     std::vector<PointXY> points_halo_;
