@@ -37,6 +37,8 @@ namespace grid {
 
 class Orca final : public Grid {
 private:
+    struct OrcaInfo;
+
     struct ComputePointXY {
         ComputePointXY( const Orca& grid ) : grid_( grid ) {}
 
@@ -183,11 +185,22 @@ public:
 
     PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
+    gidx_t index( idx_t i, idx_t j ) const { return (imin_+i) + (jmin_+j) * jstride_; }
+
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
 
     bool water( idx_t i, idx_t j ) const { return lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
     bool land( idx_t i, idx_t j ) const { return not lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
     bool ghost( idx_t i, idx_t j ) const { return not core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+
+    gidx_t periodicIndex( idx_t i, idx_t j) const;
+
+    void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const {
+        //gidx = jstride_ * (jmin_+j) + (imin_+i);
+        j = gidx / jstride_ - jmin_;
+        i = gidx - (jstride_ * (j+jmin_)) - imin_;
+    }
+
 
     virtual std::unique_ptr<Grid::IteratorXY> xy_begin() const override {
         return std::unique_ptr<Grid::IteratorXY>( new IteratorXY( *this ) );
@@ -239,6 +252,7 @@ private:
 
     /// Cache for the spec since may be quite heavy to compute
     mutable std::unique_ptr<Grid::Spec> cached_spec_;
+    std::unique_ptr<OrcaInfo> info_;
 };
 
 extern "C" {

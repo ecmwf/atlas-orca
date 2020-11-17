@@ -100,20 +100,24 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         include_south_pole = false;
     }
     int nb_extra_nodes = include_south_pole ? 1 : 0;
-
-    gidx_t ii_glb;  // global index
     int ncells;
 
     // vector of local indices: necessary for remote indices of ghost nodes
     std::vector<idx_t> local_idx( nx_halo_WE * ny_halo_NS, -1 );
     idx_t local_idx_offset = periodic_x ? - ( nx* iy_glb_min ) : - (nx_halo_WE*iy_glb_min) - ix_glb_min;
     idx_t local_idx_jstride = (periodic_x?nx:nx_halo_WE);
-    auto global_to_local = [&](idx_t i, idx_t j) {
+
+    auto compute_global_offset = [&](idx_t i, idx_t j) {
         ATLAS_ASSERT(i <= ix_glb_max );
         ATLAS_ASSERT(j <= iy_glb_max );
-        idx_t n = local_idx_offset + j*local_idx_jstride + i;
+        return local_idx_offset + j*local_idx_jstride + i;
+    };
+
+    auto global_to_local = [&](idx_t i, idx_t j) {
+        idx_t n = compute_global_offset(i,j);
         return local_idx.at(n);
     };
+
 
     std::vector<int> current_idx( nparts, 0 );  // index counter for each proc
 
@@ -141,21 +145,23 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     iy_max          = 0;
     nnodes_nonghost = 0;
 
-    ii_glb = 0;
-    for ( iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
-        for ( ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
-            int p             = partition( ix, iy );
-            local_idx.at(ii_glb) = current_idx[p]++;  // store local index on
-                                                   // the local proc of
-                                                   // this point
-            if ( p == mypart ) {
-                ++nnodes_nonghost;  // non-ghost node: belongs to this part
-                ix_min = std::min( ix_min, ix );
-                ix_max = std::max( ix_max, ix );
-                iy_min = std::min( iy_min, iy );
-                iy_max = std::max( iy_max, iy );
+    {
+        gidx_t ii_glb = 0;
+        for ( iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
+            for ( ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                int p             = partition( ix, iy );
+                local_idx.at(ii_glb) = current_idx[p]++;  // store local index on
+                // the local proc of
+                // this point
+                if ( p == mypart ) {
+                    ++nnodes_nonghost;  // non-ghost node: belongs to this part
+                    ix_min = std::min( ix_min, ix );
+                    ix_max = std::max( ix_max, ix );
+                    iy_min = std::min( iy_min, iy );
+                    iy_max = std::max( iy_max, iy );
+                }
+                ++ii_glb;  // global index
             }
-            ++ii_glb;  // global index
         }
     }
 
@@ -269,7 +275,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         nodes.add( Field( "lsm", array::make_datatype<int>(), array::make_shape( nodes.size() ) ) ) );
     auto core = array::make_view<int, 1>(
         nodes.add( Field( "core", array::make_datatype<int>(), array::make_shape( nodes.size() ) ) ) );
-
+    auto master_glb_idx = array::make_view<gidx_t,1>( nodes.add( Field("master_global_index", array::make_datatype<gidx_t>(), array::make_shape( nodes.size() ))));
 
     // define cells and associated properties
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
@@ -297,6 +303,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
+
     // loop over nodes and set properties
     ii             = 0;
     inode_nonghost = 0;
@@ -304,6 +311,30 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     int ix_pivot = nx / 2;
     bool patch = not orca.ghost( ix_pivot + 1, ny - 1 );
+
+    struct PointIJ {
+        idx_t i;
+        idx_t j;
+    };
+    auto fold = [&](idx_t i, idx_t j) {
+        PointIJ p;
+        if ( not patch && j >= ny - 1 ) {  // ORCA2_T, ORCA025_T, ORCA12_T
+            int iy_pivot = ny - 1;
+            p.i  = ix_pivot - ( i - ix_pivot );
+            p.j  = iy_pivot - ( j - iy_pivot );
+        }
+        else if ( patch && j >= ny ) {  // ORCA1_T
+            double iy_pivot = double( ny ) - 0.5;
+            p.i     = 2 * ix_pivot - 1 - i;
+            p.j    = int( 2. * iy_pivot ) - j;
+        }
+        else {
+            p.i = i;
+            p.j = j;
+        }
+        return p;
+    };
+
     for ( iy = 0; iy < nyl; iy++ ) {
         iy_glb = iy_min + iy;
         ATLAS_ASSERT( iy_glb < ny_halo );
@@ -332,14 +363,20 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     inode = inode_nonghost++;
                     ATLAS_ASSERT( inode < nnodes_nonghost );
                 }
+
+                // ghost nodes
+                ghost( inode ) = is_ghost_SR[ii] || orca.ghost( ix_glb, iy_glb );
+
+                // flags
+                flags( inode ).reset();
+
                 // global index
                 if ( ix_glb < nx || not periodic_x ) {
-                    ii_glb = local_idx_offset + iy_glb * local_idx_jstride + ix_glb;  // no periodic point
+                    glb_idx( inode ) = compute_global_offset(ix_glb,iy_glb) + 1;  // no periodic point
                 }
                 else {
-                    ii_glb = glb_idx_px.at(iy_glb - iy_glb_min);
+                    glb_idx( inode ) = glb_idx_px.at(iy_glb - iy_glb_min) + 1;
                 }
-                glb_idx( inode ) = ii_glb + 1;  // starting from 1
 
                 // grid coordinates
 
@@ -359,57 +396,16 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 lonlat( inode, LON ) = _xy[LON];
                 lonlat( inode, LAT ) = _xy[LAT];
 
-                // part
+                // part and remote_idx
                 part( inode ) = parts_SR[ii];
-                // ghost nodes
-                ghost( inode ) = is_ghost_SR[ii] || orca.ghost( ix_glb, iy_glb );
-
-                if ( orca.ghost( ix_glb, iy_glb ) ) {
-                    if ( not patch && iy_glb >= ny - 1 ) {  // ORCA2_T, ORCA025_T, ORCA12_T
-                        int iy_pivot = ny - 1;
-                        int ix_fold  = ix_pivot - ( ix_glb - ix_pivot );
-                        int iy_fold  = iy_pivot - ( iy_glb - iy_pivot );
-#if 0
-                        // known to fail for ORCA1_F
-                        // known to work for ORCA2_T
-                        auto p_fold = orca.lonlat( ix_fold, iy_fold );
-                        normalise( p_fold.data() );
-                        auto p_this = orca.lonlat( ix_glb, iy_glb );
-                        normalise( p_this.data() );
-                        Log::info() << "[" << mpi::rank() << "]  (" << ix_glb << "," << iy_glb << ") " << p_this
-                                    << "   (" << ix_fold << "," << iy_fold << ") " << p_fold << std::endl;
-                        //   ATLAS_ASSERT( p_fold == p_this ); fails due to bugs in the actual data files ?
-#endif
-                        part( inode ) = partition( ix_fold, iy_fold );
-                    }
-                    else if ( patch && iy_glb >= ny ) {  // ORCA1_T
-                        double iy_pivot = double( ny ) - 0.5;
-                        int ix_fold     = 2 * ix_pivot - 1 - ix_glb;
-                        int iy_fold     = int( 2. * iy_pivot ) - iy_glb;
-#if 0
-                        auto p_fold = orca.lonlat( ix_fold, iy_fold );
-                        normalise( p_fold.data() );
-                        auto p_this = orca.lonlat( ix_glb, iy_glb );
-                        normalise( p_this.data() );
-                        Log::info() << "[" << mpi::rank() << "] " << p_this << "   " << p_fold << std::endl;
-                        ATLAS_ASSERT( p_fold == p_this );
-#endif
-                        part( inode ) = partition( ix_fold, iy_fold );
-                    }
-                    else if ( ix_glb >= nx ) {
-                        part( inode ) = partition( nx - ix_glb, iy_glb );
-                    }
-                    else if ( ix_glb < 0 ) {
-                        part( inode ) = partition( nx + ix_glb, iy_glb );
-                    }
-                    else {
-                        // something here?
-                    }
-                }
-
-                // flags
-                flags( inode ).reset();
-                if ( ghost( inode ) ) {
+                remote_idx( inode ) = inode;
+                master_glb_idx( inode ) = glb_idx( inode );
+                if ( ghost(inode) ) {
+                    gidx_t master_idx = orca->periodicIndex( ix_glb, iy_glb );
+                    master_glb_idx( inode ) = master_idx + 1;
+                    PointIJ master;
+                    orca->index2ij( master_idx, master.i, master.j );
+                    part(inode) = partition( master.i, master.j );
                     //                    ATLAS_DEBUG( "ghost: " << ix_glb << ", " << iy_glb << "  inode = " << inode
                     //                                           << " P = " << PointLonLat( _xy ) );
                     flags( inode ).set( Topology::GHOST );
@@ -417,8 +413,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     // change local index -- required for cells
                     local_idx_SR[ii] = inode;
                 }
-                else {
-                    remote_idx( inode ) = -1;
+
+                if( ix_glb >= nx-orca->haloWest() ) {
+                    flags(inode).set(Topology::PERIODIC);
+                }
+                else if( ix_glb < orca->haloEast() ) {
+                    flags(inode).set(Topology::PERIODIC);
+                }
+                if( iy_glb >= ny - orca->haloNorth() - 1 ) {
+                    flags(inode).set(Topology::PERIODIC);
                 }
 
                 if ( orca.land( ix_glb, iy_glb ) == 0 ) {
@@ -427,6 +430,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 else {
                     flags( inode ).set( Topology::WATER );
                 }
+                if( ix_glb <= 0 ) {
+                    flags(inode).set( Topology::BC | Topology::WEST );
+                }
+                else if( ix_glb >= nx ) {
+                    flags(inode).set( Topology::BC | Topology::EAST );
+                }
+
                 lsm( inode )  = orca.water( ix_glb, iy_glb );
                 core( inode ) = not orca.ghost( ix_glb, iy_glb );
                 halo( inode ) = [&]() -> int {
