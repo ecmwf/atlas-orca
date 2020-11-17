@@ -167,7 +167,7 @@ void build_periodic_boundaries( Mesh& mesh ) {
                         master_nodes.push_back( ll.lat() );
                         master_nodes.push_back( jnode );
                     }
-                    Log::info() << "master " << jnode << "  " << PointXY{ij( jnode, 0 ), ij( jnode, 1 )} << std::endl;
+                    // Log::info() << "master " << jnode << "  " << PointXY{ij( jnode, 0 ), ij( jnode, 1 )} << std::endl;
                 }
                 else if ( flags.check( Topology::BC | Topology::EAST ) ) {
                     flags.set( Topology::PERIODIC | Topology::GHOST );
@@ -178,7 +178,7 @@ void build_periodic_boundaries( Mesh& mesh ) {
                     slave_nodes.push_back( ll.lat() );
                     slave_nodes.push_back( jnode );
                     ridx( jnode ) = -1;
-                    Log::info() << "slave " << jnode << "  " << PointXY{ij( jnode, 0 ), ij( jnode, 1 )} << std::endl;
+                    // Log::info() << "slave " << jnode << "  " << PointXY{ij( jnode, 0 ), ij( jnode, 1 )} << std::endl;
                 }
             }
         };

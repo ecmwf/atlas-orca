@@ -72,13 +72,13 @@ struct Orca::OrcaInfo {
             exceptions[PointIJ{359, 290}] = PointIJ{359, 289};
         }
         patch = not grid.ghost( ix_pivot + 1, grid.ny() - 1 );
-        ATLAS_DEBUG_VAR( g.name() );
-        ATLAS_DEBUG_VAR( g.nx() );
-        ATLAS_DEBUG_VAR( g.ny() );
-        ATLAS_DEBUG_VAR( g.haloWest() );
-        ATLAS_DEBUG_VAR( g.haloNorth() );
-        ATLAS_DEBUG_VAR( patch );
-        ATLAS_DEBUG_VAR( ix_pivot );
+//        ATLAS_DEBUG_VAR( g.name() );
+//        ATLAS_DEBUG_VAR( g.nx() );
+//        ATLAS_DEBUG_VAR( g.ny() );
+//        ATLAS_DEBUG_VAR( g.haloWest() );
+//        ATLAS_DEBUG_VAR( g.haloNorth() );
+//        ATLAS_DEBUG_VAR( patch );
+//        ATLAS_DEBUG_VAR( ix_pivot );
     }
     bool patch;
     int ix_pivot;
@@ -95,7 +95,7 @@ struct Orca::OrcaInfo {
         }
     }
     bool in_halo( idx_t i ) const { return i < 0 || i >= grid.nx(); }
-    PointIJ fold( idx_t i, idx_t j ) const {
+    PointIJ periodicIndex( idx_t i, idx_t j ) const {
         if ( exceptions.size() ) {
             auto it = exceptions.find( PointIJ{i, j} );
             if ( it != exceptions.end() ) {
@@ -206,7 +206,8 @@ std::string Orca::type() const {
 }
 
 gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
-    PointIJ p = info_->fold( i, j );
+    // Something like this will not need to be computed in the future, it will come from file.
+    PointIJ p = info_->periodicIndex( i, j );
     return index( p.i, p.j );
 }
 
@@ -292,12 +293,10 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
             set_core( 2160, 3056, true );
         }
         if ( name == "ORCA025_T" ) {
-            // ghost(720,1018) = false
             set_core( 720, 1018, true );
             point( 720, 1019 ) = xy( 720, 1017 );
         }
         if ( name == "ORCA2_T" ) {
-            // ghost(90,146) = false
             set_core( 90, 146, true );
         }
         if ( name == "ORCA1_T" ) {
