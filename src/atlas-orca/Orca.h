@@ -72,13 +72,13 @@ private:
         OrcaIterator( const Orca& grid, bool begin = true ) :
             grid_( grid ),
             ibegin_( -grid.haloWest() ),
-            iend_(grid.nx()+grid.haloEast()),
-            jbegin_(-grid.haloSouth()),
-            jend_(grid.ny()+grid.haloNorth()),
+            iend_( grid.nx() + grid.haloEast() ),
+            jbegin_( -grid.haloSouth() ),
+            jend_( grid.ny() + grid.haloNorth() ),
             i_( -grid.haloWest() ),
             j_( -grid.haloSouth() ),
             compute_point_{grid_} {
-            if( not begin ) {
+            if ( not begin ) {
                 i_ = ibegin_;
                 j_ = jend_;
             }
@@ -141,9 +141,7 @@ private:
                    i_ == static_cast<const OrcaIterator&>( other ).i_;
         }
 
-        bool operator!=( const Base& other ) const override {
-            return !( *this == other );
-        }
+        bool operator!=( const Base& other ) const override { return !( *this == other ); }
 
         std::unique_ptr<Base> clone() const override {
             auto result    = new OrcaIterator( grid_, false );
@@ -185,7 +183,7 @@ public:
 
     PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
-    gidx_t index( idx_t i, idx_t j ) const { return (imin_+i) + (jmin_+j) * jstride_; }
+    gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
 
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
 
@@ -193,12 +191,12 @@ public:
     bool land( idx_t i, idx_t j ) const { return not lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
     bool ghost( idx_t i, idx_t j ) const { return not core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
-    gidx_t periodicIndex( idx_t i, idx_t j) const;
+    gidx_t periodicIndex( idx_t i, idx_t j ) const;
 
     void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const {
         //gidx = jstride_ * (jmin_+j) + (imin_+i);
         j = gidx / jstride_ - jmin_;
-        i = gidx - (jstride_ * (j+jmin_)) - imin_;
+        i = gidx - ( jstride_ * ( j + jmin_ ) ) - imin_;
     }
 
 

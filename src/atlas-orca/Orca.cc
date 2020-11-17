@@ -29,8 +29,8 @@
 #include "atlas/util/Point.h"
 #include "atlas/util/UnitSphere.h"
 
-#include "eckit/log/ProgressTimer.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/log/ProgressTimer.h"
 #include "eckit/log/Statistics.h"
 #include "eckit/utils/Hash.h"
 #include "eckit/utils/Translator.h"
@@ -41,137 +41,132 @@ namespace detail {
 namespace grid {
 
 
-namespace  {
+namespace {
 
 struct PointIJ {
     idx_t i;
     idx_t j;
-    friend std::ostream& operator<<(std::ostream& out, const PointIJ& p) {
+    friend std::ostream& operator<<( std::ostream& out, const PointIJ& p ) {
         out << "{" << p.j << "," << p.i << "}";
         return out;
     }
-    bool operator==(const PointIJ& other) const {
-        return other.i == i && other.j == j;
-    }
-    bool operator!=(const PointIJ& other) const {
-        return other.i != i || other.j != j;
-    }
-    bool operator<(const PointIJ& other) const {
-        if( j < other.j ) {
+    bool operator==( const PointIJ& other ) const { return other.i == i && other.j == j; }
+    bool operator!=( const PointIJ& other ) const { return other.i != i || other.j != j; }
+    bool operator<( const PointIJ& other ) const {
+        if ( j < other.j ) {
             return true;
         }
-        if( j == other.j && i < other.i ) {
+        if ( j == other.j && i < other.i ) {
             return true;
         }
         return false;
     }
 };
-}
+}  // namespace
 struct Orca::OrcaInfo {
-    OrcaInfo( const Orca& g ) : grid(g) {
-        ix_pivot = grid.nx()/2;
-        if( g.name() == "ORCA1_F") {
+    OrcaInfo( const Orca& g ) : grid( g ) {
+        ix_pivot = grid.nx() / 2;
+        if ( g.name() == "ORCA1_F" ) {
             ix_pivot--;
-            exceptions[PointIJ{-1,290}] = PointIJ{359,289};
-            exceptions[PointIJ{359,290}] = PointIJ{359,289};
+            exceptions[PointIJ{-1, 290}]  = PointIJ{359, 289};
+            exceptions[PointIJ{359, 290}] = PointIJ{359, 289};
         }
-        patch = not grid.ghost( ix_pivot+1, grid.ny()-1);
-        ATLAS_DEBUG_VAR(g.name());
+        patch = not grid.ghost( ix_pivot + 1, grid.ny() - 1 );
+        ATLAS_DEBUG_VAR( g.name() );
         ATLAS_DEBUG_VAR( g.nx() );
         ATLAS_DEBUG_VAR( g.ny() );
-        ATLAS_DEBUG_VAR(g.haloWest());
-        ATLAS_DEBUG_VAR(g.haloNorth());
-        ATLAS_DEBUG_VAR(patch);
-        ATLAS_DEBUG_VAR(ix_pivot);
+        ATLAS_DEBUG_VAR( g.haloWest() );
+        ATLAS_DEBUG_VAR( g.haloNorth() );
+        ATLAS_DEBUG_VAR( patch );
+        ATLAS_DEBUG_VAR( ix_pivot );
     }
     bool patch;
     int ix_pivot;
-    std::map<PointIJ,PointIJ> exceptions;
+    std::map<PointIJ, PointIJ> exceptions;
     idx_t i_valid( idx_t i ) const {
-        if( i < 0 ) {
-            return i+grid.nx();
+        if ( i < 0 ) {
+            return i + grid.nx();
         }
-        else if( i >= grid.nx() ) {
-            return i-grid.nx();
+        else if ( i >= grid.nx() ) {
+            return i - grid.nx();
         }
         else {
             return i;
         }
     }
-    bool in_halo( idx_t i ) const {
-        return i < 0 || i >= grid.nx();
-    }
-    PointIJ fold(idx_t i, idx_t j) const {
-        if( exceptions.size() ) {
-            auto it = exceptions.find(PointIJ{i,j});
-            if( it != exceptions.end() ) {
+    bool in_halo( idx_t i ) const { return i < 0 || i >= grid.nx(); }
+    PointIJ fold( idx_t i, idx_t j ) const {
+        if ( exceptions.size() ) {
+            auto it = exceptions.find( PointIJ{i, j} );
+            if ( it != exceptions.end() ) {
                 return it->second;
             }
         }
         PointIJ p;
-        if( not patch ) { // e.g. ORCA2_T, ORCA025_T, ORCA12_T, ORCA1_F
+        if ( not patch ) {  // e.g. ORCA2_T, ORCA025_T, ORCA12_T, ORCA1_F
             int iy_pivot = grid.ny() - 1;
-            if( grid.ghost(i,j) ) {
-                i = i_valid(i);
-                if( grid.ghost(i,j) && j >= 0 ) {
-                    j  = iy_pivot - ( j - iy_pivot );
-                    i  = ix_pivot - ( i - ix_pivot );
-                    i  = i_valid(i);
+            if ( grid.ghost( i, j ) ) {
+                i = i_valid( i );
+                if ( grid.ghost( i, j ) && j >= 0 ) {
+                    j = iy_pivot - ( j - iy_pivot );
+                    i = ix_pivot - ( i - ix_pivot );
+                    i = i_valid( i );
                 }
                 p.i = i;
                 p.j = j;
             }
             else {
-                p.j  = iy_pivot - ( j - iy_pivot );
-                if( i < 0 || (i <= 0 && j >= grid.ny()) ) {
+                p.j = iy_pivot - ( j - iy_pivot );
+                if ( i < 0 || ( i <= 0 && j >= grid.ny() ) ) {
                     p.i = -i;
                 }
                 else {
-                    p.i  = ix_pivot - ( i - ix_pivot );
+                    p.i = ix_pivot - ( i - ix_pivot );
                 }
             }
         }
-        else { // patch, e.g. ORCA1_T
+        else {  // patch, e.g. ORCA1_T
             Log::Channel hole;
             double iy_pivot = double( grid.ny() ) - 0.5;
 
-            if( grid.ghost(i,j) ) {
-                i = i_valid(i);
-                if( grid.ghost(i,j) && j >= 0 ) {
-                    i     = 2 * ix_pivot - 1 - i;
-                    j    = int( 2. * iy_pivot ) - j;
-                    i  = i_valid(i);
+            if ( grid.ghost( i, j ) ) {
+                i = i_valid( i );
+                if ( grid.ghost( i, j ) && j >= 0 ) {
+                    i = 2 * ix_pivot - 1 - i;
+                    j = int( 2. * iy_pivot ) - j;
+                    i = i_valid( i );
                 }
                 p.i = i;
                 p.j = j;
             }
             else {
-                p.j    = int( 2. * iy_pivot ) - j;
+                p.j = int( 2. * iy_pivot ) - j;
 
-                if( i < 0 && j >= grid.ny() ) {
-                    p.i = -i-1;
+                if ( i < 0 && j >= grid.ny() ) {
+                    p.i = -i - 1;
                 }
-                else if( i <= 0 && j < grid.ny() ) {
+                else if ( i <= 0 && j < grid.ny() ) {
                     p.i = i + grid.nx();
                     p.j = j;
                 }
-                else if( i >= grid.nx() && j < grid.ny() ) {
+                else if ( i >= grid.nx() && j < grid.ny() ) {
                     p.i = i - grid.nx();
                     p.j = j;
                 }
-                else if( i >= grid.nx() && j >= grid.ny() ) {
+                else if ( i >= grid.nx() && j >= grid.ny() ) {
                     p.i = i - grid.nx();
                 }
                 else {
-                    p.i     = 2 * ix_pivot - 1 - i;
+                    p.i = 2 * ix_pivot - 1 - i;
                 }
             }
         }
-        if( p.i < -grid.haloWest() ) {
+        if ( p.i < -grid.haloWest() ) {
             p.i += grid.nx();
         }
         return p;
     }
+
 private:
     const Orca& grid;
 };
@@ -210,9 +205,8 @@ std::string Orca::type() const {
     return static_type();
 }
 
-gidx_t Orca::periodicIndex(idx_t i, idx_t j) const
-{
-    PointIJ p = info_->fold(i,j);
+gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
+    PointIJ p = info_->fold( i, j );
     return index( p.i, p.j );
 }
 
@@ -258,11 +252,11 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
 
     // Reading coordinates
 
-    size_t npts = nx_halo_*ny_halo_;
+    size_t npts = nx_halo_ * ny_halo_;
     {
         eckit::Channel blackhole;
-        eckit::ProgressTimer progress( "Reading "+name+" from file "+path_name.asString(), npts, " point", double( 1 ),
-                                   npts > 2.e6 ? Log::info() : blackhole );
+        eckit::ProgressTimer progress( "Reading " + name + " from file " + path_name.asString(), npts, " point",
+                                       double( 1 ), npts > 2.e6 ? Log::info() : blackhole );
 
         PointXY p;
         double lsm, core;
@@ -279,48 +273,45 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     }
     domain_ = GlobalDomain{hardcoded_west( name )};
     trace.stop();
-    if( trace.elapsed() > 1. ) {
-        if( npts <= 2.e6 ){
-            Log::info() << "Reading " << name << " from file " << path_name << " took " << trace.elapsed() << " seconds." << std::endl;
+    if ( trace.elapsed() > 1. ) {
+        if ( npts <= 2.e6 ) {
+            Log::info() << "Reading " << name << " from file " << path_name << " took " << trace.elapsed()
+                        << " seconds." << std::endl;
         }
-        Log::info() << "  --> This will be greatly optimized soon when input is replaced with binary format." << std::endl;
+        Log::info() << "  --> This will be greatly optimized soon when input is replaced with binary format."
+                    << std::endl;
     }
 
 
     // Fixes, TBD
     // If these fixes are not applied, halo exchanges or other numerics may not be performed correctly
     {
-        auto point = [&] ( idx_t i, idx_t j) -> PointXY& {
-            return const_cast<PointXY&>( xy(i,j) );
-        };
-        auto set_core = [&] (idx_t i, idx_t j, bool core ) {
-            core_[( imin_ + i ) + ( jmin_ + j ) * jstride_] = core;
-        };
-        if( name == "ORCA12_T" ) {
+        auto point    = [&]( idx_t i, idx_t j ) -> PointXY& { return const_cast<PointXY&>( xy( i, j ) ); };
+        auto set_core = [&]( idx_t i, idx_t j, bool core ) { core_[( imin_ + i ) + ( jmin_ + j ) * jstride_] = core; };
+        if ( name == "ORCA12_T" ) {
             set_core( 2160, 3056, true );
         }
-        if( name == "ORCA025_T" ) {
+        if ( name == "ORCA025_T" ) {
             // ghost(720,1018) = false
-            set_core(720,1018,true);
+            set_core( 720, 1018, true );
             point( 720, 1019 ) = xy( 720, 1017 );
         }
-        if( name == "ORCA2_T" ) {
+        if ( name == "ORCA2_T" ) {
             // ghost(90,146) = false
-            set_core(90,146, true );
+            set_core( 90, 146, true );
         }
-        if( name == "ORCA1_T" ) {
+        if ( name == "ORCA1_T" ) {
             point( -1, 290 )  = xy( 0, 289 );
             point( 359, 290 ) = xy( 0, 289 );
             point( 360, 290 ) = xy( 359, 289 );
         }
-        if( name == "ORCA1_F" ) {
+        if ( name == "ORCA1_F" ) {
             point( -1, 290 )  = xy( 359, 289 );
             point( 359, 290 ) = xy( 359, 289 );
         }
     }
 
     info_.reset( new OrcaInfo( *this ) );
-
 }
 
 void Orca::hash( eckit::Hash& h ) const {
