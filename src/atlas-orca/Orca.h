@@ -172,7 +172,7 @@ public:
     std::string name() const override;
     std::string type() const override;
 
-    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[ index(i,j) ]; }
 
     void xy( idx_t i, idx_t j, double crd[] ) const {
         const PointXY& p = xy( i, j );
@@ -182,7 +182,7 @@ public:
 
     PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
-    gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
+    ATLAS_ALWAYS_INLINE gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
 
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
 

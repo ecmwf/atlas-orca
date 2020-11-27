@@ -289,9 +289,15 @@ Orca::Orca( const std::string& name, const Config& config ) :
         if ( name_ == "ORCA12_T" ) {
             set_core( 2160, 3056, true );
         }
+        if ( name_ == "eORCA12_T" ) {
+            set_core( 2160, 3603, true );
+        }
         if ( name_ == "ORCA025_T" ) {
             set_core( 720, 1018, true );
             point( 720, 1019 ) = xy( 720, 1017 );
+        }
+        if ( name_ == "eORCA025_T" ) {
+            set_core( 720, 1204, true );
         }
         if ( name_ == "ORCA2_T" ) {
             set_core( 90, 146, true );
@@ -300,6 +306,11 @@ Orca::Orca( const std::string& name, const Config& config ) :
             point( -1, 290 )  = xy( 0, 289 );
             point( 359, 290 ) = xy( 0, 289 );
             point( 360, 290 ) = xy( 359, 289 );
+        }
+        if ( name_ == "eORCA1_T" ) {
+            point( -1, 330 )  = xy( 0, 329 );
+            point( 359, 330 ) = xy( 0, 329 );
+            point( 360, 330 ) = xy( 359, 329 );
         }
         if ( name_ == "ORCA1_F" ) {
             point( -1, 290 )  = xy( 359, 289 );
