@@ -44,6 +44,7 @@ private:
     void hash( eckit::Hash& ) const override;
 
     bool include_pole_{false};
+    bool fixup_{false};
     int nparts_;
     int mypart_;
 };

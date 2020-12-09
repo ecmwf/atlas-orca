@@ -16,7 +16,9 @@ project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
 find_package(atlas 0.22.0 REQUIRED)
 
-atlas_create_plugin(atlas-orca)
+atlas_create_plugin( atlas-orca
+    URL       https://sites.ecmwf.int/docs/atlas
+    NAMESPACE int.ecmwf )
 
 add_subdirectory(etc)
 add_subdirectory(share)

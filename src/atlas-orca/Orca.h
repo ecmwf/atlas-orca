@@ -172,7 +172,7 @@ public:
     std::string name() const override;
     std::string type() const override;
 
-    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[ index(i,j) ]; }
+    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[index( i, j )]; }
 
     void xy( idx_t i, idx_t j, double crd[] ) const {
         const PointXY& p = xy( i, j );

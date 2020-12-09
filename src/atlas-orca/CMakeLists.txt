@@ -12,6 +12,12 @@ ecbuild_add_library(
         OrcaGrid.cc
         OrcaMeshGenerator.cc
         OrcaMeshGenerator.h
+        FixupMesh.cc
+        FixupMesh.h
+        FixupMesh_eORCA1.cc
+        FixupMesh_eORCA1.h
+        FixupMesh_ORCA2.cc
+        FixupMesh_ORCA2.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         ${CMAKE_CURRENT_BINARY_DIR}/version.h
     HEADER_DESTINATION "include/atlas-orca"

@@ -82,7 +82,7 @@ CASE( "test orca grid iterator" ) {
     for ( auto& section : sections ) {
         std::string gridname = section.gridname;
         SECTION( gridname ) {
-            auto grid = cache_or_create( gridname );
+            OrcaGrid grid = cache_or_create( gridname );
 
             EXPECT_EQ( grid.size(), section.size );
 
@@ -108,12 +108,12 @@ CASE( "test orca grid iterator" ) {
 
             // Now with extra virtual point at south pole
             EXPECT_EQ( ( MeshGenerator{"orca", util::Config( "include_pole", true )}.generate( grid ).nodes().size() ),
-                       grid.size() + 1 );
+                       grid.size() + grid.nx() + grid->haloEast() + grid->haloWest() );
             EXPECT_EQ( ( MeshGenerator{"orca", util::Config( "force_include_south_pole", true )}
                              .generate( grid )
                              .nodes()
                              .size() ),
-                       grid.size() + 1 );
+                       grid.size() + grid.nx() + grid->haloEast() + grid->haloWest() );
         }
     }
 }
@@ -406,11 +406,23 @@ CASE( "test orca mesh halo" ) {
 
 CASE( "test periodicity " ) {
     auto gridnames = std::vector<std::string>{
-        "ORCA2_T",    //
-        "ORCA1_T",    //
-        "ORCA025_T",  //
+        "ORCA2_T",     //
+        "ORCA1_T",     //
+        "eORCA1_T",    //
+        "ORCA025_T",   //
+        "eORCA025_T",  //
+        // "ORCA12_T", //
+        // "eORCA12_T",//
     };
-    auto patch = std::map<std::string, bool>{{"ORCA2_T", false}, {"ORCA1_T", true}, {"ORCA025_T", false}};
+    auto patch = std::map<std::string, bool>{
+        {"ORCA2_T", false},     //
+        {"ORCA1_T", true},      //
+        {"eORCA1_T", true},     //
+        {"ORCA025_T", false},   //
+        {"eORCA025_T", false},  //
+        {"ORCA12_T", false},    //
+        {"eORCA12_T", false},   //
+    };
 
     auto& out = Log::debug();
     for ( auto gridname : gridnames ) {

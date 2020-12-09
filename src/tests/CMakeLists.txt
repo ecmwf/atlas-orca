@@ -39,3 +39,8 @@ ecbuild_add_test( TARGET  atlas_test_orca
                   SOURCES test_orca.cc
                   LIBS    atlas-orca
                   ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )
+
+ecbuild_add_test( TARGET  atlas_test_orca_valid_elements
+                  SOURCES test_orca_valid_elements.cc
+                  LIBS    atlas-orca
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )
