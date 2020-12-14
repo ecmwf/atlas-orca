@@ -262,11 +262,6 @@ private:
     std::unique_ptr<OrcaInfo> info_;
 };
 
-extern "C" {
-const Orca* atlas__grid__Orca__points( const double lonlat[], int shapef[], int stridesf[] );
-const Orca* atlas__grid__Orca__config( util::Config* conf );
-}
-
 
 }  // namespace grid
 }  // namespace detail

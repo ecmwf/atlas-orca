@@ -58,9 +58,10 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
         bool patch_T;
         std::tie( resolution, patch_T ) = resol;
         for ( auto& prefix : prefixes ) {
-            patch[prefix + resolution + "_T"] = patch_T;
             patch[prefix + resolution + "_U"] = patch_T;
             patch[prefix + resolution + "_V"] = not patch_T;
+            patch[prefix + resolution + "_W"] = patch_T;
+            patch[prefix + resolution + "_T"] = patch_T;
             patch[prefix + resolution + "_F"] = not patch_T;
         }
     }
@@ -92,13 +93,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nparts     = nparts_;
     int nx         = rg.nx();
     int ny         = rg.ny();
-    int ny_halo    = ny + orca->haloNorth();
-    int ny_halo_NS = ny + orca->haloNorth() + orca->haloSouth();
-    int iy_glb_max = ny + orca->haloNorth() - 1;
-    int iy_glb_min = -orca->haloSouth();
-    int ix_glb_max = nx + orca->haloEast() - 1;
-    int ix_glb_min = -orca->haloWest();
-    int nx_halo_WE = nx + orca->haloEast() + orca->haloWest();
+    int ny_halo    = ny + orca.haloNorth();
+    int ny_halo_NS = ny + orca.haloNorth() + orca.haloSouth();
+    int iy_glb_max = ny + orca.haloNorth() - 1;
+    int iy_glb_min = -orca.haloSouth();
+    int ix_glb_max = nx + orca.haloEast() - 1;
+    int ix_glb_min = -orca.haloWest();
+    int nx_halo_WE = nx + orca.haloEast() + orca.haloWest();
 
     if ( nparts > 1 ) {
         //include_south_pole = false;
@@ -426,13 +427,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     local_idx_SR[ii] = inode;
                 }
 
-                if ( ix_glb >= nx - orca->haloWest() ) {
+                if ( ix_glb >= nx - orca.haloWest() ) {
                     flags( inode ).set( Topology::PERIODIC );
                 }
-                else if ( ix_glb < orca->haloEast() ) {
+                else if ( ix_glb < orca.haloEast() ) {
                     flags( inode ).set( Topology::PERIODIC );
                 }
-                if ( iy_glb >= ny - orca->haloNorth() - 1 ) {
+                if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
                     flags( inode ).set( Topology::PERIODIC );
                 }
 
@@ -481,7 +482,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     ii              = ii_south;
     if ( include_south_pole ) {
         gidx_t glb_idx_0               = compute_global_offset( ix_glb_max, iy_glb_max ) + 2;
-        double lon0                    = orca.xy( 0, -orca->haloSouth() ).x();
+        double lon0                    = orca.xy( 0, -orca.haloSouth() ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
         auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
         auto normalise                 = [&]( double _xy[2] ) {
@@ -502,7 +503,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 idx_t inode_north = local_idx_SR[index( ix, 0 )];
 
                 ix_glb = ( ix_min + ix );
-                PointXY p{orca.xy( ix_glb, -orca->haloSouth() ).x(), -90.};
+                PointXY p{orca.xy( ix_glb, -orca.haloSouth() ).x(), -90.};
                 normalise( p.data() );
 
                 if ( inode >= nnodes ) {

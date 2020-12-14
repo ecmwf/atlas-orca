@@ -62,6 +62,11 @@ public:
     bool land( idx_t i, idx_t j ) const { return not grid_->land( i, j ); }
     bool ghost( idx_t i, idx_t j ) const { return grid_->ghost( i, j ); }
 
+    int haloWest() const { return grid_->haloWest(); }
+    int haloEast() const { return grid_->haloEast(); }
+    int haloNorth() const { return grid_->haloNorth(); }
+    int haloSouth() const { return grid_->haloSouth(); }
+
     const grid_t* get() const { return grid_; }
     const grid_t* operator->() const { return get(); }
 
