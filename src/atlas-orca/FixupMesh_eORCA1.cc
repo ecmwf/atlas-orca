@@ -10,10 +10,11 @@ namespace meshgenerator {
 
 
 namespace {
+using GridType = orca::Fixup_eORCA1::GridType;
 
-bool any_of( const std::string& s, const std::initializer_list<std::string>& c ) {
-    for ( const auto& value : c ) {
-        if ( s == value ) {
+bool any_of( const GridType t, const std::initializer_list<GridType>& list ) {
+    for ( const auto& value : list ) {
+        if ( t == value ) {
             return true;
         }
     }
@@ -23,7 +24,7 @@ bool any_of( const std::string& s, const std::initializer_list<std::string>& c )
 }  // namespace
 
 void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
-    ATLAS_TRACE( "FixupMesh " + gridname );
+    ATLAS_TRACE( "FixupMesh " + type );
 
     auto mesh = mesh_builder.mesh;
 
@@ -45,7 +46,7 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
         invalidate( 200 + g * 361 );
     }
 
-    if ( any_of( gridname, {"eORCA1_T"} ) ) {
+    if ( any_of( type, {T} ) ) {
         for ( gidx_t g = 0; g < 41; ++g ) {
             invalidate( 40 + g * 361 );
         }
@@ -57,17 +58,17 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
         invalidate( 16646 );
         invalidate( 17528 );
     }
-    if ( any_of( gridname, {"eORCA1_U", "eORCA1_F"} ) ) {
+    if ( any_of( type, {U, F} ) ) {
         for ( gidx_t g = 0; g < 45; ++g ) {
             invalidate( 39 + g * 361 );
         }
     }
-    if ( any_of( gridname, {"eORCA1_V"} ) ) {
+    if ( any_of( type, {V} ) ) {
         for ( gidx_t g = 0; g < 45; ++g ) {
             invalidate( 40 + g * 361 );
         }
     }
-    if ( any_of( gridname, {"eORCA1_T"} ) ) {
+    if ( any_of( type, {T} ) ) {
         add_element( 17577, 17939, 17938 );
         for ( idx_t i = 0; i > ( -20 ); --i ) {
             add_element( 17055 + 362 * ( i - 1 ), 17055 + 362 * i, 17054 );
@@ -90,35 +91,46 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
             }
         }
     }
-    if ( any_of( gridname, {"eORCA1_U"} ) ) {
+    if ( any_of( type, {U} ) ) {
         for ( int i = 0; i < 26; ++i ) {
             add_element( 16329, 6556 + i * 362, 6918 + ( i + 1 ) * 362 );
         }
         add_element( 17214, 17577, 17576 );
 
         if ( includes_south_pole ) {
+            Log::warning() << "Todo: add elements " << Here() << std::endl;
+            mesh.metadata().set( "valid_elements", false );
+
         }
     }
-    if ( any_of( gridname, {"eORCA1_F"} ) ) {
+    if ( any_of( type, {F} ) ) {
         for ( int i = 0; i < 26; ++i ) {
             add_element( 16329, 6556 + i * 362, 6918 + ( i + 1 ) * 362 );
         }
         add_element( 17214, 17577, 17576 );
 
         if ( includes_south_pole ) {
+            Log::warning() << "Todo: add elements " << Here() << std::endl;
+            mesh.metadata().set( "valid_elements", false );
+
+
         }
     }
-    if ( any_of( gridname, {"eORCA1_V"} ) ) {
+    if ( any_of( type, {V} ) ) {
         for ( int i = 0; i < 26; ++i ) {
             add_element( 16330, 6919 + i * 362, 7281 + i * 362 );
         }
         add_element( 17215, 17577, 17576 );
         if ( includes_south_pole ) {
+            Log::warning() << "Todo: add elements " << Here() << std::endl;
+            mesh.metadata().set( "valid_elements", false );
+
+
         }
     }
 }
 
-orca::Fixup_eORCA1::Fixup_eORCA1( const std::string name, const eckit::Parametrisation& config ) : gridname( name ) {
+orca::Fixup_eORCA1::Fixup_eORCA1( GridType grid_type, const eckit::Parametrisation& config ) : type(grid_type) {
     config.get( "include_south_pole", include_south_pole_ );
 }
 
