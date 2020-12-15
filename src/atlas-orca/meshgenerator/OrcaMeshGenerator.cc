@@ -45,17 +45,202 @@ namespace atlas {
 namespace orca {
 namespace meshgenerator {
 
+struct Configuration {
+    bool include_south_pole;
+    int nparts;
+    int mypart;
+};
+
 struct SurroundingRectangle {
-    std::vector<int> local_idx;
+    std::vector<int> numbering;
     std::vector<int> parts;
     std::vector<bool> is_ghost;
     std::vector<bool> is_node;
-    int nnodes;
+    int size;
     int nx, ny;
     int ix_min, ix_max;
     int iy_min, iy_max;
     bool include_south_pole;
-    int index( int i, int j ) { return j * nx + i; }
+    int index( int i, int j ) const { return j * nx + i; }
+    int index_sp( int i ) const { return nx * ny + i; }
+    int nb_nodes;
+    int nb_cells;
+    int nb_nodes_sp;
+    int nb_cells_sp;
+    int nb_nodes_owned;
+
+    SurroundingRectangle() = default;
+    SurroundingRectangle( const Grid& grid, const grid::Distribution& distribution, const Configuration& cfg ) {
+        OrcaGrid orca{grid};
+        int mypart     = cfg.mypart;
+        int nparts     = cfg.nparts;
+        int nx_glb     = orca.nx();
+        int ny_glb     = orca.ny();
+        int ny_halo    = ny_glb + orca.haloNorth();
+        int ny_halo_NS = ny_glb + orca.haloNorth() + orca.haloSouth();
+        int iy_glb_max = ny_glb + orca.haloNorth() - 1;
+        int iy_glb_min = -orca.haloSouth();
+        int ix_glb_max = nx_glb + orca.haloEast() - 1;
+        int ix_glb_min = -orca.haloWest();
+        int nx_halo_WE = nx_glb + orca.haloEast() + orca.haloWest();
+
+
+        // vector of local indices: necessary for remote indices of ghost nodes
+        idx_t glbarray_offset  = -( nx_halo_WE * iy_glb_min ) - ix_glb_min;
+        idx_t glbarray_jstride = nx_halo_WE;
+
+        auto index_glbarray = [&]( idx_t i, idx_t j ) {
+            ATLAS_ASSERT( i <= ix_glb_max );
+            ATLAS_ASSERT( j <= iy_glb_max );
+            return glbarray_offset + j * glbarray_jstride + i;
+        };
+
+
+        auto partition = [&]( idx_t i, idx_t j ) -> int {
+            auto clamp = []( idx_t value, idx_t lower, idx_t upper ) {
+                // in C++17 this is std::clamp
+                return std::max( lower, std::min( value, upper ) );
+            };
+            i = clamp( i, 0, nx_glb - 1 );
+            j = clamp( j, 0, ny_glb - 1 );
+            return distribution.partition( j * nx_glb + i );
+        };
+
+        // determine rectangle (ix_min:ix_max) x (iy_min:iy_max) surrounding the nodes on this processor
+        ix_min         = nx_glb + 1;
+        ix_max         = 0;
+        iy_min         = ny_glb + 1;
+        iy_max         = 0;
+        nb_nodes_owned = 0;
+
+        remote_idx_glbarray.resize( nx_halo_WE * ( ny_halo_NS + ( cfg.include_south_pole ? 1 : 0 ) ), -1 );
+
+        {
+            std::vector<int> current_idx( nparts, 0 );  // index counter for each proc
+
+            gidx_t ii_glb = 0;
+            for ( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
+                for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                    int p = partition( ix, iy );
+                    remote_idx_glbarray.at( ii_glb ) =
+                        current_idx[p]++;  // store local index on the local proc of this point
+                    if ( p == mypart ) {
+                        nb_nodes_owned++;
+                        ix_min = std::min( ix_min, ix );
+                        ix_max = std::max( ix_max, ix );
+                        iy_min = std::min( iy_min, iy );
+                        iy_max = std::max( iy_max, iy );
+                    }
+                    ++ii_glb;  // global index
+                }
+            }
+            ATLAS_ASSERT( ii_glb == nx_halo_WE * ny_halo_NS );
+            if ( cfg.include_south_pole ) {
+                idx_t iy = iy_glb_min - 1;
+                for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                    int p = partition( ix, iy + 1 );
+                    remote_idx_glbarray.at( ii_glb ) =
+                        current_idx[p]++;  // store local index on the local proc of this point
+                    ++ii_glb;              // global index
+                }
+            }
+        }
+
+        // add one row/column for ghost nodes (which include periodicity points)
+        ix_max = std::min( ix_glb_max, ix_max + 1 );
+        iy_max = std::min( iy_glb_max, iy_max + 1 );
+
+        // dimensions of surrounding rectangle (SR)
+        nx = ix_max - ix_min + 1;
+        ny = iy_max - iy_min + 1;
+
+        // upper estimate for number of nodes
+        include_south_pole = cfg.include_south_pole && iy_min == iy_glb_min;
+        size               = nx * ( ny + ( include_south_pole ? 1 : 0 ) );
+
+        // partitions and local indices in SR
+        parts.resize( size, -1 );
+        numbering.resize( size, -1 );
+        is_ghost.resize( size, true );
+        // vectors marking nodes that are necessary for this proc's cells
+        is_node.resize( size, false );
+
+        {  // Compute : SR.part, SR.is_ghost, SR.numbering
+            auto global_to_remote = [&]( idx_t i, idx_t j ) {
+                idx_t n = index_glbarray( i, j );
+                return remote_idx_glbarray.at( n );
+            };
+
+            int visited = 0;
+            for ( idx_t iy = 0; iy < ny; iy++ ) {
+                idx_t iy_glb = iy_min + iy;  // global y-index
+                for ( idx_t ix = 0; ix < nx; ix++ ) {
+                    idx_t ix_glb                = ix_min + ix;  // global x-index
+                    parts.at( index( ix, iy ) ) = partition( ix_glb, iy_glb );
+
+                    if ( iy_glb < ny_halo ) {
+                        numbering.at( index( ix, iy ) ) = global_to_remote( ix_glb, iy_glb );
+                        is_ghost.at( index( ix, iy ) )  = ( parts.at( index( ix, iy ) ) != mypart );
+                    }
+                    ++visited;
+                }
+            }
+            if ( include_south_pole ) {
+                int ii_south     = nx * ny;
+                int ii_glb_south = nx_halo_WE * ny_halo_NS;
+                for ( idx_t ix = 0; ix < nx; ix++ ) {
+                    idx_t ix_glb                  = ix_min + ix;
+                    numbering.at( ii_south + ix ) = remote_idx_glbarray.at( ii_glb_south + ix_glb );
+                    is_ghost.at( ii_south + ix )  = false;
+                    ++visited;
+                }
+            }
+            ATLAS_ASSERT( visited == nx * ( ny + ( include_south_pole ? 1 : 0 ) ) );
+        }
+        // determine number of cells and number of nodes
+        {  // Compute SR.is_node
+            auto mark_node_used = [&]( int ix, int iy ) {
+                idx_t ii = index( ix, iy );
+                if ( !is_node[ii] ) {
+                    ++nb_nodes;
+                    is_node[ii] = true;
+                }
+            };
+            // Loop over all elements
+            nb_cells    = 0;
+            nb_nodes    = 0;
+            nb_cells_sp = 0;
+            nb_nodes_sp = 0;
+            for ( idx_t iy = 0; iy < ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
+                for ( idx_t ix = 0; ix < nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+                    if ( !is_ghost[index( ix, iy )] ) {
+                        ++nb_cells;
+                        mark_node_used( ix, iy );
+                        mark_node_used( ix + 1, iy );
+                        mark_node_used( ix + 1, iy + 1 );
+                        mark_node_used( ix, iy + 1 );
+                    }
+                }
+            }
+            if ( include_south_pole ) {
+                for ( idx_t ix = 0; ix < nx; ix++ ) {
+                    idx_t ii       = index_sp( ix );
+                    idx_t ii_above = index( ix, 0 );
+                    is_node[ii]    = is_node[ii_above];
+                    is_ghost[ii]   = is_ghost[ii_above];
+                    if ( is_node[ii] ) {
+                        ++nb_nodes_sp;
+                    }
+                }
+                nb_cells_sp = ( nb_nodes_sp > 1 ) ? nb_nodes_sp - 1 : 0;
+                nb_cells += nb_cells_sp;
+                nb_nodes += nb_nodes_sp;
+            }
+        }
+    }
+
+    // Temporary, could be deallocated after
+    std::vector<idx_t> remote_idx_glbarray;
 };
 
 struct Nodes {
@@ -144,6 +329,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     ATLAS_TRACE();
     using Topology = util::Topology;
 
+    Configuration cfg;
+    cfg.include_south_pole = include_pole_;
+    cfg.mypart             = mypart_;
+    cfg.nparts             = nparts_;
+
     OrcaGrid orca{grid};
     ATLAS_ASSERT( orca );
     ATLAS_ASSERT( !mesh.generated() );
@@ -151,7 +341,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     setGrid( mesh, grid, distribution );
 
     OrcaGrid rg{grid};
-    SurroundingRectangle SR;
 
     bool include_south_pole = include_pole_;
 
@@ -171,58 +360,50 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         //include_south_pole = false;
     }
 
-    int nb_extra_nodes = 0;
-    int ncells;
-
     // vector of local indices: necessary for remote indices of ghost nodes
-    std::vector<idx_t> local_idx( nx_halo_WE * ( ny_halo_NS + ( include_south_pole ? 1 : 0 ) ), -1 );
-    idx_t local_idx_offset  = -( nx_halo_WE * iy_glb_min ) - ix_glb_min;
-    idx_t local_idx_jstride = nx_halo_WE;
+    idx_t glbarray_offset  = -( nx_halo_WE * iy_glb_min ) - ix_glb_min;
+    idx_t glbarray_jstride = nx_halo_WE;
 
-    auto compute_global_offset = [&]( idx_t i, idx_t j ) {
+    auto index_glbarray = [&]( idx_t i, idx_t j ) {
         ATLAS_ASSERT( i <= ix_glb_max );
         ATLAS_ASSERT( j <= iy_glb_max );
-        return local_idx_offset + j * local_idx_jstride + i;
-    };
-
-    auto global_to_local = [&]( idx_t i, idx_t j ) {
-        idx_t n = compute_global_offset( i, j );
-        return local_idx.at( n );
+        return glbarray_offset + j * glbarray_jstride + i;
     };
 
 
-    std::vector<int> current_idx( nparts, 0 );  // index counter for each proc
-
-    auto clamp = []( idx_t value, idx_t lower, idx_t upper ) {
-        // in C++17 this is std::clamp
-        return std::max( lower, std::min( value, upper ) );
-    };
     auto partition = [&]( idx_t i, idx_t j ) -> int {
+        auto clamp = []( idx_t value, idx_t lower, idx_t upper ) {
+            // in C++17 this is std::clamp
+            return std::max( lower, std::min( value, upper ) );
+        };
         i = clamp( i, 0, nx - 1 );
         j = clamp( j, 0, ny - 1 );
         return distribution.partition( j * nx + i );
     };
-
+#define SR_CONSTRUCTOR 1
+#if SR_CONSTRUCTOR
+    SurroundingRectangle SR( grid, distribution, cfg );
+#else
     // determine rectangle (ix_min:ix_max) x (iy_min:iy_max) surrounding the nodes on this processor
-    idx_t ix_glb, iy_glb, ix, iy;
-    int nnodes_nonghost, nnodes;  // number of nodes: non-ghost; total;  inside surrounding rectangle
-    int ii;
-    int ii_glb_south;
-    // loop over all points to determine local indices and surroundig rectangle
-    SR.ix_min       = nx + 1;
-    SR.ix_max       = 0;
-    SR.iy_min       = ny + 1;
-    SR.iy_max       = 0;
-    nnodes_nonghost = 0;
+    SR.ix_min         = nx + 1;
+    SR.ix_max         = 0;
+    SR.iy_min         = ny + 1;
+    SR.iy_max         = 0;
+    SR.nb_nodes_owned = 0;
+
+    SR.remote_idx_glbarray.resize( nx_halo_WE * ( ny_halo_NS + ( include_south_pole ? 1 : 0 ) ), -1 );
 
     {
+        std::vector<int> current_idx( nparts, 0 );  // index counter for each proc
+
         gidx_t ii_glb = 0;
-        for ( iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
-            for ( ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
-                int p                  = partition( ix, iy );
-                local_idx.at( ii_glb ) = current_idx[p]++;  // store local index on the local proc of this point
+        for ( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
+            for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                int p = partition( ix, iy );
+                SR.remote_idx_glbarray.at( ii_glb ) =
+                    current_idx[p]++;  // store local index on the local proc of this point
                 if ( p == mypart ) {
-                    ++nnodes_nonghost;  // non-ghost node: belongs to this part
+                    SR.nb_nodes_owned++;
                     SR.ix_min = std::min( SR.ix_min, ix );
                     SR.ix_max = std::max( SR.ix_max, ix );
                     SR.iy_min = std::min( SR.iy_min, iy );
@@ -231,13 +412,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 ++ii_glb;  // global index
             }
         }
-        ii_glb_south = ii_glb;
+        ATLAS_ASSERT( ii_glb == nx_halo_WE * ny_halo_NS );
         if ( include_south_pole ) {
-            iy = iy_glb_min - 1;
-            for ( ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
-                int p                  = partition( ix, iy + 1 );
-                local_idx.at( ii_glb ) = current_idx[p]++;  // store local index on the local proc of this point
-                ++ii_glb;                                   // global index
+            idx_t iy = iy_glb_min - 1;
+            for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                int p = partition( ix, iy + 1 );
+                SR.remote_idx_glbarray.at( ii_glb ) =
+                    current_idx[p]++;  // store local index on the local proc of this point
+                ++ii_glb;              // global index
             }
         }
     }
@@ -254,95 +436,97 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // upper estimate for number of nodes
     SR.include_south_pole = include_south_pole && SR.iy_min == iy_glb_min;
-    SR.nnodes             = SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) );
+    SR.size               = SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) );
 
     // partitions and local indices in SR
-    SR.parts.resize( SR.nnodes, -1 );
-    SR.local_idx.resize( SR.nnodes, -1 );
-    SR.is_ghost.resize( SR.nnodes, true );
+    SR.parts.resize( SR.size, -1 );
+    SR.numbering.resize( SR.size, -1 );
+    SR.is_ghost.resize( SR.size, true );
     // vectors marking nodes that are necessary for this proc's cells
-    SR.is_node.resize( SR.nnodes, false );
+    SR.is_node.resize( SR.size, false );
 
-    ii = 0;  // index inside SR
-    for ( iy = 0; iy < SR.ny; iy++ ) {
-        iy_glb = SR.iy_min + iy;  // global y-index
-        for ( ix = 0; ix < SR.nx; ix++ ) {
-            ix_glb            = SR.ix_min + ix;  // global x-index
-            SR.parts.at( ii ) = partition( ix_glb, iy_glb );
+    {  // Compute : SR.part, SR.is_ghost, SR.numbering
+        auto global_to_remote = [&]( idx_t i, idx_t j ) {
+            idx_t n = index_glbarray( i, j );
+            return SR.remote_idx_glbarray.at( n );
+        };
 
-            if ( iy_glb < ny_halo ) {
-                SR.local_idx.at( ii ) = global_to_local( ix_glb, iy_glb );
-                SR.is_ghost.at( ii )  = ( SR.parts.at( ii ) != mypart );
+        int visited = 0;
+        for ( idx_t iy = 0; iy < SR.ny; iy++ ) {
+            idx_t iy_glb = SR.iy_min + iy;  // global y-index
+            for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+                idx_t ix_glb                      = SR.ix_min + ix;  // global x-index
+                SR.parts.at( SR.index( ix, iy ) ) = partition( ix_glb, iy_glb );
+
+                if ( iy_glb < ny_halo ) {
+                    SR.numbering.at( SR.index( ix, iy ) ) = global_to_remote( ix_glb, iy_glb );
+                    SR.is_ghost.at( SR.index( ix, iy ) )  = ( SR.parts.at( SR.index( ix, iy ) ) != mypart );
+                }
+                ++visited;
             }
-            ++ii;
         }
-    }
-    int ii_south = ii;
-    if ( SR.include_south_pole ) {
-        for ( ix = 0; ix < SR.nx; ix++ ) {
-            ix_glb                = SR.ix_min + ix;
-            SR.local_idx.at( ii ) = local_idx.at( ii_glb_south + ix_glb );
-            SR.is_ghost.at( ii )  = false;
-            ++ii;
+        if ( SR.include_south_pole ) {
+            int ii_south     = SR.nx * SR.ny;
+            int ii_glb_south = nx_halo_WE * ny_halo_NS;
+            for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+                idx_t ix_glb                     = SR.ix_min + ix;
+                SR.numbering.at( ii_south + ix ) = SR.remote_idx_glbarray.at( ii_glb_south + ix_glb );
+                SR.is_ghost.at( ii_south + ix )  = false;
+                ++visited;
+            }
         }
+        ATLAS_ASSERT( visited == SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) ) );
     }
-    ATLAS_ASSERT( ii == SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) ) );
 
     // determine number of cells and number of nodes
-    nnodes = 0;
-    ncells = 0;
-    for ( iy = 0; iy < SR.ny - 1; iy++ ) {  // don't loop into ghost/periodicity row
-        iy_glb = SR.iy_min + iy;
-        for ( ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
-            ix_glb = SR.ix_min + ix;
-            ii     = SR.index( ix, iy );
-            if ( !SR.is_ghost[ii] ) {
-                ++ncells;
-
-                // mark this node as being used
-                if ( !SR.is_node[ii] ) {
-                    ++nnodes;
-                    SR.is_node[ii] = true;
-                }
-                // mark lowerright corner
-                ii = SR.index( ix + 1, iy );
-                if ( !SR.is_node[ii] ) {
-                    ++nnodes;
-                    SR.is_node[ii] = true;
-                }
-                // mark upperleft corner
-                ii = SR.index( ix, iy + 1 );
-                if ( !SR.is_node[ii] ) {
-                    ++nnodes;
-                    SR.is_node[ii] = true;
-                }
-                // mark upperright corner
-                ii = SR.index( ix + 1, iy + 1 );
-                if ( !SR.is_node[ii] ) {
-                    ++nnodes;
-                    SR.is_node[ii] = true;
+    {  // Compute SR.is_node
+        auto mark_node_used = [&]( int ix, int iy ) {
+            idx_t ii = SR.index( ix, iy );
+            if ( !SR.is_node[ii] ) {
+                ++SR.nb_nodes;
+                SR.is_node[ii] = true;
+            }
+        };
+        // Loop over all elements
+        SR.nb_cells    = 0;
+        SR.nb_nodes    = 0;
+        SR.nb_cells_sp = 0;
+        SR.nb_nodes_sp = 0;
+        for ( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
+            for ( idx_t ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+                if ( !SR.is_ghost[SR.index( ix, iy )] ) {
+                    ++SR.nb_cells;
+                    mark_node_used( ix, iy );
+                    mark_node_used( ix + 1, iy );
+                    mark_node_used( ix + 1, iy + 1 );
+                    mark_node_used( ix, iy + 1 );
                 }
             }
         }
-    }
-    nb_extra_nodes = 0;
-    if ( SR.include_south_pole ) {
-        ii = ii_south;
-        for ( ix = 0; ix < SR.nx; ix++ ) {
-            ix_glb             = SR.ix_min + ix;
-            idx_t ii_row_north = SR.index( ix, 0 );
-            SR.is_node[ii]     = SR.is_node[ii_row_north];
-            SR.is_ghost[ii]    = SR.is_ghost[ii_row_north];
-            if ( SR.is_node[ii] ) {
-                ++nb_extra_nodes;
+        if ( SR.include_south_pole ) {
+            for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+                idx_t ii        = SR.index_sp( ix );
+                idx_t ii_above  = SR.index( ix, 0 );
+                SR.is_node[ii]  = SR.is_node[ii_above];
+                SR.is_ghost[ii] = SR.is_ghost[ii_above];
+                if ( SR.is_node[ii] ) {
+                    ++SR.nb_nodes_sp;
+                }
             }
-            ++ii;
+            SR.nb_cells_sp = ( SR.nb_nodes_sp > 1 ) ? SR.nb_nodes_sp - 1 : 0;
+            SR.nb_cells += SR.nb_cells_sp;
+            SR.nb_nodes += SR.nb_nodes_sp;
         }
     }
-    int nb_extra_cells = ( nb_extra_nodes > 1 ) ? nb_extra_nodes - 1 : 0;
+#endif
 
-    nnodes += nb_extra_nodes;
-    ncells += nb_extra_cells;
+    //---------------------------------------------------
+
+    int nnodes         = SR.nb_nodes;
+    int ncells         = SR.nb_cells;
+    int nb_extra_nodes = SR.nb_nodes_sp;  // By South Pole
+    int nb_extra_cells = SR.nb_cells_sp;  // By South Pole
+
     if ( nparts == 1 ) {
         ATLAS_ASSERT( ( nx_halo_WE * ny_halo_NS ) + nb_extra_nodes == nnodes );
     }
@@ -361,9 +545,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int inode, inode_nonghost, inode_ghost;
 
     // loop over nodes and set properties
-    ii             = 0;
     inode_nonghost = 0;
-    inode_ghost    = nnodes_nonghost;  // ghost nodes start counting after nonghost nodes
+    inode_ghost    = SR.nb_nodes_owned;  // ghost nodes start counting after nonghost nodes
 
     int ix_pivot = nx / 2;
     bool patch   = not orca.ghost( ix_pivot + 1, ny - 1 );
@@ -391,33 +574,35 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return p;
     };
 
-    for ( iy = 0; iy < SR.ny; iy++ ) {
-        iy_glb = SR.iy_min + iy;
+    for ( idx_t iy = 0; iy < SR.ny; iy++ ) {
+        idx_t iy_glb = SR.iy_min + iy;
         ATLAS_ASSERT( iy_glb < ny_halo );
         double lon0                    = orca.xy( 0, iy_glb ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
         auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
-        auto normalise                 = [&]( double _xy[2] ) {
-            if ( ix_glb < nx / 2 ) {
-                _xy[LON] = normalise_lon_first_half( _xy[LON] );
-            }
-            else {
-                _xy[LON] = normalise_lon_second_half( _xy[LON] );
-            }
-        };
-        for ( ix = 0; ix < SR.nx; ix++ ) {
-            ix_glb = ( SR.ix_min + ix );  // don't take modulus here: periodicity points
-                                          // have their own global index.
+        for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+            idx_t ix_glb   = SR.ix_min + ix;
+            auto normalise = [&]( double _xy[2] ) {
+                if ( ix_glb < nx / 2 ) {
+                    _xy[LON] = normalise_lon_first_half( _xy[LON] );
+                }
+                else {
+                    _xy[LON] = normalise_lon_second_half( _xy[LON] );
+                }
+            };
+
+            idx_t ii = SR.index( ix, iy );
             // node properties
             if ( SR.is_node[ii] ) {
                 // set node counter
                 if ( SR.is_ghost[ii] ) {
                     inode = inode_ghost++;
                     ATLAS_ASSERT( inode < nnodes );
+                    Log::info() << ii << "\t" << inode << std::endl;
                 }
                 else {
                     inode = inode_nonghost++;
-                    ATLAS_ASSERT( inode < nnodes_nonghost );
+                    ATLAS_ASSERT( inode < SR.nb_nodes_owned );
                 }
 
                 // ghost nodes
@@ -430,7 +615,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 nodes.flags( inode ).reset();
 
                 // global index
-                nodes.glb_idx( inode ) = compute_global_offset( ix_glb, iy_glb ) + 1;  // no periodic point
+                nodes.glb_idx( inode ) = index_glbarray( ix_glb, iy_glb ) + 1;  // no periodic point
 
                 // grid coordinates
 
@@ -463,9 +648,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     //                    ATLAS_DEBUG( "ghost: " << ix_glb << ", " << iy_glb << "  inode = " << inode
                     //                                           << " P = " << PointLonLat( _xy ) );
                     nodes.flags( inode ).set( Topology::GHOST );
-                    nodes.remote_idx( inode ) = SR.local_idx[ii];
+                    nodes.remote_idx( inode ) = SR.numbering[ii];
                     // change local index -- required for cells
-                    SR.local_idx[ii] = inode;
+                    SR.numbering[ii] = inode;
                 }
 
                 if ( ix_glb >= nx - orca.haloWest() ) {
@@ -515,35 +700,36 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }
                 }();
             }
-            ++ii;
         }
     }
     int inode_south = nnodes - nb_extra_nodes;
     inode           = inode_south;
-    ii              = ii_south;
     if ( SR.include_south_pole ) {
-        gidx_t glb_idx_0               = compute_global_offset( ix_glb_max, iy_glb_max ) + 2;
+        gidx_t glb_idx_0               = index_glbarray( ix_glb_max, iy_glb_max ) + 2;
         double lon0                    = orca.xy( 0, -orca.haloSouth() ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
         auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
-        auto normalise                 = [&]( double _xy[2] ) {
-            if ( ix_glb < nx / 2 ) {
-                _xy[LON] = normalise_lon_first_half( _xy[LON] );
-            }
-            else {
-                _xy[LON] = normalise_lon_second_half( _xy[LON] );
-            }
-        };
 
-        for ( ix = 0; ix < SR.nx; ix++ ) {
+        for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+            idx_t ix_glb   = SR.ix_min + ix;
+            auto normalise = [&]( double _xy[2] ) {
+                if ( ix_glb < nx / 2 ) {
+                    _xy[LON] = normalise_lon_first_half( _xy[LON] );
+                }
+                else {
+                    _xy[LON] = normalise_lon_second_half( _xy[LON] );
+                }
+            };
+
+
+            idx_t ii = SR.index_sp( ix );
             if ( ii >= SR.is_node.size() ) {
                 throw_OutOfRange( "ii", ii, SR.is_node.size(), Here() );
             }
 
             if ( SR.is_node[ii] ) {
-                idx_t inode_north = SR.local_idx[SR.index( ix, 0 )];
+                idx_t inode_north = SR.numbering[SR.index( ix, 0 )];
 
-                ix_glb = SR.ix_min + ix;
                 PointXY p{orca.xy( ix_glb, -orca.haloSouth() ).x(), -90.};
                 normalise( p.data() );
 
@@ -551,7 +737,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     throw_OutOfRange( "inode", inode, nnodes, Here() );
                 }
 
-                nodes.glb_idx( inode ) = glb_idx_0 + compute_global_offset( ix_glb, iy_glb_min );
+                nodes.glb_idx( inode ) = glb_idx_0 + index_glbarray( ix_glb, iy_glb_min );
 
                 nodes.master_glb_idx( inode ) = nodes.glb_idx( inode );
                 nodes.part( inode )           = nodes.part( inode_north );
@@ -578,24 +764,22 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 }
                 ++inode;
             }
-
-            ++ii;
         }
     }
 
 
     // loop over nodes and define cells
-    for ( iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
-        for ( ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
-            ii         = SR.index( ix, iy );
+    for ( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
+        for ( idx_t ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+            idx_t ii   = SR.index( ix, iy );
             int ix_glb = SR.ix_min + ix;
             int iy_glb = SR.iy_min + iy;
             if ( !SR.is_ghost[ii] ) {
                 // define cell corners (local indices)
-                quad_nodes[0] = SR.local_idx[SR.index( ix, iy )];          // lower left
-                quad_nodes[1] = SR.local_idx[SR.index( ix + 1, iy )];      // lower right
-                quad_nodes[2] = SR.local_idx[SR.index( ix + 1, iy + 1 )];  // upper right
-                quad_nodes[3] = SR.local_idx[SR.index( ix, iy + 1 )];      // upper left
+                quad_nodes[0] = SR.numbering[SR.index( ix, iy )];          // lower left
+                quad_nodes[1] = SR.numbering[SR.index( ix + 1, iy )];      // lower right
+                quad_nodes[2] = SR.numbering[SR.index( ix + 1, iy + 1 )];  // upper right
+                quad_nodes[3] = SR.numbering[SR.index( ix, iy + 1 )];      // upper left
 
                 cells.flags( jcell ).reset();
                 if ( iy + 1 >= ny ) {
@@ -668,12 +852,12 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         if ( SR.include_south_pole ) {
             gidx_t glb_idx_max{0};
             inode = inode_south;
-            for ( int ix = 0; ix < SR.nx - 1; ++ix ) {
-                ix_glb = SR.ix_min + ix;
+            for ( idx_t ix = 0; ix < SR.nx - 1; ++ix ) {
+                idx_t ix_glb = SR.ix_min + ix;
                 if ( !SR.is_ghost[SR.index( ix, 0 )] ) {
                     ATLAS_ASSERT( jcell < mesh.cells().size() );
-                    quad_nodes[0] = SR.local_idx[SR.index( ix, 0 )];
-                    quad_nodes[3] = SR.local_idx[SR.index( ix + 1, 0 )];
+                    quad_nodes[0] = SR.numbering[SR.index( ix, 0 )];
+                    quad_nodes[3] = SR.numbering[SR.index( ix + 1, 0 )];
                     quad_nodes[1] = inode;
                     quad_nodes[2] = inode + 1;
                     cells.node_connectivity.set( jcell, quad_nodes.data() );
