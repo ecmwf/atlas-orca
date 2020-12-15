@@ -59,16 +59,16 @@ struct SurroundingRectangle {
     int nx, ny;
     int ix_min, ix_max;
     int iy_min, iy_max;
-    bool include_south_pole;
-    int index( int i, int j ) const { return j * nx + i; }
-    int index_sp( int i ) const { return nx * ny + i; }
     int nb_nodes;
     int nb_cells;
     int nb_nodes_sp;
     int nb_cells_sp;
     int nb_nodes_owned;
+    bool include_south_pole;
 
-    SurroundingRectangle() = default;
+    int index( int i, int j ) const { return j * nx + i; }
+    int index_sp( int i ) const { return nx * ny + i; }
+
     SurroundingRectangle( const Grid& grid, const grid::Distribution& distribution, const Configuration& cfg ) {
         OrcaGrid orca{grid};
         int mypart     = cfg.mypart;
@@ -284,14 +284,17 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     ATLAS_TRACE();
     using Topology = util::Topology;
 
-    Configuration cfg;
-    cfg.include_south_pole = include_pole_;
-    cfg.mypart             = mypart_;
-    cfg.nparts             = nparts_;
-
     OrcaGrid orca{grid};
     ATLAS_ASSERT( orca );
     ATLAS_ASSERT( !mesh.generated() );
+
+    Configuration SR_cfg;
+    SR_cfg.include_south_pole = include_pole_;
+    SR_cfg.mypart             = mypart_;
+    SR_cfg.nparts             = nparts_;
+    SurroundingRectangle SR( grid, distribution, SR_cfg );
+
+
     // clone some grid properties
     setGrid( mesh, grid, distribution );
 
@@ -304,16 +307,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nx         = rg.nx();
     int ny         = rg.ny();
     int ny_halo    = ny + orca.haloNorth();
-    int ny_halo_NS = ny + orca.haloNorth() + orca.haloSouth();
     int iy_glb_max = ny + orca.haloNorth() - 1;
     int iy_glb_min = -orca.haloSouth();
     int ix_glb_max = nx + orca.haloEast() - 1;
     int ix_glb_min = -orca.haloWest();
-    int nx_halo_WE = nx + orca.haloEast() + orca.haloWest();
 
-    if ( nparts > 1 ) {
-        //include_south_pole = false;
-    }
+    int nx_halo_WE = nx + orca.haloEast() + orca.haloWest();
+    int ny_halo_NS = ny + orca.haloNorth() + orca.haloSouth();
 
     // vector of local indices: necessary for remote indices of ghost nodes
     idx_t glbarray_offset  = -( nx_halo_WE * iy_glb_min ) - ix_glb_min;
@@ -335,10 +335,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         j = clamp( j, 0, ny - 1 );
         return distribution.partition( j * nx + i );
     };
-
-    //---------------------------------------------------
-
-    SurroundingRectangle SR( grid, distribution, cfg );
 
     //---------------------------------------------------
 
@@ -420,7 +416,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 if ( SR.is_ghost[ii] ) {
                     inode = inode_ghost++;
                     ATLAS_ASSERT( inode < nnodes );
-                    Log::info() << ii << "\t" << inode << std::endl;
                 }
                 else {
                     inode = inode_nonghost++;
@@ -463,13 +458,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 nodes.remote_idx( inode )     = inode;
                 nodes.master_glb_idx( inode ) = nodes.glb_idx( inode );
                 if ( nodes.ghost( inode ) ) {
-                    gidx_t master_idx             = orca->periodicIndex( ix_glb, iy_glb );
+                    gidx_t master_idx             = orca.periodicIndex( ix_glb, iy_glb );
                     nodes.master_glb_idx( inode ) = master_idx + 1;
                     PointIJ master;
-                    orca->index2ij( master_idx, master.i, master.j );
+                    orca.index2ij( master_idx, master.i, master.j );
                     nodes.part( inode ) = partition( master.i, master.j );
-                    //                    ATLAS_DEBUG( "ghost: " << ix_glb << ", " << iy_glb << "  inode = " << inode
-                    //                                           << " P = " << PointLonLat( _xy ) );
                     nodes.flags( inode ).set( Topology::GHOST );
                     nodes.remote_idx( inode ) = -1;
                 }

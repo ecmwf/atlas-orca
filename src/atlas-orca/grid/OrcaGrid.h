@@ -67,6 +67,10 @@ public:
     int haloNorth() const { return grid_->haloNorth(); }
     int haloSouth() const { return grid_->haloSouth(); }
 
+    gidx_t periodicIndex( idx_t i, idx_t j ) const { return grid_->periodicIndex( i, j ); }
+
+    void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const { grid_->index2ij( gidx, i, j ); }
+
     const grid_t* get() const { return grid_; }
     const grid_t* operator->() const { return get(); }
 
