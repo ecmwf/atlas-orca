@@ -23,6 +23,7 @@ class Distribution;
 #endif
 
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -52,4 +53,5 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

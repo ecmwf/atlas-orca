@@ -1,6 +1,5 @@
 
 #include "OrcaMeshGenerator.h"
-#include "OrcaGrid.h"
 
 #include <tuple>
 #include <utility>
@@ -34,6 +33,8 @@
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Topology.h"
 
+#include "atlas-orca/grid/OrcaGrid.h"
+
 #include "FixupMesh.h"
 #include "FixupMeshUtils.h"
 
@@ -41,6 +42,7 @@
 #define DEBUG_OUTPUT 0
 
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 namespace {
@@ -699,8 +701,9 @@ void OrcaMeshGenerator::hash( eckit::Hash& h ) const {
 }
 
 namespace {
-MeshGeneratorBuilder<OrcaMeshGenerator> __OrcaMeshGenerator( "orca" );
+atlas::meshgenerator::MeshGeneratorBuilder<OrcaMeshGenerator> __OrcaMeshGenerator( "orca" );
 }
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

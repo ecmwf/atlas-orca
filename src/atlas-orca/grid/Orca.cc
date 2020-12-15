@@ -8,7 +8,9 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include "atlas-orca/Orca.h"
+#include "Orca.h"
+
+#include "atlas-orca/Library.h"
 
 #include <algorithm>
 #include <cctype>

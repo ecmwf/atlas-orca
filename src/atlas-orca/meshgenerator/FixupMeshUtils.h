@@ -10,6 +10,7 @@
 #include "atlas/util/Point.h"
 
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -133,4 +134,5 @@ struct MeshBuilder {
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

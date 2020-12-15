@@ -22,7 +22,7 @@
 #include "atlas/util/LonLatMicroDeg.h"
 #include "atlas/util/PeriodicTransform.h"
 
-#include "atlas-orca/OrcaGrid.h"
+#include "atlas-orca/grid/OrcaGrid.h"
 
 #include "tests/AtlasTestEnvironment.h"
 

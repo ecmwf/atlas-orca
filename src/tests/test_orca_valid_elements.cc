@@ -25,8 +25,8 @@
 #include "atlas/interpolation/element/Quad3D.h"
 #include "atlas/mesh/ElementType.h"
 
-#include "atlas-orca/FixupMesh.h"
-#include "atlas-orca/OrcaGrid.h"
+#include "atlas-orca/grid/OrcaGrid.h"
+#include "atlas-orca/meshgenerator/FixupMesh.h"
 
 #include "tests/AtlasTestEnvironment.h"
 
@@ -52,7 +52,7 @@ CASE( "test generate orca mesh" ) {
     auto mesh            = Mesh{cache_or_create( gridname )};
 
     auto fixup_mesh =
-        meshgenerator::FixupMesh::create( option::type( gridname ) | Config( "include_south_pole", true ) );
+        orca::meshgenerator::FixupMesh::create( option::type( gridname ) | Config( "include_south_pole", true ) );
     if ( fixup_mesh ) {
         fixup_mesh->execute( mesh );
     }

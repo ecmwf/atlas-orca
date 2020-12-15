@@ -1,29 +1,13 @@
 
 #include "FixupMesh_ORCA2.h"
 
-#include "FixupMeshUtils.h"
-
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-namespace {
-using GridType = orca::Fixup_ORCA2::GridType;
-
-bool any_of( const GridType t, const std::initializer_list<GridType>& list ) {
-    for ( const auto& value : list ) {
-        if ( t == value ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-}  // namespace
-
-void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
+void FixupMesh_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     auto mesh = mesh_builder.mesh;
 
     bool valid_elements{false};
@@ -247,14 +231,14 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     invalidate( 20621 );  // avoid overlap north of caspian sea
     invalidate( 20622 );  // avoid overlap north of caspian sea
 
-    if ( any_of( type, {T,V} ) ) {
+    if ( any_of( type, {T, V} ) ) {
         invalidate( 17001 );
     }
-    if ( any_of( type, {V,F,U} ) ) {
+    if ( any_of( type, {V, F, U} ) ) {
         invalidate( 18601 );
         invalidate( 18602 );
     }
-    if ( any_of( type, {F,U} ) ) {
+    if ( any_of( type, {F, U} ) ) {
         invalidate( 17181 );
         invalidate( 20251 );
     }
@@ -268,7 +252,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     }
 
     add_element( 17611, 17794, 17793 );
-    if ( any_of( type, {T,F,V} ) ) {
+    if ( any_of( type, {T, F, V} ) ) {
         add_element( 17794, 17795, 17976 );
     }
     if ( any_of( type, {U} ) ) {
@@ -380,12 +364,12 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     add_element( 17277, 17278, 17309 );
     add_element( 17277, 17309, 17308 );
     add_element( 17277, 17308, 17307 );
-    if ( any_of( type, {T,V} ) ) {
+    if ( any_of( type, {T, V} ) ) {
         add_element( 17094, 17095, 17277 );
         add_element( 17094, 17277, 17307 );
         add_element( 17093, 17094, 17307 );
     }
-    if ( any_of( type, {F,U} ) ) {
+    if ( any_of( type, {F, U} ) ) {
         add_element( 17093, 17094, 17276 );
         add_element( 17276, 17277, 17307 );
         add_element( 17093, 17276, 17307 );
@@ -447,14 +431,14 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     add_element( 17463, 17462, 17612 );
     add_element( 17612, 17462, 17461 );
     add_element( 17612, 17461, 17460 );
-    if ( any_of( type, {T,V} ) ) {
+    if ( any_of( type, {T, V} ) ) {
         add_element( 17276, 17459, 17458 );
         add_element( 17276, 17460, 17459 );
         add_element( 17276, 17612, 17460 );
         add_element( 17430, 17612, 17276 );
         add_element( 17430, 17276, 17275 );
     }
-    if ( any_of( type, {F,U} ) ) {
+    if ( any_of( type, {F, U} ) ) {
         add_element( 17275, 17459, 17458 );
         add_element( 17275, 17460, 17459 );
         add_element( 17275, 17612, 17460 );
@@ -480,7 +464,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
         add_element( 19069, 19070, 19068 );
         add_element( 18704, 18887, 19069 );
     }
-    if ( any_of( type, {V,F} ) ) {
+    if ( any_of( type, {V, F} ) ) {
         add_element( 19069, 19070, 18886 );
         add_element( 18704, 18705, 18887 );
         add_element( 18704, 18887, 19069 );
@@ -495,7 +479,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
         add_element( 19070, 19071, 18886 );
         add_element( 18886, 19071, 19068 );
     }
-    if ( any_of( type, {T,V,U} ) ) {
+    if ( any_of( type, {T, V, U} ) ) {
         add_element( 19070, 19071, 19068 );
     }
     add_element( 19071, 19437, 19068 );
@@ -509,7 +493,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     add_element( 19619, 19620, 19252 );
     add_element( 19620, 19253, 19252 );
     add_element( 19620, 19254, 19253 );
-    if ( any_of( type, {T,V,F} ) ) {
+    if ( any_of( type, {T, V, F} ) ) {
         add_element( 19620, 19803, 19254 );
         add_element( 19620, 19621, 19803 );
     }
@@ -588,7 +572,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     add_element( 20386, 20387, 20362 );
     add_element( 20566, 20362, 20361 );
     add_element( 20387, 20388, 20362 );
-    if ( any_of( type, {T,V} ) ) {
+    if ( any_of( type, {T, V} ) ) {
         add_element( 20388, 20363, 20362 );
         add_element( 20389, 20390, 20363 );
         add_element( 20390, 20391, 20546 );
@@ -596,7 +580,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
         add_element( 20363, 20390, 20545 );
         add_element( 20545, 20390, 20546 );
     }
-    if ( any_of( type, {F,U} ) ) {
+    if ( any_of( type, {F, U} ) ) {
         add_element( 20388, 20544, 20362 );
         add_element( 20388, 20389, 20544 );
         add_element( 20389, 20545, 20544 );
@@ -616,7 +600,7 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
     add_element( 20396, 20732, 20731 );
     add_element( 20396, 20397, 20732 );
     add_element( 20397, 20398, 20732 );
-    if ( any_of( type, {T,U,V} ) ) {
+    if ( any_of( type, {T, U, V} ) ) {
         add_element( 20398, 20733, 20732 );
         add_element( 20398, 20399, 20733 );
         add_element( 20399, 20400, 20733 );
@@ -744,4 +728,5 @@ void orca::Fixup_ORCA2::execute( MeshBuilder& mesh_builder ) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

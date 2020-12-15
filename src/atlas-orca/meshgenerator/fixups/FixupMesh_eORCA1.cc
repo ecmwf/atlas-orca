@@ -1,30 +1,14 @@
 
 #include "FixupMesh_eORCA1.h"
 
-#include "FixupMeshUtils.h"
-
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-namespace {
-using GridType = orca::Fixup_eORCA1::GridType;
-
-bool any_of( const GridType t, const std::initializer_list<GridType>& list ) {
-    for ( const auto& value : list ) {
-        if ( t == value ) {
-            return true;
-        }
-    }
-    return false;
-}
-
-}  // namespace
-
-void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
-    ATLAS_TRACE( "FixupMesh " + type );
+void FixupMesh_eORCA1::execute( MeshBuilder& mesh_builder ) const {
+    ATLAS_TRACE( "FixupMesh eORCA1" );
 
     auto mesh = mesh_builder.mesh;
 
@@ -100,7 +84,6 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
         if ( includes_south_pole ) {
             Log::warning() << "Todo: add elements " << Here() << std::endl;
             mesh.metadata().set( "valid_elements", false );
-
         }
     }
     if ( any_of( type, {F} ) ) {
@@ -112,8 +95,6 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
         if ( includes_south_pole ) {
             Log::warning() << "Todo: add elements " << Here() << std::endl;
             mesh.metadata().set( "valid_elements", false );
-
-
         }
     }
     if ( any_of( type, {V} ) ) {
@@ -124,17 +105,16 @@ void orca::Fixup_eORCA1::execute( MeshBuilder& mesh_builder ) const {
         if ( includes_south_pole ) {
             Log::warning() << "Todo: add elements " << Here() << std::endl;
             mesh.metadata().set( "valid_elements", false );
-
-
         }
     }
 }
 
-orca::Fixup_eORCA1::Fixup_eORCA1( GridType grid_type, const eckit::Parametrisation& config ) : type(grid_type) {
+FixupMesh_eORCA1::FixupMesh_eORCA1( GridType grid_type, const eckit::Parametrisation& config ) : type( grid_type ) {
     config.get( "include_south_pole", include_south_pole_ );
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

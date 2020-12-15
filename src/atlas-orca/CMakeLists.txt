@@ -6,18 +6,20 @@ ecbuild_add_library(
     SOURCES 
         Library.cc
         Library.h
-        Orca.h
-        Orca.cc
-        OrcaGrid.h
-        OrcaGrid.cc
-        OrcaMeshGenerator.cc
-        OrcaMeshGenerator.h
-        FixupMesh.cc
-        FixupMesh.h
-        FixupMesh_eORCA1.cc
-        FixupMesh_eORCA1.h
-        FixupMesh_ORCA2.cc
-        FixupMesh_ORCA2.h
+        grid/Orca.h
+        grid/Orca.cc
+        grid/OrcaGrid.h
+        grid/OrcaGrid.cc
+        meshgenerator/OrcaMeshGenerator.cc
+        meshgenerator/OrcaMeshGenerator.h
+        meshgenerator/FixupMesh.cc
+        meshgenerator/FixupMesh.h
+        meshgenerator/fixups/FixupMesh_ORCA.cc
+        meshgenerator/fixups/FixupMesh_ORCA.h
+        meshgenerator/fixups/FixupMesh_eORCA1.cc
+        meshgenerator/fixups/FixupMesh_eORCA1.h
+        meshgenerator/fixups/FixupMesh_ORCA2.cc
+        meshgenerator/fixups/FixupMesh_ORCA2.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         ${CMAKE_CURRENT_BINARY_DIR}/version.h
     HEADER_DESTINATION "include/atlas-orca"
