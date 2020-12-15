@@ -51,6 +51,11 @@ struct SurroundingRectangle {
     std::vector<bool> is_ghost;
     std::vector<bool> is_node;
     int nnodes;
+    int nx, ny;
+    int ix_min, ix_max;
+    int iy_min, iy_max;
+    bool include_south_pole;
+    int index( int i, int j ) { return j * nx + i; }
 };
 
 struct Nodes {
@@ -92,8 +97,8 @@ struct Cells {
     array::ArrayView<int, 1> part;
     array::ArrayView<int, 1> halo;
     array::ArrayView<gidx_t, 1> glb_idx;
-    mesh::HybridElements::Connectivity& node_connectivity;
     array::ArrayView<int, 1> flags_view;
+    mesh::HybridElements::Connectivity& node_connectivity;
     util::detail::BitflagsView<int> flags( idx_t i ) { return util::Topology::view( flags_view( i ) ); }
     Cells( Mesh& mesh ) :
         part{array::make_view<int, 1>( mesh.cells().partition() )},
@@ -199,15 +204,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     };
 
     // determine rectangle (ix_min:ix_max) x (iy_min:iy_max) surrounding the nodes on this processor
-    idx_t ix_min, ix_max, iy_min, iy_max, ix_glb, iy_glb, ix, iy;
+    idx_t ix_glb, iy_glb, ix, iy;
     int nnodes_nonghost, nnodes;  // number of nodes: non-ghost; total;  inside surrounding rectangle
     int ii;
     int ii_glb_south;
     // loop over all points to determine local indices and surroundig rectangle
-    ix_min          = nx + 1;
-    ix_max          = 0;
-    iy_min          = ny + 1;
-    iy_max          = 0;
+    SR.ix_min       = nx + 1;
+    SR.ix_max       = 0;
+    SR.iy_min       = ny + 1;
+    SR.iy_max       = 0;
     nnodes_nonghost = 0;
 
     {
@@ -218,10 +223,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 local_idx.at( ii_glb ) = current_idx[p]++;  // store local index on the local proc of this point
                 if ( p == mypart ) {
                     ++nnodes_nonghost;  // non-ghost node: belongs to this part
-                    ix_min = std::min( ix_min, ix );
-                    ix_max = std::max( ix_max, ix );
-                    iy_min = std::min( iy_min, iy );
-                    iy_max = std::max( iy_max, iy );
+                    SR.ix_min = std::min( SR.ix_min, ix );
+                    SR.ix_max = std::max( SR.ix_max, ix );
+                    SR.iy_min = std::min( SR.iy_min, iy );
+                    SR.iy_max = std::max( SR.iy_max, iy );
                 }
                 ++ii_glb;  // global index
             }
@@ -238,16 +243,18 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     }
 
     // add one row/column for ghost nodes (which include periodicity points)
-    ix_max = std::min( ix_glb_max, ix_max + 1 );
-    iy_max = std::min( iy_glb_max, iy_max + 1 );
+    SR.ix_max = std::min( ix_glb_max, SR.ix_max + 1 );
+    SR.iy_max = std::min( iy_glb_max, SR.iy_max + 1 );
 
     // dimensions of surrounding rectangle (SR)
-    int nxl = ix_max - ix_min + 1;
-    int nyl = iy_max - iy_min + 1;
+    //int nxl = ix_max - ix_min + 1;
+    //int nyl = iy_max - iy_min + 1;
+    SR.nx = SR.ix_max - SR.ix_min + 1;
+    SR.ny = SR.iy_max - SR.iy_min + 1;
 
     // upper estimate for number of nodes
-    include_south_pole = include_south_pole && iy_min == iy_glb_min;
-    SR.nnodes          = nxl * ( nyl + ( include_south_pole ? 1 : 0 ) );
+    SR.include_south_pole = include_south_pole && SR.iy_min == iy_glb_min;
+    SR.nnodes             = SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) );
 
     // partitions and local indices in SR
     SR.parts.resize( SR.nnodes, -1 );
@@ -257,10 +264,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     SR.is_node.resize( SR.nnodes, false );
 
     ii = 0;  // index inside SR
-    for ( iy = 0; iy < nyl; iy++ ) {
-        iy_glb = iy_min + iy;  // global y-index
-        for ( ix = 0; ix < nxl; ix++ ) {
-            ix_glb            = ix_min + ix;  // global x-index
+    for ( iy = 0; iy < SR.ny; iy++ ) {
+        iy_glb = SR.iy_min + iy;  // global y-index
+        for ( ix = 0; ix < SR.nx; ix++ ) {
+            ix_glb            = SR.ix_min + ix;  // global x-index
             SR.parts.at( ii ) = partition( ix_glb, iy_glb );
 
             if ( iy_glb < ny_halo ) {
@@ -271,25 +278,24 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
     int ii_south = ii;
-    if ( include_south_pole ) {
-        for ( ix = 0; ix < nxl; ix++ ) {
-            ix_glb                = ix_min + ix;
+    if ( SR.include_south_pole ) {
+        for ( ix = 0; ix < SR.nx; ix++ ) {
+            ix_glb                = SR.ix_min + ix;
             SR.local_idx.at( ii ) = local_idx.at( ii_glb_south + ix_glb );
             SR.is_ghost.at( ii )  = false;
             ++ii;
         }
     }
-    ATLAS_ASSERT( ii == nxl * ( nyl + ( include_south_pole ? 1 : 0 ) ) );
+    ATLAS_ASSERT( ii == SR.nx * ( SR.ny + ( SR.include_south_pole ? 1 : 0 ) ) );
 
     // determine number of cells and number of nodes
-    nnodes     = 0;
-    ncells     = 0;
-    auto index = [&]( idx_t i, idx_t j ) { return j * nxl + i; };
-    for ( iy = 0; iy < nyl - 1; iy++ ) {  // don't loop into ghost/periodicity row
-        iy_glb = iy_min + iy;
-        for ( ix = 0; ix < nxl - 1; ix++ ) {  // don't loop into ghost/periodicity column
-            ix_glb = ix_min + ix;
-            ii     = index( ix, iy );
+    nnodes = 0;
+    ncells = 0;
+    for ( iy = 0; iy < SR.ny - 1; iy++ ) {  // don't loop into ghost/periodicity row
+        iy_glb = SR.iy_min + iy;
+        for ( ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+            ix_glb = SR.ix_min + ix;
+            ii     = SR.index( ix, iy );
             if ( !SR.is_ghost[ii] ) {
                 ++ncells;
 
@@ -299,19 +305,19 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     SR.is_node[ii] = true;
                 }
                 // mark lowerright corner
-                ii = index( ix + 1, iy );
+                ii = SR.index( ix + 1, iy );
                 if ( !SR.is_node[ii] ) {
                     ++nnodes;
                     SR.is_node[ii] = true;
                 }
                 // mark upperleft corner
-                ii = index( ix, iy + 1 );
+                ii = SR.index( ix, iy + 1 );
                 if ( !SR.is_node[ii] ) {
                     ++nnodes;
                     SR.is_node[ii] = true;
                 }
                 // mark upperright corner
-                ii = index( ix + 1, iy + 1 );
+                ii = SR.index( ix + 1, iy + 1 );
                 if ( !SR.is_node[ii] ) {
                     ++nnodes;
                     SR.is_node[ii] = true;
@@ -320,11 +326,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
     nb_extra_nodes = 0;
-    if ( include_south_pole ) {
+    if ( SR.include_south_pole ) {
         ii = ii_south;
-        for ( ix = 0; ix < nxl; ix++ ) {
-            ix_glb             = ix_min + ix;
-            idx_t ii_row_north = index( ix, 0 );
+        for ( ix = 0; ix < SR.nx; ix++ ) {
+            ix_glb             = SR.ix_min + ix;
+            idx_t ii_row_north = SR.index( ix, 0 );
             SR.is_node[ii]     = SR.is_node[ii_row_north];
             SR.is_ghost[ii]    = SR.is_ghost[ii_row_north];
             if ( SR.is_node[ii] ) {
@@ -385,8 +391,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return p;
     };
 
-    for ( iy = 0; iy < nyl; iy++ ) {
-        iy_glb = iy_min + iy;
+    for ( iy = 0; iy < SR.ny; iy++ ) {
+        iy_glb = SR.iy_min + iy;
         ATLAS_ASSERT( iy_glb < ny_halo );
         double lon0                    = orca.xy( 0, iy_glb ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
@@ -399,9 +405,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 _xy[LON] = normalise_lon_second_half( _xy[LON] );
             }
         };
-        for ( ix = 0; ix < nxl; ix++ ) {
-            ix_glb = ( ix_min + ix );  // don't take modulus here: periodicity points
-                                       // have their own global index.
+        for ( ix = 0; ix < SR.nx; ix++ ) {
+            ix_glb = ( SR.ix_min + ix );  // don't take modulus here: periodicity points
+                                          // have their own global index.
             // node properties
             if ( SR.is_node[ii] ) {
                 // set node counter
@@ -515,7 +521,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int inode_south = nnodes - nb_extra_nodes;
     inode           = inode_south;
     ii              = ii_south;
-    if ( include_south_pole ) {
+    if ( SR.include_south_pole ) {
         gidx_t glb_idx_0               = compute_global_offset( ix_glb_max, iy_glb_max ) + 2;
         double lon0                    = orca.xy( 0, -orca.haloSouth() ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
@@ -529,15 +535,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         };
 
-        for ( ix = 0; ix < nxl; ix++ ) {
+        for ( ix = 0; ix < SR.nx; ix++ ) {
             if ( ii >= SR.is_node.size() ) {
                 throw_OutOfRange( "ii", ii, SR.is_node.size(), Here() );
             }
 
             if ( SR.is_node[ii] ) {
-                idx_t inode_north = SR.local_idx[index( ix, 0 )];
+                idx_t inode_north = SR.local_idx[SR.index( ix, 0 )];
 
-                ix_glb = ( ix_min + ix );
+                ix_glb = SR.ix_min + ix;
                 PointXY p{orca.xy( ix_glb, -orca.haloSouth() ).x(), -90.};
                 normalise( p.data() );
 
@@ -579,17 +585,17 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
 
     // loop over nodes and define cells
-    for ( iy = 0; iy < nyl - 1; iy++ ) {      // don't loop into ghost/periodicity row
-        for ( ix = 0; ix < nxl - 1; ix++ ) {  // don't loop into ghost/periodicity column
-            ii         = index( ix, iy );
-            int ix_glb = ix_min + ix;
-            int iy_glb = iy_min + iy;
+    for ( iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
+        for ( ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+            ii         = SR.index( ix, iy );
+            int ix_glb = SR.ix_min + ix;
+            int iy_glb = SR.iy_min + iy;
             if ( !SR.is_ghost[ii] ) {
                 // define cell corners (local indices)
-                quad_nodes[0] = SR.local_idx[index( ix, iy )];          // lower left
-                quad_nodes[1] = SR.local_idx[index( ix + 1, iy )];      // lower right
-                quad_nodes[2] = SR.local_idx[index( ix + 1, iy + 1 )];  // upper right
-                quad_nodes[3] = SR.local_idx[index( ix, iy + 1 )];      // upper left
+                quad_nodes[0] = SR.local_idx[SR.index( ix, iy )];          // lower left
+                quad_nodes[1] = SR.local_idx[SR.index( ix + 1, iy )];      // lower right
+                quad_nodes[2] = SR.local_idx[SR.index( ix + 1, iy + 1 )];  // upper right
+                quad_nodes[3] = SR.local_idx[SR.index( ix, iy + 1 )];      // upper left
 
                 cells.flags( jcell ).reset();
                 if ( iy + 1 >= ny ) {
@@ -659,15 +665,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     // Special modifications
     {
         MeshBuilder mesh_builder( mesh );
-        if ( include_south_pole ) {
+        if ( SR.include_south_pole ) {
             gidx_t glb_idx_max{0};
             inode = inode_south;
-            for ( int ix = 0; ix < nxl - 1; ++ix ) {
-                ix_glb = ix_min + ix;
-                if ( !SR.is_ghost[index( ix, 0 )] ) {
+            for ( int ix = 0; ix < SR.nx - 1; ++ix ) {
+                ix_glb = SR.ix_min + ix;
+                if ( !SR.is_ghost[SR.index( ix, 0 )] ) {
                     ATLAS_ASSERT( jcell < mesh.cells().size() );
-                    quad_nodes[0] = SR.local_idx[index( ix, 0 )];
-                    quad_nodes[3] = SR.local_idx[index( ix + 1, 0 )];
+                    quad_nodes[0] = SR.local_idx[SR.index( ix, 0 )];
+                    quad_nodes[3] = SR.local_idx[SR.index( ix + 1, 0 )];
                     quad_nodes[1] = inode;
                     quad_nodes[2] = inode + 1;
                     cells.node_connectivity.set( jcell, quad_nodes.data() );
