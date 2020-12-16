@@ -10,8 +10,11 @@
  */
 
 
-#include "version.h"
+#include "atlas-orca/version.h"
 
+#define ATLAS_ORCA_MAJOR_VERSION @atlas-orca_VERSION_MAJOR@
+#define ATLAS_ORCA_MINOR_VERSION @atlas-orca_VERSION_MINOR@
+#define ATLAS_ORCA_PATCH_VERSION @atlas-orca_VERSION_PATCH@
 
 const char* atlas_orca_git_sha1() {
     return "@atlas-orca_GIT_SHA1@";

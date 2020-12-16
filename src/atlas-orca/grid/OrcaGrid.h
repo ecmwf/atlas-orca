@@ -59,7 +59,7 @@ public:
     PointLonLat lonlat( idx_t i, idx_t j ) const { return grid_->lonlat( i, j ); }
 
     bool water( idx_t i, idx_t j ) const { return grid_->water( i, j ); }
-    bool land( idx_t i, idx_t j ) const { return not grid_->land( i, j ); }
+    bool land( idx_t i, idx_t j ) const { return grid_->land( i, j ); }
     bool ghost( idx_t i, idx_t j ) const { return grid_->ghost( i, j ); }
 
     int haloWest() const { return grid_->haloWest(); }

@@ -1,6 +1,7 @@
 
 #include "OrcaMeshGenerator.h"
 
+#include <numeric>
 #include <tuple>
 #include <utility>
 
@@ -36,10 +37,7 @@
 #include "atlas-orca/grid/OrcaGrid.h"
 
 #include "FixupMesh.h"
-#include "FixupMeshUtils.h"
 
-#define DEBUG_OUTPUT_DETAIL 0
-#define DEBUG_OUTPUT 0
 
 namespace atlas {
 namespace orca {
@@ -70,6 +68,7 @@ struct SurroundingRectangle {
     int index_sp( int i ) const { return nx * ny + i; }
 
     SurroundingRectangle( const Grid& grid, const grid::Distribution& distribution, const Configuration& cfg ) {
+        ATLAS_TRACE();
         OrcaGrid orca{grid};
         int mypart     = cfg.mypart;
         int nx_glb     = orca.nx();
@@ -98,18 +97,24 @@ struct SurroundingRectangle {
         nb_nodes_owned = 0;
 
         {
-            for ( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
-                for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
-                    int p = partition( ix, iy );
-                    if ( p == mypart ) {
-                        ix_min = std::min( ix_min, ix );
-                        ix_max = std::max( ix_max, ix );
-                        iy_min = std::min( iy_min, iy );
-                        iy_max = std::max( iy_max, iy );
-                        nb_nodes_owned++;
+            ATLAS_TRACE( "bounds" );
+            std::vector<int> nb_nodes_owned_TP( atlas_omp_get_max_threads(), 0 );
+            atlas_omp_parallel {
+                const size_t tid = atlas_omp_get_thread_num();
+                atlas_omp_for( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
+                    for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
+                        int p = partition( ix, iy );
+                        if ( p == mypart ) {
+                            ix_min = std::min( ix_min, ix );
+                            ix_max = std::max( ix_max, ix );
+                            iy_min = std::min( iy_min, iy );
+                            iy_max = std::max( iy_max, iy );
+                            nb_nodes_owned_TP[tid]++;
+                        }
                     }
                 }
             }
+            nb_nodes_owned = std::accumulate( nb_nodes_owned_TP.begin(), nb_nodes_owned_TP.end(), 0 );
         }
 
         // add one row/column for ghost nodes (which include periodicity points)
@@ -130,9 +135,9 @@ struct SurroundingRectangle {
         // vectors marking nodes that are necessary for this proc's cells
         is_node.resize( size, false );
 
-        {  // Compute : SR.part, SR.is_ghost, SR.numbering
-            int visited = 0;
-            for ( idx_t iy = 0; iy < ny; iy++ ) {
+        {  // Compute : SR.part, SR.is_ghost
+            ATLAS_TRACE( "part,is_ghost" );
+            atlas_omp_parallel_for( idx_t iy = 0; iy < ny; iy++ ) {
                 idx_t iy_glb = iy_min + iy;  // global y-index
                 for ( idx_t ix = 0; ix < nx; ix++ ) {
                     idx_t ii       = index( ix, iy );
@@ -142,21 +147,18 @@ struct SurroundingRectangle {
                     if ( iy_glb < ny_halo ) {
                         is_ghost.at( ii ) = ( parts.at( ii ) != mypart );
                     }
-
-                    ++visited;
                 }
             }
             if ( include_south_pole ) {
                 int ii_south = nx * ny;
                 for ( idx_t ix = 0; ix < nx; ix++ ) {
                     is_ghost.at( ii_south + ix ) = false;
-                    ++visited;
                 }
             }
-            ATLAS_ASSERT( visited == nx * ( ny + ( include_south_pole ? 1 : 0 ) ) );
         }
         // determine number of cells and number of nodes
         {  // Compute SR.is_node
+            ATLAS_TRACE( "is_node" );
             auto mark_node_used = [&]( int ix, int iy ) {
                 idx_t ii = index( ix, iy );
                 if ( !is_node[ii] ) {
@@ -281,7 +283,7 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
 }  // namespace
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& distribution, Mesh& mesh ) const {
-    ATLAS_TRACE();
+    ATLAS_TRACE( "OrcaMeshGenerator::generate" );
     using Topology = util::Topology;
 
     OrcaGrid orca{grid};
@@ -327,6 +329,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
 
     auto partition = [&]( idx_t i, idx_t j ) -> int {
+        if ( nparts == 1 ) {
+            return 0;
+        }
         auto clamp = []( idx_t value, idx_t lower, idx_t upper ) {
             // in C++17 this is std::clamp
             return std::max( lower, std::min( value, upper ) );
@@ -353,172 +358,164 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // define cells and associated properties
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
-    int quad_begin = mesh.cells().elements( 0 ).begin();
     Cells cells( mesh );
 
-    std::array<int, 4> quad_nodes;
-    int jcell = quad_begin;
-    int inode, inode_nonghost, inode_ghost;
+    int inode_nonghost, inode_ghost;
 
-    // loop over nodes and set properties
-    inode_nonghost = 0;
-    inode_ghost    = SR.nb_nodes_owned;  // ghost nodes start counting after nonghost nodes
 
     int ix_pivot = nx / 2;
     bool patch   = not orca.ghost( ix_pivot + 1, ny - 1 );
 
-    struct PointIJ {
-        idx_t i;
-        idx_t j;
-    };
-    auto fold = [&]( idx_t i, idx_t j ) {
-        PointIJ p;
-        if ( not patch && j >= ny - 1 ) {  // ORCA2_T, ORCA025_T, ORCA12_T
-            int iy_pivot = ny - 1;
-            p.i          = ix_pivot - ( i - ix_pivot );
-            p.j          = iy_pivot - ( j - iy_pivot );
-        }
-        else if ( patch && j >= ny ) {  // ORCA1_T
-            double iy_pivot = double( ny ) - 0.5;
-            p.i             = 2 * ix_pivot - 1 - i;
-            p.j             = int( 2. * iy_pivot ) - j;
-        }
-        else {
-            p.i = i;
-            p.j = j;
-        }
-        return p;
-    };
-
     std::vector<idx_t> node_index( SR.size, -1 );
 
-    for ( idx_t iy = 0; iy < SR.ny; iy++ ) {
-        idx_t iy_glb = SR.iy_min + iy;
-        ATLAS_ASSERT( iy_glb < ny_halo );
-        double lon0                    = orca.xy( 0, iy_glb ).x();
-        auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
-        auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
-        for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
-            idx_t ix_glb   = SR.ix_min + ix;
-            auto normalise = [&]( double _xy[2] ) {
-                if ( ix_glb < nx / 2 ) {
-                    _xy[LON] = normalise_lon_first_half( _xy[LON] );
-                }
-                else {
-                    _xy[LON] = normalise_lon_second_half( _xy[LON] );
-                }
-            };
+    {
+        ATLAS_TRACE( "nodes" );
 
-            idx_t ii = SR.index( ix, iy );
-            // node properties
-            if ( SR.is_node[ii] ) {
-                // set node counter
-                if ( SR.is_ghost[ii] ) {
-                    inode = inode_ghost++;
-                    ATLAS_ASSERT( inode < nnodes );
-                }
-                else {
-                    inode = inode_nonghost++;
-                    ATLAS_ASSERT( inode < SR.nb_nodes_owned );
-                }
-                node_index[ii] = inode;
+        // loop over nodes and set properties
+        inode_nonghost = 0;
+        inode_ghost    = SR.nb_nodes_owned;  // ghost nodes start counting after nonghost nodes
 
-                // ghost nodes
-                nodes.ghost( inode ) = SR.is_ghost[ii];
-                if ( iy_glb > 0 or ix_glb < 0 ) {
-                    nodes.ghost( inode ) = nodes.ghost( inode ) || orca.ghost( ix_glb, iy_glb );
-                }
-
-                // flags
-                nodes.flags( inode ).reset();
-
-                // global index
-                nodes.glb_idx( inode ) = index_glbarray( ix_glb, iy_glb ) + 1;  // no periodic point
-
-                // grid coordinates
-
-                nodes.ij( inode, XX ) = ix_glb;
-                nodes.ij( inode, YY ) = iy_glb;
-
-                double _xy[2];
-
-                // normal calculation
-                orca.xy( ix_glb, iy_glb, _xy );
-                normalise( _xy );
-
-                nodes.xy( inode, LON ) = _xy[LON];
-                nodes.xy( inode, LAT ) = _xy[LAT];
-
-                // geographic coordinates by using projection
-                nodes.lonlat( inode, LON ) = _xy[LON];
-                nodes.lonlat( inode, LAT ) = _xy[LAT];
-
-                // part and remote_idx
-                nodes.part( inode )           = SR.parts[ii];
-                nodes.remote_idx( inode )     = inode;
-                nodes.master_glb_idx( inode ) = nodes.glb_idx( inode );
-                if ( nodes.ghost( inode ) ) {
-                    gidx_t master_idx             = orca.periodicIndex( ix_glb, iy_glb );
-                    nodes.master_glb_idx( inode ) = master_idx + 1;
-                    PointIJ master;
-                    orca.index2ij( master_idx, master.i, master.j );
-                    nodes.part( inode ) = partition( master.i, master.j );
-                    nodes.flags( inode ).set( Topology::GHOST );
-                    nodes.remote_idx( inode ) = -1;
-                }
-
-                if ( ix_glb >= nx - orca.haloWest() ) {
-                    nodes.flags( inode ).set( Topology::PERIODIC );
-                }
-                else if ( ix_glb < orca.haloEast() ) {
-                    nodes.flags( inode ).set( Topology::PERIODIC );
-                }
-                if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
-                    nodes.flags( inode ).set( Topology::PERIODIC );
-                }
-
-                if ( orca.land( ix_glb, iy_glb ) == 0 ) {
-                    nodes.flags( inode ).set( Topology::LAND );
-                }
-                else {
-                    nodes.flags( inode ).set( Topology::WATER );
-                }
-                if ( ix_glb <= 0 ) {
-                    nodes.flags( inode ).set( Topology::BC | Topology::WEST );
-                }
-                else if ( ix_glb >= nx ) {
-                    nodes.flags( inode ).set( Topology::BC | Topology::EAST );
-                }
-
-                nodes.lsm( inode )  = orca.water( ix_glb, iy_glb );
-                nodes.core( inode ) = not orca.ghost( ix_glb, iy_glb );
-                nodes.halo( inode ) = [&]() -> int {
-                    if ( ix_glb < 0 ) {
-                        return -ix_glb;
-                    }
-                    else if ( ix_glb > nx + 1 ) {
-                        return ix_glb - nx + 1;
-                    }
-                    else if ( iy_glb < 0 ) {
-                        return 0;
-                    }
-                    else if ( iy_glb >= ny ) {
-                        int h = 1;
-                        if ( patch && ix_glb < ix_pivot ) {  // case of eg ORCA1_T
-                            h = 0;
-                        }
-                        return h;
+        ATLAS_TRACE_SCOPE( "indexing" )
+        for ( idx_t iy = 0; iy < SR.ny; iy++ ) {
+            idx_t iy_glb = SR.iy_min + iy;
+            ATLAS_ASSERT( iy_glb < ny_halo );
+            for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+                idx_t ii = SR.index( ix, iy );
+                // node properties
+                if ( SR.is_node[ii] ) {
+                    // set node counter
+                    if ( SR.is_ghost[ii] ) {
+                        node_index[ii] = inode_ghost++;
+                        ATLAS_ASSERT( node_index[ii] < SR.nb_nodes );
                     }
                     else {
-                        return 0;
+                        node_index[ii] = inode_nonghost++;
+                        ATLAS_ASSERT( node_index[ii] < SR.nb_nodes_owned );
                     }
-                }();
+                }
+            }
+        }
+
+        inode_nonghost = 0;
+        inode_ghost    = SR.nb_nodes_owned;  // ghost nodes start counting after nonghost nodes
+
+        ATLAS_TRACE_SCOPE( "filling" )
+        atlas_omp_parallel_for( idx_t iy = 0; iy < SR.ny; iy++ ) {
+            idx_t iy_glb = SR.iy_min + iy;
+            ATLAS_ASSERT( iy_glb < ny_halo );
+            double lon0                    = orca.xy( 0, iy_glb ).x();
+            auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
+            auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
+            for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
+                idx_t ix_glb   = SR.ix_min + ix;
+                auto normalise = [&]( double _xy[2] ) {
+                    if ( ix_glb < nx / 2 ) {
+                        _xy[LON] = normalise_lon_first_half( _xy[LON] );
+                    }
+                    else {
+                        _xy[LON] = normalise_lon_second_half( _xy[LON] );
+                    }
+                };
+
+                idx_t ii = SR.index( ix, iy );
+                // node properties
+                if ( SR.is_node[ii] ) {
+                    idx_t inode = node_index[ii];
+
+                    // ghost nodes
+                    nodes.ghost( inode ) = SR.is_ghost[ii];
+                    if ( iy_glb > 0 or ix_glb < 0 ) {
+                        nodes.ghost( inode ) = nodes.ghost( inode ) || orca.ghost( ix_glb, iy_glb );
+                    }
+
+                    // flags
+                    auto flags = nodes.flags( inode );
+                    flags.reset();
+
+                    // global index
+                    nodes.glb_idx( inode ) = index_glbarray( ix_glb, iy_glb ) + 1;  // no periodic point
+
+                    // grid coordinates
+
+                    nodes.ij( inode, XX ) = ix_glb;
+                    nodes.ij( inode, YY ) = iy_glb;
+
+                    double _xy[2];
+
+                    // normal calculation
+                    orca.xy( ix_glb, iy_glb, _xy );
+                    normalise( _xy );
+
+                    nodes.xy( inode, LON ) = _xy[LON];
+                    nodes.xy( inode, LAT ) = _xy[LAT];
+
+                    // geographic coordinates by using projection
+                    nodes.lonlat( inode, LON ) = _xy[LON];
+                    nodes.lonlat( inode, LAT ) = _xy[LAT];
+
+                    // part and remote_idx
+                    nodes.part( inode )           = SR.parts[ii];
+                    nodes.remote_idx( inode )     = inode;
+                    nodes.master_glb_idx( inode ) = nodes.glb_idx( inode );
+                    if ( nodes.ghost( inode ) ) {
+                        gidx_t master_idx             = orca.periodicIndex( ix_glb, iy_glb );
+                        nodes.master_glb_idx( inode ) = master_idx + 1;
+                        idx_t master_i, master_j;
+                        orca.index2ij( master_idx, master_i, master_j );
+                        nodes.part( inode ) = partition( master_i, master_j );
+                        flags.set( Topology::GHOST );
+                        nodes.remote_idx( inode ) = -1;
+                    }
+
+                    if ( ix_glb >= nx - orca.haloWest() ) {
+                        flags.set( Topology::PERIODIC );
+                    }
+                    else if ( ix_glb < orca.haloEast() ) {
+                        flags.set( Topology::PERIODIC );
+                    }
+                    if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
+                        flags.set( Topology::PERIODIC );
+                    }
+
+                    flags.set( orca.land( ix_glb, iy_glb ) ? Topology::LAND : Topology::WATER );
+
+                    if ( ix_glb <= 0 ) {
+                        flags.set( Topology::BC | Topology::WEST );
+                    }
+                    else if ( ix_glb >= nx ) {
+                        flags.set( Topology::BC | Topology::EAST );
+                    }
+
+                    nodes.lsm( inode )  = orca.water( ix_glb, iy_glb );
+                    nodes.core( inode ) = not orca.ghost( ix_glb, iy_glb );
+                    nodes.halo( inode ) = [&]() -> int {
+                        if ( ix_glb < 0 ) {
+                            return -ix_glb;
+                        }
+                        else if ( ix_glb > nx + 1 ) {
+                            return ix_glb - nx + 1;
+                        }
+                        else if ( iy_glb < 0 ) {
+                            return 0;
+                        }
+                        else if ( iy_glb >= ny ) {
+                            int h = 1;
+                            if ( patch && ix_glb < ix_pivot ) {  // case of eg ORCA1_T
+                                h = 0;
+                            }
+                            return h;
+                        }
+                        else {
+                            return 0;
+                        }
+                    }();
+                }
             }
         }
     }
-    int inode_south = nnodes - nb_extra_nodes;
-    inode           = inode_south;
+    idx_t inode_south = nnodes - nb_extra_nodes;
     if ( SR.include_south_pole ) {
+        idx_t inode                    = inode_south;
         gidx_t glb_idx_0               = index_glbarray( ix_glb_max, iy_glb_max ) + 2;
         double lon0                    = orca.xy( 0, -orca.haloSouth() ).x();
         auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
@@ -582,95 +579,113 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
-
+    idx_t icell_south = 0;
     // loop over nodes and define cells
-    for ( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
-        for ( idx_t ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
-            idx_t ii   = SR.index( ix, iy );
-            int ix_glb = SR.ix_min + ix;
-            int iy_glb = SR.iy_min + iy;
-            if ( !SR.is_ghost[ii] ) {
-                // define cell corners (local indices)
-                quad_nodes[0] = node_index[SR.index( ix, iy )];          // lower left
-                quad_nodes[1] = node_index[SR.index( ix + 1, iy )];      // lower right
-                quad_nodes[2] = node_index[SR.index( ix + 1, iy + 1 )];  // upper right
-                quad_nodes[3] = node_index[SR.index( ix, iy + 1 )];      // upper left
-
-                cells.flags( jcell ).reset();
-                if ( iy + 1 >= ny ) {
-                    // std::swap( quad_nodes[2], quad_nodes[3] );
+    {
+        ATLAS_TRACE( "elements" );
+        std::vector<idx_t> cell_index( SR.size );
+        idx_t jcell = 0;
+        ATLAS_TRACE_SCOPE( "indexing" );
+        for ( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
+            for ( idx_t ix = 0; ix < SR.nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
+                idx_t ii = SR.index( ix, iy );
+                if ( !SR.is_ghost[ii] ) {
+                    cell_index[ii] = jcell++;
                 }
+            }
+        }
+        icell_south = jcell;
 
-                cells.node_connectivity.set( jcell, quad_nodes.data() );
-                cells.part( jcell )    = nodes.part( quad_nodes[0] );
-                cells.glb_idx( jcell ) = ( iy_glb - iy_glb_min ) * ( nx_halo_WE - 1 ) + ( ix_glb - ix_glb_min ) + 1;
 
-                if ( iy_glb >= ny - 1 ) {
-                    cells.flags( jcell ).set( Topology::GHOST );
-                    if ( patch && ix_glb < ix_pivot ) {                     // case of eg ORCA1_T
-                        cells.part( jcell ) = nodes.part( quad_nodes[0] );  // lower left
-                        cells.flags( jcell ).unset( Topology::GHOST );
-                    }
-                    else {                                                  // case of eg ORCA2_T
-                        cells.part( jcell ) = nodes.part( quad_nodes[2] );  // upper right
-                    }
-                }
+        ATLAS_TRACE_SCOPE( "filling" )
+        atlas_omp_parallel_for( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {  // don't loop into ghost/periodicity row
+            for ( idx_t ix = 0; ix < SR.nx - 1; ix++ ) {                // don't loop into ghost/periodicity column
+                idx_t ii   = SR.index( ix, iy );
+                int ix_glb = SR.ix_min + ix;
+                int iy_glb = SR.iy_min + iy;
+                if ( !SR.is_ghost[ii] ) {
+                    idx_t jcell = cell_index[ii];
 
-                bool elem_contains_water_point = [&] {
-                    for ( idx_t inode : quad_nodes ) {
-                        if ( nodes.flags( inode ).check( Topology::WATER ) ) {
-                            return true;
+                    // define cell corners (local indices)
+                    std::array<int, 4> quad_nodes;
+                    quad_nodes[0] = node_index[SR.index( ix, iy )];          // lower left
+                    quad_nodes[1] = node_index[SR.index( ix + 1, iy )];      // lower right
+                    quad_nodes[2] = node_index[SR.index( ix + 1, iy + 1 )];  // upper right
+                    quad_nodes[3] = node_index[SR.index( ix, iy + 1 )];      // upper left
+
+                    cells.flags( jcell ).reset();
+
+                    cells.node_connectivity.set( jcell, quad_nodes.data() );
+                    cells.part( jcell )    = nodes.part( quad_nodes[0] );
+                    cells.glb_idx( jcell ) = ( iy_glb - iy_glb_min ) * ( nx_halo_WE - 1 ) + ( ix_glb - ix_glb_min ) + 1;
+
+                    if ( iy_glb >= ny - 1 ) {
+                        cells.flags( jcell ).set( Topology::GHOST );
+                        if ( patch && ix_glb < ix_pivot ) {                     // case of eg ORCA1_T
+                            cells.part( jcell ) = nodes.part( quad_nodes[0] );  // lower left
+                            cells.flags( jcell ).unset( Topology::GHOST );
+                        }
+                        else {                                                  // case of eg ORCA2_T
+                            cells.part( jcell ) = nodes.part( quad_nodes[2] );  // upper right
                         }
                     }
-                    return false;
-                }();
-                bool elem_contains_land_point = [&] {
-                    for ( idx_t inode : quad_nodes ) {
-                        if ( nodes.flags( inode ).check( Topology::LAND ) ) {
-                            return true;
-                        }
-                    }
-                    return false;
-                }();
-                cells.halo( jcell ) = [&] {
-                    int h = 0;
-                    for ( idx_t inode : quad_nodes ) {
-                        h = std::max( h, nodes.halo( inode ) );
-                    }
-                    if ( iy_glb < 0 ) {
-                        h = 0;
-                        if ( ix_glb < 0 ) {
-                            h = -ix_glb;
-                        }
-                        else if ( ix_glb >= nx ) {
-                            h = ix_glb - ( nx - 1 );
-                        }
-                    }
-                    return h;
-                }();
 
-                if ( elem_contains_water_point ) {
-                    cells.flags( jcell ).set( Topology::WATER );
-                }
-                if ( elem_contains_land_point ) {
-                    cells.flags( jcell ).set( Topology::LAND );
-                }
+                    bool elem_contains_water_point = [&] {
+                        for ( idx_t inode : quad_nodes ) {
+                            if ( nodes.flags( inode ).check( Topology::WATER ) ) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }();
+                    bool elem_contains_land_point = [&] {
+                        for ( idx_t inode : quad_nodes ) {
+                            if ( nodes.flags( inode ).check( Topology::LAND ) ) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }();
+                    cells.halo( jcell ) = [&] {
+                        int h = 0;
+                        for ( idx_t inode : quad_nodes ) {
+                            h = std::max( h, nodes.halo( inode ) );
+                        }
+                        if ( iy_glb < 0 ) {
+                            h = 0;
+                            if ( ix_glb < 0 ) {
+                                h = -ix_glb;
+                            }
+                            else if ( ix_glb >= nx ) {
+                                h = ix_glb - ( nx - 1 );
+                            }
+                        }
+                        return h;
+                    }();
 
-                ++jcell;
+                    if ( elem_contains_water_point ) {
+                        cells.flags( jcell ).set( Topology::WATER );
+                    }
+                    if ( elem_contains_land_point ) {
+                        cells.flags( jcell ).set( Topology::LAND );
+                    }
+                }
             }
         }
     }
 
     // Special modifications
     {
-        MeshBuilder mesh_builder( mesh );
+        ATLAS_TRACE( "pole elements" );
         if ( SR.include_south_pole ) {
             gidx_t glb_idx_max{0};
-            inode = inode_south;
+            idx_t inode = inode_south;
+            idx_t jcell = icell_south;
             for ( idx_t ix = 0; ix < SR.nx - 1; ++ix ) {
                 idx_t ix_glb = SR.ix_min + ix;
                 if ( !SR.is_ghost[SR.index( ix, 0 )] ) {
                     ATLAS_ASSERT( jcell < mesh.cells().size() );
+                    std::array<int, 4> quad_nodes;
                     quad_nodes[0] = node_index[SR.index( ix, 0 )];
                     quad_nodes[3] = node_index[SR.index( ix + 1, 0 )];
                     quad_nodes[1] = inode;
@@ -697,7 +712,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             mesh.metadata().set( "includes_south_pole", true );
         }
         if ( fixup_ ) {
-            FixupMesh::create( util::Config( "type", grid.name() ) )->execute( mesh_builder );
+            FixupMesh::create( util::Config( "type", grid.name() ) )->execute( mesh );
         }
     }
     //nb_extra_nodes = 0;
