@@ -12,6 +12,7 @@
 #include "Library.h"
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -376,13 +377,7 @@ public:
 
         auto standard_name = []( std::string name ) {
             using atlas::orca::Library;
-            auto to_upper = []( std::string str ) {
-                std::for_each( str.begin(), str.end(), []( char& c ) {
-                    c = static_cast<char>( std::toupper( static_cast<unsigned char>( c ) ) );
-                } );
-                return str;
-            };
-            name = to_upper( name );
+            std::transform( name.begin(), name.end(), name.begin(), ::toupper );
             if ( name.front() == 'E' ) {
                 name.front() = 'e';
             }
@@ -390,14 +385,6 @@ public:
         };
         auto computePath = []( std::string name ) {
             using atlas::orca::Library;
-            auto to_lower = []( std::string str ) {
-                std::for_each( str.begin(), str.end(), []( char& c ) {
-                    c = static_cast<char>( std::tolower( static_cast<unsigned char>( c ) ) );
-                } );
-                return str;
-            };
-            name        = to_lower( name );
-            name.back() = std::toupper( name.back() );
             return "~" + Library::instance().libraryName() + "/share/atlas-orca/data/" + name + ".ascii";
         };
 
