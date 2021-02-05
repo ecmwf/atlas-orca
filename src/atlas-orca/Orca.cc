@@ -8,8 +8,7 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include "Orca.h"
-#include "Library.h"
+#include "atlas-orca/Orca.h"
 
 #include <algorithm>
 #include <cctype>
@@ -17,6 +16,12 @@
 #include <iomanip>
 #include <limits>
 #include <numeric>
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/ProgressTimer.h"
+#include "eckit/log/Statistics.h"
+#include "eckit/utils/Hash.h"
+#include "eckit/utils/Translator.h"
 
 #include "atlas/domain/Domain.h"
 #include "atlas/grid/detail/grid/GridBuilder.h"
@@ -28,13 +33,10 @@
 #include "atlas/runtime/Trace.h"
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Point.h"
+#include "atlas/util/Spec.h"
 #include "atlas/util/UnitSphere.h"
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/log/ProgressTimer.h"
-#include "eckit/log/Statistics.h"
-#include "eckit/utils/Hash.h"
-#include "eckit/utils/Translator.h"
+#include "atlas-orca/Library.h"
 
 namespace atlas {
 namespace grid {
@@ -73,13 +75,13 @@ struct Orca::OrcaInfo {
             exceptions[PointIJ{359, 290}] = PointIJ{359, 289};
         }
         patch = not grid.ghost( ix_pivot + 1, grid.ny() - 1 );
-//        ATLAS_DEBUG_VAR( g.name() );
-//        ATLAS_DEBUG_VAR( g.nx() );
-//        ATLAS_DEBUG_VAR( g.ny() );
-//        ATLAS_DEBUG_VAR( g.haloWest() );
-//        ATLAS_DEBUG_VAR( g.haloNorth() );
-//        ATLAS_DEBUG_VAR( patch );
-//        ATLAS_DEBUG_VAR( ix_pivot );
+        //        ATLAS_DEBUG_VAR( g.name() );
+        //        ATLAS_DEBUG_VAR( g.nx() );
+        //        ATLAS_DEBUG_VAR( g.ny() );
+        //        ATLAS_DEBUG_VAR( g.haloWest() );
+        //        ATLAS_DEBUG_VAR( g.haloNorth() );
+        //        ATLAS_DEBUG_VAR( patch );
+        //        ATLAS_DEBUG_VAR( ix_pivot );
     }
     bool patch;
     int ix_pivot;
@@ -195,7 +197,7 @@ double hardcoded_west( const std::string& name ) {  // should come from file ins
 
 
 std::string Orca::static_type() {
-    return "orca";
+    return "ORCA";
 }
 
 std::string Orca::name() const {
@@ -355,12 +357,12 @@ Grid::Config Orca::partitioner() const {
 
 namespace {
 
-static class orca : public GridBuilder {
+static class OrcaGridBuilder : public GridBuilder {
     using Implementation = atlas::Grid::Implementation;
     using Config         = Grid::Config;
 
 public:
-    orca() :
+    OrcaGridBuilder() :
         GridBuilder( Orca::static_type(), {"^e?[Oo][Rr][Cc][Aa]([0-9]+)_([UVTF])$"}, {"[e]ORCA<deg>_{U,V,T,F}"} ) {}
 
     void print( std::ostream& os ) const override {
@@ -369,30 +371,25 @@ public:
     }
 
     const Implementation* create( const std::string& name, const Config& /* config */ ) const override {
-        int id;
-        std::vector<std::string> matches;
-        if ( not match( name, matches, id ) ) {
-            return nullptr;
+        {
+            int id;
+            std::vector<std::string> matches;
+            if ( not match( name, matches, id ) ) {
+                return nullptr;
+            }
         }
 
-        auto standard_name = []( std::string name ) {
-            using atlas::orca::Library;
-            std::transform( name.begin(), name.end(), name.begin(), ::toupper );
-            if ( name.front() == 'E' ) {
-                name.front() = 'e';
-            }
-            return name;
-        };
-        auto computePath = []( std::string name ) {
-            using atlas::orca::Library;
-            return "~" + Library::instance().libraryName() + "/share/atlas-orca/data/" + name + ".ascii";
-        };
+        auto id = name;
+        std::transform( id.begin(), id.end(), id.begin(), ::toupper );
+        if ( id.front() == 'E' ) {
+            id.front() = 'e';
+        }
 
-        return new Orca{standard_name( name ), computePath( name )};
+        return create( util::SpecRegistry<atlas::Grid>::lookup( id ) );
     }
 
     const Implementation* create( const Config& config ) const override {
-        throw_NotImplemented( "Cannot create unstructured grid from config", Here() );
+        return new Orca( config.getString( "name", "" ), config.getString( "data" ) );
     }
 
     void force_link() {}
