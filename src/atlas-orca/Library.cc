@@ -36,11 +36,9 @@ REGISTER_LIBRARY( Library );
 
 
 Library::Library() : Plugin( "atlas-orca" ) {
-    using Path = eckit::PathName;
-
-    std::vector<Path> files;
-    std::vector<Path> dirs;
-    Path( "~atlas-orca/share/atlas-orca/data/" ).children( files, dirs /*not used*/ );
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    eckit::PathName( "~atlas-orca/share/atlas-orca/data/" ).children( files, dirs /*not used*/ );
 
     for ( auto& path : files ) {
         auto ext = path.extension();
@@ -50,8 +48,7 @@ Library::Library() : Plugin( "atlas-orca" ) {
             if ( id.front() == 'E' ) {
                 id.front() = 'e';
             }
-
-            util::SpecFactory<Grid>::registration( id, path );
+            util::SpecRegistry<Grid>::enregister( id, path );
         }
     }
 }
