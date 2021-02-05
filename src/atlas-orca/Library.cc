@@ -10,10 +10,7 @@
  */
 
 
-#include <algorithm>
-#include <cctype>
 #include <string>
-#include <vector>
 
 #include "eckit/filesystem/PathName.h"
 
@@ -35,23 +32,7 @@ namespace orca {
 REGISTER_LIBRARY( Library );
 
 
-Library::Library() : Plugin( "atlas-orca" ) {
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    eckit::PathName( "~atlas-orca/share/atlas-orca/data/" ).children( files, dirs /*not used*/ );
-
-    for ( auto& path : files ) {
-        auto ext = path.extension();
-        if ( ext == ".yml" || ext == ".yaml" ) {
-            auto id = path.baseName( false ).asString();
-            std::transform( id.begin(), id.end(), id.begin(), ::toupper );
-            if ( id.front() == 'E' ) {
-                id.front() = 'e';
-            }
-            util::SpecRegistry<Grid>::enregister( id, path );
-        }
-    }
-}
+Library::Library() : Plugin( "atlas-orca" ) {}
 
 
 const Library& Library::instance() {
@@ -68,6 +49,16 @@ std::string Library::version() const {
 std::string Library::gitsha1( unsigned int count ) const {
     std::string sha1 = atlas_orca_git_sha1();
     return sha1.empty() ? "not available" : sha1.substr( 0, std::min( count, 40U ) );
+}
+
+
+void Library::init() {
+    Plugin::init();
+
+    auto specs = util::Spec( "~atlas-orca/share/atlas-orca/grid-specs.yaml" );
+    for ( auto& id : specs.keys() ) {
+        util::SpecRegistry<Grid>::enregister( id, specs.getSubConfiguration( id ) );
+    }
 }
 
 

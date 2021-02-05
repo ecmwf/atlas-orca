@@ -25,6 +25,7 @@ public:
 
     std::string version() const override;
     std::string gitsha1( unsigned int count ) const override;
+    void init() override;
 };
 
 
