@@ -10,10 +10,22 @@
  */
 
 
+#include <algorithm>
+#include <cctype>
 #include <string>
+#include <vector>
+
+#include "eckit/filesystem/PathName.h"
+
+#include "atlas/util/Spec.h"
 
 #include "atlas-orca/Library.h"
 #include "atlas-orca/version.h"
+
+
+namespace atlas {
+class Grid;
+}
 
 
 namespace atlas {
@@ -23,7 +35,26 @@ namespace orca {
 REGISTER_LIBRARY( Library );
 
 
-Library::Library() : Plugin( "atlas-orca" ) {}
+Library::Library() : Plugin( "atlas-orca" ) {
+    using Path = eckit::PathName;
+
+    std::vector<Path> files;
+    std::vector<Path> dirs;
+    Path( "~atlas-orca/share/atlas-orca/data/" ).children( files, dirs /*not used*/ );
+
+    for ( auto& path : files ) {
+        auto ext = path.extension();
+        if ( ext == ".yml" || ext == ".yaml" ) {
+            auto id = path.baseName( false ).asString();
+            std::transform( id.begin(), id.end(), id.begin(), ::toupper );
+            if ( id.front() == 'E' ) {
+                id.front() = 'e';
+            }
+
+            util::SpecFactory<Grid>::registration( id, path );
+        }
+    }
+}
 
 
 const Library& Library::instance() {
