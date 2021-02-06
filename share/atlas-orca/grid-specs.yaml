@@ -36,7 +36,14 @@ d9622b55f3120eafb3dbaf5c742bc56c : &eORCA1_V
     uuidOfHGrid: d9622b55f3120eafb3dbaf5c742bc56c
     data: ~atlas-orca/share/atlas-orca/data/eORCA1_V.ascii
 
-d9622b55f3120eafb3dbaf5c742bc56c : *eORCA1_V
+0067c81a4154eaa5187f9b0f53e9df7e: &eORCA1_W
+    type: ORCA
+    name: eORCA1_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: eORCA1
+    uuidOfHGrid: 0067c81a4154eaa5187f9b0f53e9df7e
+    data: FIXME
 
 eORCA12_F:
     type: ORCA
@@ -64,6 +71,15 @@ eORCA12_U:
     unstructuredGridType: eORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA12_U.ascii
+
+eORCA12_W:
+    type: ORCA
+    name: eORCA12_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: eORCA12
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
 
 eORCA12_V:
     type: ORCA
@@ -110,6 +126,15 @@ eORCA025_V:
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA025_V.ascii
 
+eORCA025_W:
+    type: ORCA
+    name: eORCA025_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: eORCA025
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
+
 ORCA025_F:
     type: ORCA
     name: ORCA025_F
@@ -145,6 +170,15 @@ ORCA025_V:
     unstructuredGridType: ORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA025_V.ascii
+
+ORCA025_W:
+    type: ORCA
+    name: ORCA025_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: ORCA025
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
 
 ORCA12_F:
     type: ORCA
@@ -182,6 +216,15 @@ ORCA12_V:
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA12_V.ascii
 
+ORCA12_W:
+    type: ORCA
+    name: ORCA12_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: ORCA12
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
+
 ORCA1_F:
     type: ORCA
     name: ORCA1_F
@@ -217,6 +260,15 @@ ORCA1_V:
     unstructuredGridType: ORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA1_V.ascii
+
+ORCA1_W:
+    type: ORCA
+    name: ORCA1_W
+    west: 73.
+    unstructuredGridSubtype: W
+    unstructuredGridType: ORCA1
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
 
 ORCA2_F:
     type: ORCA
@@ -254,7 +306,18 @@ ORCA2_V:
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA2_V.ascii
 
+ORCA2_W:
+    type: ORCA
+    name: ORCA2_W
+    west: 80.
+    unstructuredGridSubtype: W
+    unstructuredGridType: ORCA2
+    uuidOfHGrid: ffffffffffffffffffffffffffffffff
+    data: FIXME
+
 # aliases
 eORCA1_T: *eORCA1_T
 eORCA1_U: *eORCA1_U
 eORCA1_V: *eORCA1_V
+eORCA1_W: *eORCA1_W
+
