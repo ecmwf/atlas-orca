@@ -2,6 +2,7 @@
 
 eORCA1_F: &eORCA1_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: eORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -9,6 +10,7 @@ eORCA1_F: &eORCA1_F
 
 eORCA1_T: &eORCA1_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: eORCA1
     uuidOfHGrid: 16076978a048410747dd7c9876677b28
@@ -18,6 +20,7 @@ eORCA1_T: &eORCA1_T
 
 eORCA1_U: &eORCA1_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: eORCA1
     uuidOfHGrid: 7378487847e050559b82d0792374a705
@@ -27,6 +30,7 @@ eORCA1_U: &eORCA1_U
 
 eORCA1_V: &eORCA1_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: eORCA1
     uuidOfHGrid: d9622b55f3120eafb3dbaf5c742bc56c
@@ -36,6 +40,7 @@ d9622b55f3120eafb3dbaf5c742bc56c : *eORCA1_V
 
 eORCA12_F: &eORCA12_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: eORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -43,6 +48,7 @@ eORCA12_F: &eORCA12_F
 
 eORCA12_T: &eORCA12_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: eORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -50,6 +56,7 @@ eORCA12_T: &eORCA12_T
 
 eORCA12_U: &eORCA12_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: eORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -57,6 +64,7 @@ eORCA12_U: &eORCA12_U
 
 eORCA12_V: &eORCA12_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: eORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -64,6 +72,7 @@ eORCA12_V: &eORCA12_V
 
 eORCA025_F: &eORCA025_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: eORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -71,6 +80,7 @@ eORCA025_F: &eORCA025_F
 
 eORCA025_T: &eORCA025_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: eORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -78,6 +88,7 @@ eORCA025_T: &eORCA025_T
 
 eORCA025_U: &eORCA025_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: eORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -85,6 +96,7 @@ eORCA025_U: &eORCA025_U
 
 eORCA025_V: &eORCA025_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: eORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -92,6 +104,7 @@ eORCA025_V: &eORCA025_V
 
 ORCA025_F: &ORCA025_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: ORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -99,6 +112,7 @@ ORCA025_F: &ORCA025_F
 
 ORCA025_T: &ORCA025_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: ORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -106,6 +120,7 @@ ORCA025_T: &ORCA025_T
 
 ORCA025_U: &ORCA025_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: ORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -113,6 +128,7 @@ ORCA025_U: &ORCA025_U
 
 ORCA025_V: &ORCA025_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: ORCA025
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -120,6 +136,7 @@ ORCA025_V: &ORCA025_V
 
 ORCA12_F: &ORCA12_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: ORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -127,6 +144,7 @@ ORCA12_F: &ORCA12_F
 
 ORCA12_T: &ORCA12_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: ORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -134,6 +152,7 @@ ORCA12_T: &ORCA12_T
 
 ORCA12_U: &ORCA12_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: ORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -141,6 +160,7 @@ ORCA12_U: &ORCA12_U
 
 ORCA12_V: &ORCA12_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: ORCA12
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -148,6 +168,7 @@ ORCA12_V: &ORCA12_V
 
 ORCA1_F: &ORCA1_F
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: F
     unstructuredGridType: ORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -155,6 +176,7 @@ ORCA1_F: &ORCA1_F
 
 ORCA1_T: &ORCA1_T
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: T
     unstructuredGridType: ORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -162,6 +184,7 @@ ORCA1_T: &ORCA1_T
 
 ORCA1_U: &ORCA1_U
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: U
     unstructuredGridType: ORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -169,6 +192,7 @@ ORCA1_U: &ORCA1_U
 
 ORCA1_V: &ORCA1_V
     type: ORCA
+    west: 73.
     unstructuredGridSubtype: V
     unstructuredGridType: ORCA1
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -176,6 +200,7 @@ ORCA1_V: &ORCA1_V
 
 ORCA2_F: &ORCA2_F
     type: ORCA
+    west: 80.
     unstructuredGridSubtype: F
     unstructuredGridType: ORCA2
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -183,6 +208,7 @@ ORCA2_F: &ORCA2_F
 
 ORCA2_T: &ORCA2_T
     type: ORCA
+    west: 80.
     unstructuredGridSubtype: T
     unstructuredGridType: ORCA2
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -190,6 +216,7 @@ ORCA2_T: &ORCA2_T
 
 ORCA2_U: &ORCA2_U
     type: ORCA
+    west: 80.
     unstructuredGridSubtype: U
     unstructuredGridType: ORCA2
     uuidOfHGrid: ffffffffffffffffffffffffffffffff
@@ -197,6 +224,7 @@ ORCA2_U: &ORCA2_U
 
 ORCA2_V: &ORCA2_V
     type: ORCA
+    west: 80.
     unstructuredGridSubtype: V
     unstructuredGridType: ORCA2
     uuidOfHGrid: ffffffffffffffffffffffffffffffff

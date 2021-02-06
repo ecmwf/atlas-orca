@@ -26,13 +26,9 @@
 #include "atlas/domain/Domain.h"
 #include "atlas/grid/detail/grid/GridBuilder.h"
 #include "atlas/grid/detail/grid/GridFactory.h"
-#include "atlas/grid/detail/spacing/CustomSpacing.h"
-#include "atlas/grid/detail/spacing/LinearSpacing.h"
-#include "atlas/runtime/Exception.h"
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
 #include "atlas/util/NormaliseLongitude.h"
-#include "atlas/util/Point.h"
 #include "atlas/util/Spec.h"
 #include "atlas/util/UnitSphere.h"
 
@@ -66,6 +62,7 @@ struct PointIJ {
     }
 };
 }  // namespace
+
 struct Orca::OrcaInfo {
     OrcaInfo( const Orca& g ) : grid( g ) {
         ix_pivot = grid.nx() / 2;

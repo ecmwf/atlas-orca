@@ -20,12 +20,12 @@
 
 #include "atlas/grid/detail/grid/Grid.h"
 #include "atlas/runtime/Exception.h"
+#include "atlas/util/Config.h"
 #include "atlas/util/Point.h"
 
 namespace atlas {
 class Mesh;
 }
-
 namespace eckit {
 class PathName;
 }
@@ -159,8 +159,11 @@ public:
 public:  // methods
     static std::string static_type();
 
-    /// Constructor taking a path of an orca grid
-    Orca( const std::string& name, const eckit::PathName& path );
+    /// Constructor taking a name and a configuration (spec)
+    Orca( const util::Config& config ) : Orca( config.getString( "name", "" ), config ) {}
+
+    /// Constructor taking a configuration (spec)
+    Orca( const std::string& name, const util::Config& );
 
 public:
     idx_t size() const override;
