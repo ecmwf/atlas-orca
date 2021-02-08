@@ -63,12 +63,12 @@ struct PointIJ {
 };
 
 std::string spec_name( const Grid::Spec& spec, const std::string& def = "" ) {
-    auto n = spec.getString( "unstructuredGridType", "" ) + "_" + spec.getString( "unstructuredGridSubtype", "" );
+    auto n = spec.getString( "orca_name", "" ) + "_" + spec.getString( "orca_staggering", "" );
     return n.size() < 3 ? def : n;
 }
 
 std::string spec_uid( const Grid::Spec& spec, const std::string& def = "" ) {
-    return spec.getString( "uuidOfHGrid", def );
+    return spec.getString( "uid", def );
 }
 
 }  // namespace
@@ -199,9 +199,11 @@ gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
     return index( p.i, p.j );
 }
 
-Orca::Orca( const Config& config ) : Orca( config.getString( "name", spec_uid( config ) ), config ) {}
+Orca::Orca( const Config& config ) :
+    Orca( spec_name( config, spec_uid( config, config.getString( "name", "" ) ) ), config ) {}
 
-Orca::Orca( const std::string& name, const Config& config ) : name_( spec_name( config, name ) ), spec_( config ) {
+Orca::Orca( const std::string& name, const Config& config ) :
+    name_( spec_name( config, spec_uid( config, name ) ) ), spec_( config ) {
 #define EXPERIMENT_WITH_COARSENING 0
 
     auto trace = atlas::Trace( Here(), "Orca(" + name_ + ")" );
@@ -303,7 +305,7 @@ Orca::Orca( const std::string& name, const Config& config ) : name_( spec_name( 
             point( 359, 290 ) = xy( 359, 289 );
         }
 
-        west = spec_.getString("orca_name") == "ORCA2" ? 80. : 73.;
+        west = spec_.getString( "orca_name" ) == "ORCA2" ? 80. : 73.;
     }
 
     domain_ = GlobalDomain( west );
@@ -355,8 +357,7 @@ static class OrcaGridBuilder : public GridBuilder {
     using Config         = Grid::Config;
 
 public:
-    OrcaGridBuilder() :
-        GridBuilder( Orca::static_type(), {"^e?ORCA[0-9]+_[UVTF]$"}, {"[e]ORCA<deg>_{U,V,T,F}"} ) {}
+    OrcaGridBuilder() : GridBuilder( Orca::static_type(), {"^e?ORCA[0-9]+_[FTUVW]$"}, {"[e]ORCA<deg>_{F,T,U,V,W}"} ) {}
 
     void print( std::ostream& os ) const override {
         os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{U,V,T,F}"
