@@ -1,253 +1,260 @@
 ---
 
-eORCA1_F:
+eORCA1_F: &eORCA1_F
     type: ORCA
     orca_staggering: F
     orca_name: eORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA1_F.ascii
 
-16076978a048410747dd7c9876677b28: &eORCA1_T
+eORCA1_T: &eORCA1_T
     type: ORCA
     orca_staggering: T
     orca_name: eORCA1
     uid: 16076978a048410747dd7c9876677b28
     data: ~atlas-orca/share/atlas-orca/data/eORCA1_T.ascii
 
-7378487847e050559b82d0792374a705 : &eORCA1_U
+eORCA1_U: &eORCA1_U
     type: ORCA
     orca_staggering: U
     orca_name: eORCA1
     uid: 7378487847e050559b82d0792374a705
     data: ~atlas-orca/share/atlas-orca/data/eORCA1_U.ascii
 
-d9622b55f3120eafb3dbaf5c742bc56c : &eORCA1_V
+eORCA1_V: &eORCA1_V
     type: ORCA
     orca_staggering: V
     orca_name: eORCA1
     uid: d9622b55f3120eafb3dbaf5c742bc56c
     data: ~atlas-orca/share/atlas-orca/data/eORCA1_V.ascii
 
-0067c81a4154eaa5187f9b0f53e9df7e: &eORCA1_W
+eORCA1_W: &eORCA1_W
     type: ORCA
     orca_staggering: W
     orca_name: eORCA1
     uid: 0067c81a4154eaa5187f9b0f53e9df7e
     data: FIXME
 
-eORCA12_F:
+eORCA12_F: &eORCA12_F
     type: ORCA
     orca_staggering: F
     orca_name: eORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA12_F.ascii
 
-eORCA12_T:
+eORCA12_T: &eORCA12_T
     type: ORCA
     orca_staggering: T
     orca_name: eORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA12_T.ascii
 
-eORCA12_U:
+eORCA12_U: &eORCA12_U
     type: ORCA
     orca_staggering: U
     orca_name: eORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA12_U.ascii
 
-eORCA12_W:
+eORCA12_W: &eORCA12_W
     type: ORCA
     orca_staggering: W
     orca_name: eORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-eORCA12_V:
+eORCA12_V: &eORCA12_V
     type: ORCA
     orca_staggering: V
     orca_name: eORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA12_V.ascii
 
-eORCA025_F:
+eORCA025_F: &eORCA025_F
     type: ORCA
     orca_staggering: F
     orca_name: eORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA025_F.ascii
 
-eORCA025_T:
+eORCA025_T: &eORCA025_T
     type: ORCA
     orca_staggering: T
     orca_name: eORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA025_T.ascii
 
-eORCA025_U:
+eORCA025_U: &eORCA025_U
     type: ORCA
     orca_staggering: U
     orca_name: eORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA025_U.ascii
 
-eORCA025_V:
+eORCA025_V: &eORCA025_V
     type: ORCA
     orca_staggering: V
     orca_name: eORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/eORCA025_V.ascii
 
-eORCA025_W:
+eORCA025_W: &eORCA025_W
     type: ORCA
     orca_staggering: W
     orca_name: eORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-ORCA025_F:
+ORCA025_F: &ORCA025_F
     type: ORCA
     orca_staggering: F
     orca_name: ORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA025_F.ascii
 
-ORCA025_T:
+ORCA025_T: &ORCA025_T
     type: ORCA
     orca_staggering: T
     orca_name: ORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA025_T.ascii
 
-ORCA025_U:
+ORCA025_U: &ORCA025_U
     type: ORCA
     orca_staggering: U
     orca_name: ORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA025_U.ascii
 
-ORCA025_V:
+ORCA025_V: &ORCA025_V
     type: ORCA
     orca_staggering: V
     orca_name: ORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA025_V.ascii
 
-ORCA025_W:
+ORCA025_W: &ORCA025_W
     type: ORCA
     orca_staggering: W
     orca_name: ORCA025
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-ORCA12_F:
+ORCA12_F: &ORCA12_F
     type: ORCA
     orca_staggering: F
     orca_name: ORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA12_F.ascii
 
-ORCA12_T:
+ORCA12_T: &ORCA12_T
     type: ORCA
     orca_staggering: T
     orca_name: ORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA12_T.ascii
 
-ORCA12_U:
+ORCA12_U: &ORCA12_U
     type: ORCA
     orca_staggering: U
     orca_name: ORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA12_U.ascii
 
-ORCA12_V:
+ORCA12_V: &ORCA12_V
     type: ORCA
     orca_staggering: V
     orca_name: ORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA12_V.ascii
 
-ORCA12_W:
+ORCA12_W: &ORCA12_W
     type: ORCA
     orca_staggering: W
     orca_name: ORCA12
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-ORCA1_F:
+ORCA1_F: &ORCA1_F
     type: ORCA
     orca_staggering: F
     orca_name: ORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA1_F.ascii
 
-ORCA1_T:
+ORCA1_T: &ORCA1_T
     type: ORCA
     orca_staggering: T
     orca_name: ORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA1_T.ascii
 
-ORCA1_U:
+ORCA1_U: &ORCA1_U
     type: ORCA
     orca_staggering: U
     orca_name: ORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA1_U.ascii
 
-ORCA1_V:
+ORCA1_V: &ORCA1_V
     type: ORCA
     orca_staggering: V
     orca_name: ORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA1_V.ascii
 
-ORCA1_W:
+ORCA1_W: &ORCA1_W
     type: ORCA
     orca_staggering: W
     orca_name: ORCA1
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-ORCA2_F:
+ORCA2_F: &ORCA2_F
     type: ORCA
     orca_staggering: F
     orca_name: ORCA2
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA2_F.ascii
 
-ORCA2_T:
+ORCA2_T: &ORCA2_T
     type: ORCA
     orca_staggering: T
     orca_name: ORCA2
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA2_T.ascii
 
-ORCA2_U:
+ORCA2_U: &ORCA2_U
     type: ORCA
     orca_staggering: U
     orca_name: ORCA2
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA2_U.ascii
 
-ORCA2_V:
+ORCA2_V: &ORCA2_V
     type: ORCA
     orca_staggering: V
     orca_name: ORCA2
     uid: ffffffffffffffffffffffffffffffff
     data: ~atlas-orca/share/atlas-orca/data/ORCA2_V.ascii
 
-ORCA2_W:
+ORCA2_W: &ORCA2_W
     type: ORCA
     orca_staggering: W
     orca_name: ORCA2
     uid: ffffffffffffffffffffffffffffffff
     data: FIXME
 
-# aliases
-eORCA1_T: *eORCA1_T
-eORCA1_U: *eORCA1_U
-eORCA1_V: *eORCA1_V
-eORCA1_W: *eORCA1_W
+# Aliases (from uid) and previous versions
+16076978a048410747dd7c9876677b28:
+    <<: *eORCA1_T
+
+7378487847e050559b82d0792374a705:
+    <<: *eORCA1_U
+
+d9622b55f3120eafb3dbaf5c742bc56c:
+    <<: *eORCA1_V
+
+0067c81a4154eaa5187f9b0f53e9df7e:
+    <<: *eORCA1_W
 
