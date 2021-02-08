@@ -8,10 +8,6 @@
  * nor does it submit to any jurisdiction.
  */
 
-/// @file Orca.h
-/// @author Domokos Sarmany
-/// @date January 2020
-
 #pragma once
 
 #include <cstddef>
@@ -159,11 +155,11 @@ public:
 public:  // methods
     static std::string static_type();
 
-    /// Constructor taking a name and a configuration (spec)
-    Orca( const util::Config& config ) : Orca( config.getString( "name", "" ), config ) {}
-
     /// Constructor taking a configuration (spec)
-    Orca( const std::string& name, const util::Config& );
+    Orca( const Config& );
+
+    /// Constructor taking a name/uid and a configuration (spec)
+    Orca( const std::string& name_or_uid, const Config& );
 
 public:
     idx_t size() const override;
@@ -237,22 +233,32 @@ private:  // methods
 
 private:
     /// Grid size
-    idx_t nx_, ny_, periodicity_, halo_east_, halo_west_, halo_south_, halo_north_;
-    idx_t nx_halo_, ny_halo_;
+    idx_t nx_;
+    idx_t ny_;
+    idx_t periodicity_;
+    idx_t halo_east_;
+    idx_t halo_west_;
+    idx_t halo_south_;
+    idx_t halo_north_;
+    idx_t nx_halo_;
+    idx_t ny_halo_;
 
     /// Storage of coordinate points
     std::vector<PointXY> points_halo_;
     std::vector<bool> lsm_;
     std::vector<bool> core_;
 
-    idx_t imin_, jmin_;
-    idx_t istride_, jstride_;
+    idx_t imin_;
+    idx_t jmin_;
+    idx_t istride_;
+    idx_t jstride_;
 
-    /// name of the grid
-    mutable std::string name_;
+    /// Grid name
+    const std::string name_;
 
-    /// Cache for the spec since may be quite heavy to compute
-    mutable std::unique_ptr<Grid::Spec> cached_spec_;
+    /// Grid spec
+    Spec spec_;
+
     std::unique_ptr<OrcaInfo> info_;
 };
 

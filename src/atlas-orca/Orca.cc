@@ -28,11 +28,11 @@
 #include "atlas/grid/detail/grid/GridFactory.h"
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
+#include "atlas/util/Config.h"
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Spec.h"
 #include "atlas/util/UnitSphere.h"
 
-#include "atlas-orca/Library.h"
 
 namespace atlas {
 namespace grid {
@@ -61,6 +61,16 @@ struct PointIJ {
         return false;
     }
 };
+
+std::string spec_name( const Grid::Spec& spec, const std::string& def = "" ) {
+    auto n = spec.getString( "unstructuredGridType", "" ) + "_" + spec.getString( "unstructuredGridSubtype", "" );
+    return n.size() < 3 ? def : n;
+}
+
+std::string spec_uid( const Grid::Spec& spec, const std::string& def = "" ) {
+    return spec.getString( "uuidOfHGrid", def );
+}
+
 }  // namespace
 
 struct Orca::OrcaInfo {
@@ -171,28 +181,6 @@ private:
     const Orca& grid;
 };
 
-namespace {
-double hardcoded_west( const std::string& name ) {  // should come from file instead!
-    static std::map<std::string, double> west = []() {
-        std::map<std::string, double> west;
-        std::vector<std::string> prefixes = {"ORCA", "eORCA"};
-        std::vector<std::string> suffixes = {"_T", "_U", "_V", "_F"};
-        for ( auto& prefix : prefixes ) {
-            for ( auto& suffix : suffixes ) {
-                west[prefix + "2" + suffix]   = 80.;
-                west[prefix + "1" + suffix]   = 73.;
-                west[prefix + "025" + suffix] = 73.;
-                west[prefix + "12" + suffix]  = 73.;
-            }
-        }
-        return west;
-    }();
-    return west.at( name );
-}
-
-}  // namespace
-
-
 std::string Orca::static_type() {
     return "ORCA";
 }
@@ -211,16 +199,19 @@ gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
     return index( p.i, p.j );
 }
 
-Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_( name ) {
+Orca::Orca( const Config& config ) : Orca( config.getString( "name", spec_uid( config ) ), config ) {}
+
+Orca::Orca( const std::string& name, const Config& config ) : name_( spec_name( config, name ) ), spec_( config ) {
 #define EXPERIMENT_WITH_COARSENING 0
 
-    auto trace = atlas::Trace( Here(), "Orca(" + name + ")" );
+    auto trace = atlas::Trace( Here(), "Orca(" + name_ + ")" );
 
-    if ( not path_name.exists() ) {
-        ATLAS_THROW_EXCEPTION( "Could not locate orca grid file " << path_name );
+    eckit::PathName path = spec_.getString( "data" );
+    if ( not path.exists() ) {
+        ATLAS_THROW_EXCEPTION( "Could not locate orca grid file " << path );
     }
 
-    std::ifstream ifstrm{path_name.asString().c_str()};
+    std::ifstream ifstrm{path.asString().c_str()};
 
     // Reading header
     std::string line;
@@ -256,8 +247,8 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
     size_t npts = nx_halo_ * ny_halo_;
     {
         eckit::Channel blackhole;
-        eckit::ProgressTimer progress( "Reading " + name + " from file " + path_name.asString(), npts, " point",
-                                       double( 1 ), npts > 2.e6 ? Log::info() : blackhole );
+        eckit::ProgressTimer progress( "Reading " + name_ + " from file " + path, npts, " point", double( 1 ),
+                                       npts > 2.e6 ? Log::info() : blackhole );
 
         PointXY p;
         double lsm, core;
@@ -272,12 +263,12 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
             }
         }
     }
-    domain_ = GlobalDomain{hardcoded_west( name )};
+
     trace.stop();
     if ( trace.elapsed() > 1. ) {
         if ( npts <= 2.e6 ) {
-            Log::info() << "Reading " << name << " from file " << path_name << " took " << trace.elapsed()
-                        << " seconds." << std::endl;
+            Log::info() << "Reading " << name_ << " from file " << path << " took " << trace.elapsed() << " seconds."
+                        << std::endl;
         }
         Log::info() << "  --> This will be greatly optimized soon when input is replaced with binary format."
                     << std::endl;
@@ -286,35 +277,42 @@ Orca::Orca( const std::string& name, const eckit::PathName& path_name ) : name_(
 
     // Fixes, TBD
     // If these fixes are not applied, halo exchanges or other numerics may not be performed correctly
+    double west = 0.;
+
     {
         auto point    = [&]( idx_t i, idx_t j ) -> PointXY& { return const_cast<PointXY&>( xy( i, j ) ); };
         auto set_core = [&]( idx_t i, idx_t j, bool core ) { core_[( imin_ + i ) + ( jmin_ + j ) * jstride_] = core; };
-        if ( name == "ORCA12_T" ) {
+
+        if ( name_ == "ORCA12_T" ) {
             set_core( 2160, 3056, true );
         }
-        if ( name == "ORCA025_T" ) {
+        if ( name_ == "ORCA025_T" ) {
             set_core( 720, 1018, true );
             point( 720, 1019 ) = xy( 720, 1017 );
         }
-        if ( name == "ORCA2_T" ) {
+        if ( name_ == "ORCA2_T" ) {
             set_core( 90, 146, true );
         }
-        if ( name == "ORCA1_T" ) {
+        if ( name_ == "ORCA1_T" ) {
             point( -1, 290 )  = xy( 0, 289 );
             point( 359, 290 ) = xy( 0, 289 );
             point( 360, 290 ) = xy( 359, 289 );
         }
-        if ( name == "ORCA1_F" ) {
+        if ( name_ == "ORCA1_F" ) {
             point( -1, 290 )  = xy( 359, 289 );
             point( 359, 290 ) = xy( 359, 289 );
         }
+
+        west = spec_.getString("orca_name") == "ORCA2" ? 80. : 73.;
     }
+
+    domain_ = GlobalDomain( west );
 
     info_.reset( new OrcaInfo( *this ) );
 }
 
 void Orca::hash( eckit::Hash& h ) const {
-    h.add( name_ );
+    h.add( spec_uid( spec_ ) );
 }
 
 idx_t Orca::size() const {
@@ -323,15 +321,15 @@ idx_t Orca::size() const {
 
 /// @return parallel/meridian limits containing the grid
 RectangularLonLatDomain Orca::lonlatBoundingBox() const {
-    return projection_ ? projection_.lonlatBoundingBox( domain_ ) : domain_;
+    return domain_;
 }
 
 Grid::Spec Orca::spec() const {
-    return util::Config{"name", name()};
+    return spec_;
 }
 
 void Orca::print( std::ostream& os ) const {
-    os << "Orca(" << name() << ")";
+    os << "Orca(" << name_ << ")";
 }
 
 namespace {
@@ -352,47 +350,47 @@ Grid::Config Orca::partitioner() const {
     return Config( "type", "checkerboard" );
 }
 
-namespace {
-
 static class OrcaGridBuilder : public GridBuilder {
     using Implementation = atlas::Grid::Implementation;
     using Config         = Grid::Config;
 
 public:
     OrcaGridBuilder() :
-        GridBuilder( Orca::static_type(), {"^e?[Oo][Rr][Cc][Aa]([0-9]+)_([UVTF])$"}, {"[e]ORCA<deg>_{U,V,T,F}"} ) {}
+        GridBuilder( Orca::static_type(), {"^e?ORCA[0-9]+_[UVTF]$"}, {"[e]ORCA<deg>_{U,V,T,F}"} ) {}
 
     void print( std::ostream& os ) const override {
         os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{U,V,T,F}"
            << "ORCA Tripolar grid. Possible increasing resolutions <deg>: 2,1,025,12";
     }
 
-    const Implementation* create( const std::string& name, const Config& /* config */ ) const override {
-        {
-            int id;
-            std::vector<std::string> matches;
-            if ( not match( name, matches, id ) ) {
-                return nullptr;
-            }
+    const Implementation* create( const std::string& name_or_uid, const Config& /* config */ ) const override {
+        using Registry = util::SpecRegistry<atlas::Grid>;
+
+        auto sane_id( name_or_uid );
+        std::transform( sane_id.begin(), sane_id.end(), sane_id.begin(), ::tolower );
+
+        if ( Registry::has( sane_id ) ) {
+            create( Registry::lookup( sane_id ) );
         }
 
-        auto id = name;
-        std::transform( id.begin(), id.end(), id.begin(), ::toupper );
-        if ( id.front() == 'E' ) {
-            id.front() = 'e';
+        auto sane_name( name_or_uid );
+        std::transform( sane_name.begin(), sane_name.end(), sane_name.begin(), ::toupper );
+        if ( sane_name.front() == 'E' ) {
+            sane_name.front() = 'e';
         }
 
-        return create( util::SpecRegistry<atlas::Grid>::lookup( id ) );
+        if ( Registry::has( sane_name ) ) {
+            create( Registry::lookup( sane_name ) );
+        }
+
+        return nullptr;
     }
 
-    const Implementation* create( const Config& config ) const override {
-        return new Orca( config.getString( "name", "" ), config.getString( "data" ) );
-    }
+    const Implementation* create( const Config& config ) const override { return new Orca( config ); }
 
     void force_link() {}
 
 } orca_;
-}  // namespace
 
 void force_link_Orca() {
     orca_.force_link();
