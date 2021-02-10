@@ -63,8 +63,9 @@ struct PointIJ {
 };
 
 std::string spec_name( const Grid::Spec& spec, const std::string& def = "" ) {
-    auto n = spec.getString( "orca_name", "" ) + "_" + spec.getString( "orca_arrangement", "" );
-    return n.size() < 3 ? def : n;
+    auto n = spec.getString( "orca_name", "" );
+    auto a = spec.getString( "orca_arrangement", "" );
+    return n.empty() || a.empty() ? def : ( n + "_" + a );
 }
 
 std::string spec_uid( const Grid::Spec& spec, const std::string& def = "" ) {
@@ -360,7 +361,7 @@ public:
     OrcaGridBuilder() : GridBuilder( Orca::static_type(), {"^e?ORCA[0-9]+_[FTUVW]$"}, {"[e]ORCA<deg>_{F,T,U,V,W}"} ) {}
 
     void print( std::ostream& os ) const override {
-        os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{U,V,T,F}"
+        os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{F,T,U,V,W}"
            << "ORCA Tripolar grid. Possible increasing resolutions <deg>: 2,1,025,12";
     }
 
