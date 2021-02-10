@@ -63,7 +63,7 @@ struct PointIJ {
 };
 
 std::string spec_name( const Grid::Spec& spec, const std::string& def = "" ) {
-    auto n = spec.getString( "orca_name", "" ) + "_" + spec.getString( "orca_staggering", "" );
+    auto n = spec.getString( "orca_name", "" ) + "_" + spec.getString( "orca_arrangement", "" );
     return n.size() < 3 ? def : n;
 }
 
