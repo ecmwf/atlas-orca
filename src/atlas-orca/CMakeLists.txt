@@ -1,4 +1,3 @@
-
 configure_file(version.h.in  version.h)
 configure_file(version.cc.in version.cc)
 
