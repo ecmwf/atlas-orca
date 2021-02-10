@@ -18,6 +18,7 @@ find_package(atlas 0.22.0 REQUIRED)
 
 atlas_create_plugin(atlas-orca)
 
+add_subdirectory(etc)
 add_subdirectory(share)
 add_subdirectory(src)
 

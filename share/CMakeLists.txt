@@ -9,12 +9,3 @@ execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink"
     "${CMAKE_CURRENT_SOURCE_DIR}/atlas-orca/data"
     "${CMAKE_BINARY_DIR}/share/atlas-orca/data")
 
-install(
-    FILES       "atlas-orca/grid-specs.yaml"
-    DESTINATION share/atlas-orca
-    PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
-
-execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink"
-    "${CMAKE_CURRENT_SOURCE_DIR}/atlas-orca/grid-specs.yaml"
-    "${CMAKE_BINARY_DIR}/share/atlas-orca/grid-specs.yaml")
-

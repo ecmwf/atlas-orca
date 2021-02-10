@@ -55,7 +55,7 @@ std::string Library::gitsha1( unsigned int count ) const {
 void Library::init() {
     Plugin::init();
 
-    auto specs = util::Spec( "~atlas-orca/share/atlas-orca/grid-specs.yaml" );
+    auto specs = util::Spec( "~atlas-orca/etc/atlas-orca/grid-specs.yaml" );
     for ( auto& id : specs.keys() ) {
         util::SpecRegistry<Grid>::enregister( id, specs.getSubConfiguration( id ) );
     }
