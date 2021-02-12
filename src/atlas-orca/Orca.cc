@@ -260,8 +260,8 @@ Orca::Orca( const std::string& name, const Config& config ) :
                 std::getline( ifstrm, line );
                 std::istringstream iss{line};
                 ATLAS_ASSERT( iss >> p[1] >> p[0] >> lsm >> core, "Error while reading coordinates" );
-                lsm_.emplace_back( lsm );
-                core_.emplace_back( core );
+                lsm_.push_back( lsm );
+                core_.push_back( core );
                 points_halo_.emplace_back( p );
             }
         }

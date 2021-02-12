@@ -45,9 +45,11 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
     ATLAS_ASSERT( orca );
 
     // TODO: This hard-coding should instead go to the data-file, and become queried via the OrcaGrid
+    using t = std::tuple<std::string, bool>;
+    std::vector<t> resolutions{t{"025", false}, t{"12", false}, t{"1", true}, t{"2", false}};
+
+    std::vector<std::string> prefixes = {"ORCA", "eORCA"};
     std::map<std::string, bool> patch;
-    std::vector<std::tuple<std::string, bool>> resolutions = {{"025", false}, {"12", false}, {"1", true}, {"2", false}};
-    std::vector<std::string> prefixes                      = {"ORCA", "eORCA"};
     for ( auto& resol : resolutions ) {
         std::string resolution;
         bool patch_T;
@@ -68,6 +70,7 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
     return StructuredGrid{xspace, yspace};
 }
 }  // namespace
+
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& distribution, Mesh& mesh ) const {
     using Topology = util::Topology;
 
