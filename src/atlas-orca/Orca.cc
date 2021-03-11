@@ -372,7 +372,7 @@ public:
         std::transform( sane_id.begin(), sane_id.end(), sane_id.begin(), ::tolower );
 
         if ( Registry::has( sane_id ) ) {
-            create( Registry::lookup( sane_id ) );
+            return create( Registry::lookup( sane_id ) );
         }
 
         auto sane_name( name_or_uid );
@@ -382,7 +382,7 @@ public:
         }
 
         if ( Registry::has( sane_name ) ) {
-            create( Registry::lookup( sane_name ) );
+            return create( Registry::lookup( sane_name ) );
         }
 
         return nullptr;
