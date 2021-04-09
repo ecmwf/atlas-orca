@@ -207,7 +207,11 @@ Orca::Orca( const Config& config ) :
 
 Orca::Orca( const std::string& name, const Config& config ) :
     name_( spec_name( config, spec_uid( config, name ) ) ), spec_( config ) {
-#define EXPERIMENT_WITH_COARSENING 0
+
+    bool new_files = false;
+    config.get("new",new_files);
+
+    ATLAS_DEBUG_VAR(new_files);
 
     auto trace = atlas::Trace( Here(), "Orca(" + name_ + ")" );
 
@@ -247,6 +251,13 @@ Orca::Orca( const std::string& name, const Config& config ) :
     lsm_.reserve( nx_halo_ * ny_halo_ );
     core_.reserve( nx_halo_ * ny_halo_ );
 
+std::vector<int> _i(nx_halo_*ny_halo_);
+std::vector<int> _j(nx_halo_*ny_halo_);
+std::vector<int> _i_master(nx_halo_*ny_halo_);
+std::vector<int> _j_master(nx_halo_*ny_halo_);
+std::vector<double> _lon_master(nx_halo_*ny_halo_);
+std::vector<double> _lat_master(nx_halo_*ny_halo_);
+
     // Reading coordinates
 
     size_t npts = nx_halo_ * ny_halo_;
@@ -257,6 +268,7 @@ Orca::Orca( const std::string& name, const Config& config ) :
 
         PointXY p;
         double lsm, core;
+        size_t n{0};
         for ( auto jj = 0; jj != ny_halo_; ++jj ) {
             for ( auto ii = 0; ii != nx_halo_; ++ii, ++progress ) {
                 std::getline( ifstrm, line );
@@ -265,6 +277,15 @@ Orca::Orca( const std::string& name, const Config& config ) :
                 lsm_.push_back( lsm );
                 core_.push_back( core );
                 points_halo_.emplace_back( p );
+
+                if( new_files ) {
+                    ATLAS_ASSERT( iss >> _i[n] >> _j[n] >> _i_master[n] >> _j_master[n] >> _lat_master[n] >> _lon_master[n] , "Error while new data" );
+                    _i[n] = _i[n]-1 - halo_west_;
+                    _i_master[n] = _i_master[n]-1 - halo_west_;
+                    _j[n] = _j[n]-1 - halo_south_;
+                    _j_master[n] = _j_master[n]-1 - halo_south_;
+                }
+                ++n;
             }
         }
     }
@@ -282,11 +303,19 @@ Orca::Orca( const std::string& name, const Config& config ) :
 
     // Fixes, TBD
     // If these fixes are not applied, halo exchanges or other numerics may not be performed correctly
-    double west = 0.;
 
     {
         auto point    = [&]( idx_t i, idx_t j ) -> PointXY& { return const_cast<PointXY&>( xy( i, j ) ); };
-        auto set_core = [&]( idx_t i, idx_t j, bool core ) { core_[( imin_ + i ) + ( jmin_ + j ) * jstride_] = core; };
+        auto set_core = [&]( idx_t i, idx_t j, bool core ) {
+            bool is_core = core_[( imin_ + i ) + ( jmin_ + j ) * jstride_];
+            if( is_core != core ) {
+                Log::warning() << "Changed core(" << i << "," << j << ") to " << core << std::endl;
+            }
+            else {
+                Log::warning() << "Useless fixup for core(" << i << "," << j << ")" << std::endl;
+            }
+            core_[( imin_ + i ) + ( jmin_ + j ) * jstride_] = core;
+        };
 
         if ( name_ == "ORCA12_T" ) {
             set_core( 2160, 3056, true );
@@ -297,6 +326,12 @@ Orca::Orca( const std::string& name, const Config& config ) :
         if ( name_ == "ORCA025_T" ) {
             set_core( 720, 1018, true );
             point( 720, 1019 ) = xy( 720, 1017 );
+            auto n = [&](int i, int j) {
+                return ( imin_ + i ) + ( jmin_ + j ) * jstride_;
+            };
+            if( new_files ) {
+                PointXY lonlat_master{ _lon_master[n(720,1019)], _lat_master[n(720,1019)] };
+            }
         }
         if ( name_ == "eORCA025_T" ) {
             set_core( 720, 1204, true );
@@ -319,10 +354,22 @@ Orca::Orca( const std::string& name, const Config& config ) :
             point( 359, 290 ) = xy( 359, 289 );
         }
 
-        west = spec_.getString( "orca_name" ) == "ORCA2" ? 80. : 73.;
     }
 
-    domain_ = GlobalDomain( west );
+//    idx_t j_south = -haloSouth();
+//    constexpr double lat_north = 90.;
+//    double lat_south = lat_north;
+//    for( idx_t i=haloWest(); i < nx() + haloEast(); ++ i ) {
+//        lat_south = std::min( lat_south, lonlat(i,j_south).lat() );
+//    }
+//    lat_south = std::floor(lat_south);
+//    ATLAS_DEBUG_VAR(lat_south);
+
+//    domain_ = ZonalBandDomain( {lat_south,lat_north}, west );
+
+
+//    double west = spec_.getString( "orca_name" ) == "ORCA2" ? 80. : 73.;
+    domain_ = GlobalDomain();
 
     info_.reset( new OrcaInfo( *this ) );
 }
