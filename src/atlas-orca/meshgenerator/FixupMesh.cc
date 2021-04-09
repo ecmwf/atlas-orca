@@ -39,21 +39,21 @@ std::unique_ptr<FixupMesh> FixupMesh::create( const eckit::Parametrisation& conf
     if ( type == "ORCA2_W" ) {
         return make_unique<FixupMesh_ORCA2_W>( config );
     }
-    if ( type == "eORCA1_T" ) {
-        return make_unique<FixupMesh_eORCA1_T>( config );
-    }
-    if ( type == "eORCA1_F" ) {
-        return make_unique<FixupMesh_eORCA1_F>( config );
-    }
-    if ( type == "eORCA1_U" ) {
-        return make_unique<FixupMesh_eORCA1_U>( config );
-    }
-    if ( type == "eORCA1_V" ) {
-        return make_unique<FixupMesh_eORCA1_V>( config );
-    }
-    if ( type == "eORCA1_W" ) {
-        return make_unique<FixupMesh_eORCA1_W>( config );
-    }
+//    if ( type == "eORCA1_T" ) {
+//        return make_unique<FixupMesh_eORCA1_T>( config );
+//    }
+//    if ( type == "eORCA1_F" ) {
+//        return make_unique<FixupMesh_eORCA1_F>( config );
+//    }
+//    if ( type == "eORCA1_U" ) {
+//        return make_unique<FixupMesh_eORCA1_U>( config );
+//    }
+//    if ( type == "eORCA1_V" ) {
+//        return make_unique<FixupMesh_eORCA1_V>( config );
+//    }
+//    if ( type == "eORCA1_W" ) {
+//        return make_unique<FixupMesh_eORCA1_W>( config );
+//    }
     return make_unique<FixupMesh_ORCA>( config );
 }
 

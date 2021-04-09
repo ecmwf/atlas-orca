@@ -33,6 +33,7 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Topology.h"
+#include "atlas/interpolation/element/Quad3D.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
 
@@ -42,6 +43,61 @@
 namespace atlas {
 namespace orca {
 namespace meshgenerator {
+
+struct PointIJ {
+    int i,j;
+};
+
+std::vector<PointIJ> detect_folds(const OrcaGrid& grid) {
+    Log::info() << "Detecting folds..." << std::endl;
+    std::vector<PointIJ> folds;
+
+    geometry::UnitSphere unit_sphere;
+
+    constexpr idx_t j0 = 0;
+    double lon0 = grid->lonlat(0,j0).lon();
+    auto normalise_lon_first_half  = util::NormaliseLongitude{lon0 - 90.};
+    auto normalise_lon_second_half = util::NormaliseLongitude{lon0 + 90.};
+
+    auto normalized_lon = [&](idx_t i, idx_t j) {
+        double lon = grid->lonlat(i,j).lon();
+        if( i < grid.nx()/2 ) {
+            return normalise_lon_first_half(lon);
+        }
+        else {
+            return normalise_lon_second_half(lon);
+        }
+    };//util::NormaliseLongitude(lon_0);
+    using atlas::interpolation::element::Quad3D;
+    for( idx_t i=grid.haloWest(); i < grid.nx()+grid.haloEast()-1; ++i ) {
+
+        double lon_i = normalized_lon(i,j0);
+        double lon_ip1 = normalized_lon(i+1,j0);
+        if( lon_i > lon_ip1 ) {
+            idx_t j = j0;
+            idx_t j_invalid = j;
+            for( j = j0; j < grid.ny(); ++j ) {
+                lon_i = normalized_lon(i,j);
+                lon_ip1 = normalized_lon(i+1,j);
+                std::array<PointXYZ,4> p;
+                p[0] = unit_sphere.xyz(grid.lonlat(i,j));
+                p[1] = unit_sphere.xyz(grid.lonlat(i,j-1));
+                p[2] = unit_sphere.xyz(grid.lonlat(i+1,j-1));
+                p[3] = unit_sphere.xyz(grid.lonlat(i+1,j));
+                if( not Quad3D{p[0],p[1],p[2],p[3]}.validate() ) {
+                    j_invalid = std::max(j,j_invalid);
+                }
+                if( grid.water(i,j) ) {
+                    break;
+                }
+            }
+            folds.emplace_back(PointIJ{i,j_invalid});
+            Log::info() << "Found fold NW={"<<folds.back().i<<","<<folds.back().j<<"}" << std::endl;
+        }
+    }
+    return folds;
+}
+
 
 struct Configuration {
     bool include_south_pole;
@@ -232,7 +288,8 @@ struct Nodes {
         core{array::make_view<int, 1>( mesh.nodes().add(
             Field( "core", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
         master_glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
-            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )} {}
+            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )}
+    {}
 };
 
 struct Cells {
@@ -289,6 +346,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     OrcaGrid orca{grid};
     ATLAS_ASSERT( orca );
     ATLAS_ASSERT( !mesh.generated() );
+
+    auto folds = detect_folds(orca);
 
     Configuration SR_cfg;
     SR_cfg.include_south_pole = include_pole_;
@@ -580,10 +639,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     }
 
     idx_t icell_south = 0;
+    std::vector<idx_t> cell_index( SR.size );
     // loop over nodes and define cells
     {
         ATLAS_TRACE( "elements" );
-        std::vector<idx_t> cell_index( SR.size );
         idx_t jcell = 0;
         ATLAS_TRACE_SCOPE( "indexing" );
         for ( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
@@ -595,7 +654,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
         icell_south = jcell;
-
 
         ATLAS_TRACE_SCOPE( "filling" )
         atlas_omp_parallel_for( idx_t iy = 0; iy < SR.ny - 1; iy++ ) {  // don't loop into ghost/periodicity row
@@ -710,6 +768,21 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 ATLAS_ASSERT( jcell == glb_idx_max );
             }
             mesh.metadata().set( "includes_south_pole", true );
+        }
+        if( not folds.empty() ) {
+            for( auto& ij: folds ) {
+                idx_t ix_fold = ij.i - SR.ix_min;
+                idx_t iy_fold = ij.j - SR.iy_min;
+                if( ix_fold >= 0 && ix_fold < SR.nx && iy_fold >= 0 && iy_fold < SR.ny ) {
+                    for( idx_t iy = 0; iy <= iy_fold; ++iy ) {
+                        idx_t ii   = SR.index( ix_fold, iy );
+                        if ( !SR.is_ghost[ii] ) {
+                            idx_t jcell = cell_index[ii];
+                            cells.flags( jcell ).set( Topology::INVALID );
+                        }
+                    }
+                }
+            }
         }
         if ( fixup_ ) {
             FixupMesh::create( util::Config( "type", grid.name() ) )->execute( mesh );

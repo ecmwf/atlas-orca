@@ -75,7 +75,9 @@ struct AddElements {
         quads.emplace_back( g1, g2, g3, g4 );
         return quads.back();
     }
-    ~AddElements() noexcept( false ) { add_elements(); }
+    ~AddElements() noexcept( false ) {
+        //add_elements();
+    }
 
     void add_elements() {
         using util::Topology;
