@@ -59,8 +59,18 @@ public:
     PointLonLat lonlat( idx_t i, idx_t j ) const { return grid_->lonlat( i, j ); }
 
     bool water( idx_t i, idx_t j ) const { return grid_->water( i, j ); }
-    bool land( idx_t i, idx_t j ) const { return not grid_->land( i, j ); }
+    bool land( idx_t i, idx_t j ) const { return grid_->land( i, j ); }
     bool ghost( idx_t i, idx_t j ) const { return grid_->ghost( i, j ); }
+    bool invalidElement( idx_t i, idx_t j ) const { return grid_->invalidElement( i, j ); }
+
+    int haloWest() const { return grid_->haloWest(); }
+    int haloEast() const { return grid_->haloEast(); }
+    int haloNorth() const { return grid_->haloNorth(); }
+    int haloSouth() const { return grid_->haloSouth(); }
+
+    gidx_t periodicIndex( idx_t i, idx_t j ) const { return grid_->periodicIndex( i, j ); }
+
+    void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const { grid_->index2ij( gidx, i, j ); }
 
     const grid_t* get() const { return grid_; }
     const grid_t* operator->() const { return get(); }

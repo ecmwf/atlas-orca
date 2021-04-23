@@ -21,6 +21,9 @@
 
 namespace atlas {
 class Mesh;
+namespace orca {
+class OrcaPeriodicity;
+}
 }
 namespace eckit {
 class PathName;
@@ -33,7 +36,6 @@ namespace grid {
 
 class Orca final : public Grid {
 private:
-    struct OrcaInfo;
 
     struct ComputePointXY {
         ComputePointXY( const Orca& grid ) : grid_( grid ) {}
@@ -172,7 +174,7 @@ public:
     std::string name() const override;
     std::string type() const override;
 
-    const PointXY& xy( idx_t i, idx_t j ) const { return points_halo_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    const PointXY& xy( idx_t i, idx_t j ) const { return points_[index( i, j )]; }
 
     void xy( idx_t i, idx_t j, double crd[] ) const {
         const PointXY& p = xy( i, j );
@@ -182,13 +184,14 @@ public:
 
     PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
-    gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
+    ATLAS_ALWAYS_INLINE gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
 
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
 
-    bool water( idx_t i, idx_t j ) const { return lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
-    bool land( idx_t i, idx_t j ) const { return not lsm_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
-    bool ghost( idx_t i, idx_t j ) const { return not core_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool water( idx_t i, idx_t j ) const { return water_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool land( idx_t i, idx_t j ) const { return not water_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool ghost( idx_t i, idx_t j ) const { return ghost_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
+    bool invalidElement( idx_t i, idx_t j ) const { return invalid_element_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
     gidx_t periodicIndex( idx_t i, idx_t j ) const;
 
@@ -226,46 +229,41 @@ public:
 private:  // methods
     void print( std::ostream& ) const override;
 
-    /// Hash of the lonlat array
     void hash( eckit::Hash& ) const override;
+
+    std::string uid() const override;
 
     RectangularLonLatDomain lonlatBoundingBox() const override;
 
 private:
+    /// Grid name
+    const std::string name_;
+
     /// Grid size
     idx_t nx_;
     idx_t ny_;
-    idx_t periodicity_;
     idx_t halo_east_;
     idx_t halo_west_;
     idx_t halo_south_;
     idx_t halo_north_;
     idx_t nx_halo_;
     idx_t ny_halo_;
-
-    /// Storage of coordinate points
-    std::vector<PointXY> points_halo_;
-    std::vector<bool> lsm_;
-    std::vector<bool> core_;
-
     idx_t imin_;
     idx_t jmin_;
     idx_t istride_;
     idx_t jstride_;
 
-    /// Grid name
-    const std::string name_;
+    /// Storage of coordinate points
+    std::vector<PointXY> points_;
+    std::vector<bool> water_;
+    std::vector<bool> ghost_;
+    std::vector<bool> invalid_element_;
 
     /// Grid spec
     Spec spec_;
 
-    std::unique_ptr<OrcaInfo> info_;
+    std::unique_ptr<orca::OrcaPeriodicity> periodicity_;
 };
-
-extern "C" {
-const Orca* atlas__grid__Orca__points( const double lonlat[], int shapef[], int stridesf[] );
-const Orca* atlas__grid__Orca__config( util::Config* conf );
-}
 
 
 }  // namespace grid

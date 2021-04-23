@@ -23,6 +23,7 @@ class Distribution;
 #endif
 
 namespace atlas {
+namespace orca {
 namespace meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,6 +45,7 @@ private:
     void hash( eckit::Hash& ) const override;
 
     bool include_pole_{false};
+    bool fixup_{true};
     int nparts_;
     int mypart_;
 };
@@ -51,4 +53,5 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace meshgenerator
+}  // namespace orca
 }  // namespace atlas

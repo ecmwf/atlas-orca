@@ -1,0 +1,353 @@
+---
+
+### ORCA2
+
+ORCA2_F: &ORCA2_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: ORCA2
+    dimensions: [182,149]
+    uid: 389cd949d42141b730e9f1fef8f0d801
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA2_F.atlas
+
+ORCA2_T: &ORCA2_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: ORCA2
+    dimensions: [182,149]
+    uid: 09164327b6c3c1d2c91e69c9e40e08c0
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA2_T.atlas
+
+ORCA2_U: &ORCA2_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: ORCA2
+    dimensions: [182,149]
+    uid: 7eabd0fcc15c3e7e9537e1803a02187c
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA2_U.atlas
+
+ORCA2_V: &ORCA2_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: ORCA2
+    dimensions: [182,149]
+    uid: 21e27dd21609db4451b03163cacd3eec
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA2_V.atlas
+
+ORCA2_W: &ORCA2_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: ORCA2
+    dimensions: [182,149]
+    uid: 235e0a297d71de216b2f02e9cd20f4dd
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA2_T.atlas
+
+389cd949d42141b730e9f1fef8f0d801: *ORCA2_F
+09164327b6c3c1d2c91e69c9e40e08c0: *ORCA2_T
+7eabd0fcc15c3e7e9537e1803a02187c: *ORCA2_U
+21e27dd21609db4451b03163cacd3eec: *ORCA2_V
+235e0a297d71de216b2f02e9cd20f4dd: *ORCA2_W
+
+
+### ORCA1
+
+ORCA1_F: &ORCA1_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: ORCA1
+    dimensions: [362,292]
+    uid: a85344573e4e976221658e5f4dbb7ae3
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA1_F.atlas
+
+ORCA1_T: &ORCA1_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: ORCA1
+    dimensions: [362,292]
+    uid: f0bb4e4bdd4f56649ef22f797cc3dd70
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA1_T.atlas
+
+ORCA1_U: &ORCA1_U
+    type: ORCA
+    dimensions: [362,292]
+    orca_arrangement: U
+    orca_name: ORCA1
+    dimensions: [362,292]
+    uid: 6a0dcfe1c3760207dc488d8a00abc4f0
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA1_U.atlas
+
+ORCA1_V: &ORCA1_V
+    type: ORCA
+    dimensions: [362,292]
+    orca_arrangement: V
+    orca_name: ORCA1
+    dimensions: [362,292]
+    uid: 6ea2abf1d96e53981721f8b7a52bd778
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA1_V.atlas
+
+ORCA1_W: &ORCA1_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: ORCA1
+    dimensions: [362,292]
+    uid: 887ec210b76ce74d167cf124c752edad
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA1_T.atlas
+
+a85344573e4e976221658e5f4dbb7ae3: *ORCA1_F
+f0bb4e4bdd4f56649ef22f797cc3dd70: *ORCA1_T
+6a0dcfe1c3760207dc488d8a00abc4f0: *ORCA1_U
+6ea2abf1d96e53981721f8b7a52bd778: *ORCA1_V
+887ec210b76ce74d167cf124c752edad: *ORCA1_W
+
+
+### eORCA1
+
+eORCA1_F: &eORCA1_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: eORCA1
+    dimensions: [362,332]
+    uid: af2fe47e6bf0722af1d4f639e282b73f
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA1_F.atlas
+
+eORCA1_T: &eORCA1_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: eORCA1
+    dimensions: [362,332]
+    uid: adb137dc65c008ef0d4005f9a5995170
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA1_T.atlas
+
+eORCA1_U: &eORCA1_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: eORCA1
+    dimensions: [362,332]
+    uid: 156675be540b88de0ca33ebb2b1cd71c
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA1_U.atlas
+
+eORCA1_V: &eORCA1_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: eORCA1
+    dimensions: [362,332]
+    uid: 562cbeec3e042227a2e0594eac07bfd4
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA1_V.atlas
+
+eORCA1_W: &eORCA1_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: eORCA1
+    dimensions: [362,332]
+    uid: c35c7c17c91469b9d35152d82d0a6016
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA1_T.atlas
+
+43a4450151c0695d126a4431de91a141: *eORCA1_F
+adb137dc65c008ef0d4005f9a5995170: *eORCA1_T
+156675be540b88de0ca33ebb2b1cd71c: *eORCA1_U
+562cbeec3e042227a2e0594eac07bfd4: *eORCA1_V
+c35c7c17c91469b9d35152d82d0a6016: *eORCA1_W
+
+
+### ORCA025
+
+ORCA025_F: &ORCA025_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: ORCA025
+    dimensions: [1442,1021]
+    uid: d06d52791493b5c7c718793074d0524b
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA025_F.atlas
+
+ORCA025_T: &ORCA025_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: ORCA025
+    dimensions: [1442,1021]
+    uid: a7b4a0bc9e8439c8fea5ccad3659a4db
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA025_T.atlas
+
+ORCA025_U: &ORCA025_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: ORCA025
+    dimensions: [1442,1021]
+    uid: f152574948cf60db611e07efe897c398
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA025_U.atlas
+
+ORCA025_V: &ORCA025_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: ORCA025
+    dimensions: [1442,1021]
+    uid: f0612b79fca589bdbb6797ba9fdd9cf1
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA025_V.atlas
+
+ORCA025_W: &ORCA025_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: ORCA025
+    dimensions: [1442,1021]
+    uid: 12b7948e5f76a2a8cc15278421679b31
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA025_T.atlas
+
+d06d52791493b5c7c718793074d0524b: *ORCA025_F
+a7b4a0bc9e8439c8fea5ccad3659a4db: *ORCA025_T
+f152574948cf60db611e07efe897c398: *ORCA025_U
+f0612b79fca589bdbb6797ba9fdd9cf1: *ORCA025_V
+12b7948e5f76a2a8cc15278421679b31: *ORCA025_W
+
+
+### eORCA025
+
+eORCA025_F: &eORCA025_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: eORCA025
+    dimensions: [1442,1207]
+    uid: 4d35b1db14314f1c0dad1ab12a91c191
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA025_F.atlas
+
+eORCA025_T: &eORCA025_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: eORCA025
+    dimensions: [1442,1207]
+    uid: 2c21a599564aa5a6cbe1676612c27f3b
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA025_T.atlas
+
+eORCA025_U: &eORCA025_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: eORCA025
+    dimensions: [1442,1207]
+    uid: 93a4f72b091edd2f633315522439590e
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA025_U.atlas
+
+eORCA025_V: &eORCA025_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: eORCA025
+    dimensions: [1442,1207]
+    uid: 7b5136ae729a283616250fe9f313276b
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA025_V.atlas
+
+
+eORCA025_W: &eORCA025_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: eORCA025
+    dimensions: [1442,1207]
+    uid: 98783c3e4a72d5635d89bad6442ac095
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA025_T.atlas
+
+4d35b1db14314f1c0dad1ab12a91c191: *eORCA025_F
+2c21a599564aa5a6cbe1676612c27f3b: *eORCA025_T
+93a4f72b091edd2f633315522439590e: *eORCA025_U
+7b5136ae729a283616250fe9f313276b: *eORCA025_V
+98783c3e4a72d5635d89bad6442ac095: *eORCA025_W
+
+
+### ORCA12
+
+ORCA12_F: &ORCA12_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: ORCA12
+    dimensions: [4322,3059]
+    uid: 611245c57f78c0a7898ce7de41dfb969
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA12_F.atlas
+
+ORCA12_T: &ORCA12_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: ORCA12
+    dimensions: [4322,3059]
+    uid: f10c8efeb1eecb90c6e1427efe8a4498
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA12_T.atlas
+
+ORCA12_U: &ORCA12_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: ORCA12
+    dimensions: [4322,3059]
+    uid: b0a6f55389baba7f19dc8065f3a05664
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA12_U.atlas
+
+ORCA12_V: &ORCA12_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: ORCA12
+    dimensions: [4322,3059]
+    uid: ab4ba8b58b29e664175831ee82a80e04
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA12_V.atlas
+
+ORCA12_W: &ORCA12_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: ORCA12
+    dimensions: [4322,3059]
+    uid: 4b98e9610d90e87fb982234cd9e0dab6
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/ORCA12_T.atlas
+
+611245c57f78c0a7898ce7de41dfb969: *ORCA12_F
+f10c8efeb1eecb90c6e1427efe8a4498: *ORCA12_T
+b0a6f55389baba7f19dc8065f3a05664: *ORCA12_U
+ab4ba8b58b29e664175831ee82a80e04: *ORCA12_V
+4b98e9610d90e87fb982234cd9e0dab6: *ORCA12_W
+
+
+### eORCA12
+
+eORCA12_F: &eORCA12_F
+    type: ORCA
+    orca_arrangement: F
+    orca_name: eORCA12
+    dimensions: [4322,3606]
+    uid: 9df2c19e5cb1dd689d827e4189e271f5
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA12_F.atlas
+
+eORCA12_T: &eORCA12_T
+    type: ORCA
+    orca_arrangement: T
+    orca_name: eORCA12
+    dimensions: [4322,3606]
+    uid: b953d4ac2736089420a6d0b8c899cf9f
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA12_T.atlas
+
+eORCA12_U: &eORCA12_U
+    type: ORCA
+    orca_arrangement: U
+    orca_name: eORCA12
+    dimensions: [4322,3606]
+    uid: 3423640c05f318fded22f56702f09544
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA12_U.atlas
+
+eORCA12_V: &eORCA12_V
+    type: ORCA
+    orca_arrangement: V
+    orca_name: eORCA12
+    dimensions: [4322,3606]
+    uid: 6a7da2be7f7cc93dff14ead90f894546
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA12_V.atlas
+
+eORCA12_W: &eORCA12_W
+    type: ORCA
+    orca_arrangement: W
+    orca_name: eORCA12
+    dimensions: [4322,3606]
+    uid: 046bac826a7fca9bb6d23f2d84809b6d
+    data: https://get.ecmwf.int/atlas/grids/orca/v0/eORCA12_T.atlas
+
+9df2c19e5cb1dd689d827e4189e271f5: *eORCA12_F
+b953d4ac2736089420a6d0b8c899cf9f: *eORCA12_T
+3423640c05f318fded22f56702f09544: *eORCA12_U
+6a7da2be7f7cc93dff14ead90f894546: *eORCA12_V
+046bac826a7fca9bb6d23f2d84809b6d: *eORCA12_W
+
+
+### Deprecated alias uid computed via multio
+
+16076978a048410747dd7c9876677b28: *eORCA1_T
+7378487847e050559b82d0792374a705: *eORCA1_U
+d9622b55f3120eafb3dbaf5c742bc56c: *eORCA1_V
