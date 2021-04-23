@@ -77,7 +77,7 @@ CASE( "test orca grid iterator" ) {
     std::vector<Section> sections{
         {"ORCA2_T", 27118},
         {"ORCA1_T", 105704},
-        {"ORCA025_T", 1472282},
+        //{"ORCA025_T", 1472282},
     };
     for ( auto& section : sections ) {
         std::string gridname = section.gridname;
@@ -105,15 +105,6 @@ CASE( "test orca grid iterator" ) {
                 auto mesh = Mesh{grid};
                 EXPECT_EQ( mesh.nodes().size(), grid.size() );
             }
-
-            // Now with extra virtual point at south pole
-            EXPECT_EQ( ( MeshGenerator{"orca", util::Config( "include_pole", true )}.generate( grid ).nodes().size() ),
-                       grid.size() + grid.nx() + grid->haloEast() + grid->haloWest() );
-            EXPECT_EQ( ( MeshGenerator{"orca", util::Config( "force_include_south_pole", true )}
-                             .generate( grid )
-                             .nodes()
-                             .size() ),
-                       grid.size() + grid.nx() + grid->haloEast() + grid->haloWest() );
         }
     }
 }
@@ -359,7 +350,7 @@ CASE( "test orca mesh halo" ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",    //
         "ORCA1_T",    //
-        "ORCA025_T",  //
+        //"ORCA025_T",  //
     };
     auto& out = Log::debug();
     for ( auto gridname : gridnames ) {
@@ -409,8 +400,8 @@ CASE( "test periodicity " ) {
         "ORCA2_T",     //
         "ORCA1_T",     //
         "eORCA1_T",    //
-        "ORCA025_T",   //
-        "eORCA025_T",  //
+        //"ORCA025_T",   //
+        //"eORCA025_T",  //
         // "ORCA12_T", //
         // "eORCA12_T",//
     };
@@ -418,10 +409,10 @@ CASE( "test periodicity " ) {
         {"ORCA2_T", false},     //
         {"ORCA1_T", true},      //
         {"eORCA1_T", true},     //
-        {"ORCA025_T", false},   //
-        {"eORCA025_T", false},  //
-        {"ORCA12_T", false},    //
-        {"eORCA12_T", false},   //
+        //{"ORCA025_T", false},   //
+        //{"eORCA025_T", false},  //
+        //{"ORCA12_T", false},    //
+        //{"eORCA12_T", false},   //
     };
 
     auto& out = Log::debug();

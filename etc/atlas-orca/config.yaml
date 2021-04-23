@@ -1,0 +1,7 @@
+---
+  atlas-orca-grids:           ~atlas-orca/etc/atlas-orca/grids.yaml
+  atlas-orca-validate-uid:    false  # Validates uid upon Orca grid creation (only for development or testing)
+  atlas-orca-compute-uid:     false  # Ignores encoded uid and computes uid instead (only for development)
+  atlas-orca-download:        false
+  #  atlas-orca-cache-path:      /perm/nawd/cache   # If not specified, default is ${ATLAS_CACHE_PATH} or ${TMPDIR}/cache
+...

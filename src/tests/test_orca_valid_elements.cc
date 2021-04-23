@@ -26,7 +26,7 @@
 #include "atlas/mesh/ElementType.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
-#include "atlas-orca/meshgenerator/FixupMesh.h"
+//#include "atlas-orca/meshgenerator/FixupMesh.h"
 
 #include "tests/AtlasTestEnvironment.h"
 
@@ -51,11 +51,11 @@ CASE( "test generate orca mesh" ) {
     std::string gridname = eckit::Resource<std::string>( "--grid", "ORCA2_T" );
     auto mesh            = Mesh{cache_or_create( gridname )};
 
-    auto fixup_mesh =
-        orca::meshgenerator::FixupMesh::create( option::type( gridname ) | Config( "include_south_pole", true ) );
-    if ( fixup_mesh ) {
-        fixup_mesh->execute( mesh );
-    }
+//    auto fixup_mesh =
+//        orca::meshgenerator::FixupMesh::create( option::type( gridname ) | Config( "include_south_pole", true ) );
+//    if ( fixup_mesh ) {
+//        fixup_mesh->execute( mesh );
+//    }
 
     const auto& connectivity = mesh.cells().node_connectivity();
     auto lonlat              = array::make_view<double, 2>( mesh.nodes().lonlat() );

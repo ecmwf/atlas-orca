@@ -3,23 +3,32 @@ configure_file(version.cc.in version.cc)
 
 ecbuild_add_library(
     TARGET atlas-orca
+    TYPE SHARED
     SOURCES 
         Library.cc
         Library.h
-        grid/Orca.h
         grid/Orca.cc
-        grid/OrcaGrid.h
+        grid/Orca.h
         grid/OrcaGrid.cc
+        grid/OrcaGrid.h
+        grid/OrcaGridBuilder.cc
         meshgenerator/OrcaMeshGenerator.cc
         meshgenerator/OrcaMeshGenerator.h
-        meshgenerator/FixupMesh.cc
-        meshgenerator/FixupMesh.h
-        meshgenerator/fixups/FixupMesh_ORCA.cc
-        meshgenerator/fixups/FixupMesh_ORCA.h
-        meshgenerator/fixups/FixupMesh_eORCA1.cc
-        meshgenerator/fixups/FixupMesh_eORCA1.h
-        meshgenerator/fixups/FixupMesh_ORCA2.cc
-        meshgenerator/fixups/FixupMesh_ORCA2.h
+        util/AsciiReader.h
+        util/AtlasIOReader.h
+        util/ComputeCachedPath.h
+        util/ComputeUid.h
+        util/ComputeUid.cc
+        util/DetectInvalidElements.h
+        util/Download.h
+        util/Enums.h
+        util/Flag.h
+        util/OrcaData.cc
+        util/OrcaData.h
+        util/OrcaDataFile.h
+        util/OrcaPeriodicity.cc
+        util/OrcaPeriodicity.h
+        util/PointIJ.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         version.h
     HEADER_DESTINATION "include/atlas-orca"

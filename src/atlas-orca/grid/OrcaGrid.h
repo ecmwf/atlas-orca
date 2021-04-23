@@ -61,6 +61,7 @@ public:
     bool water( idx_t i, idx_t j ) const { return grid_->water( i, j ); }
     bool land( idx_t i, idx_t j ) const { return grid_->land( i, j ); }
     bool ghost( idx_t i, idx_t j ) const { return grid_->ghost( i, j ); }
+    bool invalidElement( idx_t i, idx_t j ) const { return grid_->invalidElement( i, j ); }
 
     int haloWest() const { return grid_->haloWest(); }
     int haloEast() const { return grid_->haloEast(); }
