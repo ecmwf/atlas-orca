@@ -26,7 +26,6 @@ atlas_create_plugin( atlas-orca
     NAMESPACE int.ecmwf )
 
 add_subdirectory(etc)
-add_subdirectory(share)
 add_subdirectory(src)
 
 ecbuild_install_project(NAME ${PROJECT_NAME})

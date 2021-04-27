@@ -6,14 +6,10 @@ This is a Atlas plugin that adds support for ORCA grids and mesh generation
 
 Requirements:
 -------------
-- atlas 0.22.0 or greater
-- git lfs
+- atlas 0.24.0 or greater
 
-NOTE! Before cloning this repository, make sure git is recent enough to support git lfs,
-      and you have executed at least once for your user account
-
-    git lfs install
-
+Optional:
+- NetCDF, in order to generate new ORCA grid data files (see tool atlas-orca-convert)
 
 Use:
 ----
@@ -34,4 +30,5 @@ Verify the plugin works:
 
 To generate a atlas-orca mesh:
 
-    atlas-meshgen ORCA1_T --generator="orca" --3d -o mesh.msh
+    atlas-meshgen ORCA1_T --3d -o mesh.msh
+
