@@ -76,7 +76,8 @@ public:
 
     operator const eckit::PathName& () const { return path(); }
     operator std::string() const { return path_.asString(); }
-
+    operator const char*() const { return c_str(); }
+    const char* c_str() const { return path_.localPath(); }
 
 private:
     eckit::URI uri_;

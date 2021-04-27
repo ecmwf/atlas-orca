@@ -17,10 +17,16 @@
 
 namespace atlas {
 namespace orca {
-namespace meshgenerator {
 
 class DetectInvalidElement {
 public:
+
+    struct Statistics {
+        size_t invalid_elements{0};
+        size_t invalid_quads_3d{0};
+        size_t invalid_quads_2d{0};
+        size_t diagonal_too_large{0};
+    };
 
     DetectInvalidElement( const util::Config& config ) {
         config.get("ORCA2",orca2_);
@@ -58,16 +64,22 @@ public:
         return diagonal_too_large(p_SW,p_SE,p_NE,p_NW,largest_diatonal_);
     }
 
-    bool invalid_element( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE, const PointLonLat& p_NW ) {
+    bool invalid_element( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE, const PointLonLat& p_NW, Statistics& statistics ) {
         double lat_max = std::max({p_SW.lat(),p_SE.lat(),p_NE.lat(),p_NW.lat()});
 
         if( invalid_quad_2d(p_SW,p_SE,p_NE,p_NW) && lat_max < 45. ) {
+            statistics.invalid_quads_2d++;
+            statistics.invalid_elements++;
             return true;
         }
         if( lat_max < 60. && diagonal_too_large(p_SW,p_SE,p_NE,p_NW) ) {
+            statistics.diagonal_too_large++;
+            statistics.invalid_elements++;
             return true;
         }
         if( invalid_quad_3d(p_SW,p_SE,p_NE,p_NW) ) {
+            statistics.invalid_quads_3d++;
+            statistics.invalid_elements++;
             return true;
         }
         if( orca2_ ) {
@@ -80,6 +92,7 @@ public:
                     double dlon_N = p_NE.lon() - p_NW.lon();
                     double dlon_S = p_SE.lon() - p_SW.lon();
                     if( std::max(dlon_N,dlon_S) > 2.* std::min(dlon_N,dlon_S) ) {
+                        statistics.invalid_elements++;
                         return true;
                     }
                 }
@@ -88,6 +101,10 @@ public:
         return false;
     }
 
+    bool invalid_element( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE, const PointLonLat& p_NW ) {
+        Statistics statistics;
+        return invalid_element( p_SW, p_SE, p_NE, p_NW, statistics );
+}
 
 private:
     geometry::Earth sphere_;
@@ -95,6 +112,5 @@ private:
     bool orca2_{false};
 };
 
-}  // namespace meshgenerator
 }  // namespace orca
 }  // namespace atlas

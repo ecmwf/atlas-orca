@@ -16,6 +16,11 @@ project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
 
 find_package(atlas 0.22.0 REQUIRED)
 
+ecbuild_add_option( FEATURE NETCDF 
+	            DESCRIPTION "Compile support to convert netcdf file to atlas-orca binary format" 
+                    REQUIRED_PACKAGES "NetCDF COMPONENTS CXX" )
+
+
 atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas
     NAMESPACE int.ecmwf )

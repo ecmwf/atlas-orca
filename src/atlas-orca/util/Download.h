@@ -77,6 +77,7 @@ inline size_t download( const std::string& url, const eckit::PathName& path ) {
         }
     }
     eckit::PathName::rename( path_tmp, path);
+    trace.stop();
     Log::info() << "Download of " << eckit::Bytes(length) << " took " << trace.elapsed() << " s." << std::endl;
     return length;
 };

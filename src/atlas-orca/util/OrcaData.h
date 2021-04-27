@@ -20,6 +20,8 @@
 #include "atlas/array/DataType.h"
 #include "atlas/util/Config.h"
 
+#include "atlas-orca/util/DetectInvalidElements.h"
+
 namespace atlas {
 namespace orca {
 
@@ -38,11 +40,13 @@ public:
 
     size_t write( const eckit::PathName& path, const util::Config& config );
 
-    size_t detectInvalidElementss( const util::Config& config );
+    DetectInvalidElement::Statistics detectInvalidElements( const util::Config& config );
 
     std::string computeUid( const util::Config& config );
 
     void setGhost();
+
+    void makeHaloConsistent();
 };
 
 //------------------------------------------------------------------------------------------------------

@@ -26,6 +26,7 @@
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/AsciiReader.h"
 #include "atlas-orca/util/AtlasIOReader.h"
+#include "atlas-orca/util/NetCDFReader.h"
 
 
 namespace atlas {
@@ -47,13 +48,14 @@ struct Tool : public atlas::AtlasTool {
     Tool( int argc, char** argv ) : AtlasTool( argc, argv ) {
         add_option( new SimpleOption<std::string>( "name",        "Output grid name" ) );
         add_option( new SimpleOption<std::string>( "arrangement", "Arrangement in Arakawa C-grid: F,T,U,V,W" ) );
-        add_option( new SimpleOption<std::string>( "input-format", "ascii-v1, ascii-v2, atlas-io; default: ascii-v2" ) );
+        add_option( new SimpleOption<std::string>( "input-format", "netcdf, ascii-v1, ascii-v2, atlas-io; default: ascii-v2" ) );
         add_option( new SimpleOption<std::string>( "compression", "Data compression: none, lz4, aec, ... (see eckit support)'" ) );
         add_option( new SimpleOption<std::string>( "output",      "Output file path; default: <name>_<arrangement>.atlas" ) );
         add_option( new Separator("Advanced") );
         add_option( new SimpleOption<bool>( "verbose", "Print verbose output" ) );
         add_option( new SimpleOption<double>( "diagonal-factor", "Diagonal factor used to limit valid elements, with respect to nominal resolution") );
         add_option( new VectorOption<double>( "pivot", "Pivot point of North fold, if cannot automatically be determined", 2, ",") );
+        add_option( new SimpleOption<bool>( "yaml", "Output spec instead of data" ) );
     }
 };
 
@@ -82,14 +84,19 @@ int Tool::execute( const Args& args ) {
         }
     }
 
-    std::string name{"unnamed"};
-    args.get("name",name);
+    bool yaml_output = args.getBool("yaml",false);
 
+    std::string name = args.getString("name","unnamed");
+    std::string P = args.getString("arrangement","P");
+    std::string outputfile = args.getString("output",name + "_" + P + ".atlas");
 
     std::string input_format;
     if( not args.get("input-format", input_format ) ) {
         std::string extension = input.substr( input.find_last_of('.') );
-        if( extension == ".ascii" ) {
+        if( extension == ".nc" ) {
+            input_format = "netcdf";
+        }
+        else if( extension == ".ascii" ) {
             input_format = "ascii-v2";
         }
         else if( extension == ".atlas" ) {
@@ -101,9 +108,16 @@ int Tool::execute( const Args& args ) {
         }
     }
 
+    if( yaml_output ) {
+        Log::info().reset();
+    }
+
     OrcaData data;
 
-    if( input_format.find("ascii-v") == 0 ) {
+    if( input_format.find("netcdf") == 0 ) {
+        NetCDFReader{ args }.read( input, data );
+    }
+    else if( input_format.find("ascii-v") == 0 ) {
         std::string version_str = input_format.substr(7);
         int version = std::stoi( version_str );
         util::Config reader_config( args );
@@ -120,37 +134,49 @@ int Tool::execute( const Args& args ) {
         return failed();
     }
 
-    size_t invalid_elements = data.detectInvalidElementss( args );
     std::string uid = data.computeUid( args );
 
-    // Print summary
-    const int halo_N = data.halo[HALO_NORTH];
-    const int halo_W = data.halo[HALO_WEST];
-    const int halo_S = data.halo[HALO_SOUTH];
-    const int halo_E = data.halo[HALO_EAST];
-    int nx = data.dimensions[0] - halo_W - halo_E;
+    if( not yaml_output ) {
 
-    Log::info() << "resolution       : " << eckit::Fraction{360,nx} << " degrees" << std::endl;
-    Log::info() << "dimensions       : " << "[" << data.dimensions[0] << "," << data.dimensions[1] << "]" << std::endl;
-    Log::info() << "halo [N,W,S,E]   : " << "[" << halo_N << "," << halo_W << "," << halo_S << "," << halo_E << "]" << std::endl;
-    Log::info() << "invalid elements : " << invalid_elements << std::endl;
-    Log::info() << "uid              : " << uid << std::endl;
-    Log::info() << "pivot            : " << data.pivot << std::endl;
+        auto invalid_element_statistics = data.detectInvalidElements( args );
+        // Print summary
+        const int halo_N = data.halo[HALO_NORTH];
+        const int halo_W = data.halo[HALO_WEST];
+        const int halo_S = data.halo[HALO_SOUTH];
+        const int halo_E = data.halo[HALO_EAST];
+        int nx = data.dimensions[0] - halo_W - halo_E;
 
-
-    {
-        ATLAS_TRACE("Write data file");
-        std::string outputfile;
-        if( not args.get("output",outputfile) ) {
-            if( args.has("arrangement") ) {
-                outputfile = name + "_" + args.getString("arrangement") + ".atlas";
-            }
-            else {
-                outputfile = name + ".atlas";
-            }
+        Log::info() << "resolution       : " << eckit::Fraction{360,nx} << " degrees" << std::endl;
+        Log::info() << "dimensions       : " << "[" << data.dimensions[0] << "," << data.dimensions[1] << "]" << std::endl;
+        Log::info() << "halo [N,W,S,E]   : " << "[" << halo_N << "," << halo_W << "," << halo_S << "," << halo_E << "]" << std::endl;
+        Log::info() << "invalid elements : " << invalid_element_statistics.invalid_elements << std::endl;
+        if( invalid_element_statistics.invalid_elements > 0 ) {
+            Log::info() << "    quad2d       : " << invalid_element_statistics.invalid_quads_2d << std::endl;
+            Log::info() << "    quad3d       : " << invalid_element_statistics.invalid_quads_3d << std::endl;
+            Log::info() << "    large diag   : " << invalid_element_statistics.diagonal_too_large << std::endl;
         }
+        Log::info() << "uid              : " << uid << std::endl;
+        Log::info() << "pivot            : " << data.pivot << std::endl;
+
+    }
+
+    if( not yaml_output ) {
+        ATLAS_TRACE("Write data file");
         auto length = data.write( outputfile, args );
         Log::info() << "Written " << eckit::Bytes(length) << " to file " << outputfile << std::endl;
+    }
+
+    if( yaml_output ) {
+        std::string P = args.getString("arrangement","P");
+        std::ostream& out = std::cout;
+        out << name << "_" << P << ": &" << name << "_" << P << std::endl;
+        out << "    type: ORCA" << std::endl;
+        out << "    orca_arrangement: " << P << std::endl;
+        out << "    orca_name: " << name << std::endl;
+        out << "    dimensions: " << data.dimensions << std::endl;
+        out << "    uid: " << uid << std::endl;
+        out << "    data: {{location}}/"<<outputfile << std::endl;
+        out << uid << ": *" << name << "_" << P << std::endl;
     }
 
     return success();

@@ -116,7 +116,7 @@ public:
 
         auto trace = atlas::Trace( Here(), "read" );
 
-        std::ifstream ifstrm{file};
+        std::ifstream ifstrm{file.c_str()};
 
         // Reading header
         std::string line;
@@ -257,6 +257,7 @@ public:
             validate(data,master);
         }
         data.setGhost();
+        data.makeHaloConsistent();
     }
 
 

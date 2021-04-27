@@ -18,22 +18,6 @@
 
 namespace atlas {
 
-//---------------------------------------------------------------------------------------------------------------------
-// Further grid interpretation classes defined in this file
-
-class OrcaGrid;
-
-/*
-                                                        Grid
-                                                          |
-                                    +----------+----------+----------+----------+
-                                    |                     |                     |
-                             StructuredGrid        UnstructuredGrid          OrcaGrid
-
-*/
-
-//---------------------------------------------------------------------------------------------------------------------
-
 class OrcaGrid : public Grid {
 public:
     using grid_t = grid::detail::grid::Orca;

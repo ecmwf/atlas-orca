@@ -10,6 +10,8 @@
 
 #include "OrcaData.h"
 
+#include "eckit/log/ProgressTimer.h"
+
 #include "atlas/io/atlas-io.h"
 
 #include "atlas-orca/util/OrcaPeriodicity.h"
@@ -42,6 +44,44 @@ void OrcaData::setGhost() {
     }
 }
 
+void OrcaData::makeHaloConsistent(){
+
+    size_t ni = dimensions[0];
+    size_t nj = dimensions[1];
+    OrcaPeriodicity compute_master{*this};
+    for( size_t j = 0; j < nj; ++j ) {
+        for( size_t i = 0; i < ni; ++i ) {
+            size_t n = ni*j + i;
+            auto master = compute_master(i,j);
+            size_t n_master = ni*master.j + master.i;
+            if( n_master != n ) {
+                if( lon[n] != lon[n_master] || lat[n] != lat[n_master] ) {
+                    PointLonLat point_n{lon[n],lat[n]};
+                    PointLonLat point_n_master{lon[n_master],lat[n_master]};
+                    double distance = geometry::Earth().distance(point_n,point_n_master);
+                    if( distance > 1 /*metre*/ ) {
+                        Log::warning() << "Fixed halo inconsistency for {"<<i<<","<<j<<"}:  " << point_n << " --> " << point_n_master
+                                       << "   ( distance = " << distance << " m )" <<std::endl;
+                    }
+                }
+                lon[n] = lon[n_master];
+                lat[n] = lat[n_master];
+
+                Flag flag_n{flags[n]};
+                Flag flag_n_master{flags[n_master]};
+                if( flag_n.test( Flag::WATER ) != flag_n_master.test( Flag::WATER) ) {
+                    flag_n.unset(Flag::WATER);
+                    if( flag_n_master.test(Flag::WATER) ) {
+                        flag_n.set( Flag::WATER );
+                    }
+                    Log::warning() << "Fixed halo inconsistency for {"<<i<<","<<j<<"}: land mask" << std::endl;
+                }
+            }
+        }
+    }
+
+}
+
 std::string atlas::orca::OrcaData::computeUid(const util::Config &config) {
     checkSetup();
 
@@ -52,10 +92,10 @@ std::string atlas::orca::OrcaData::computeUid(const util::Config &config) {
     return orca::compute_uid(arrangement,lon,lat,dimensions[0],dimensions[1],halo);
 }
 
-size_t atlas::orca::OrcaData::detectInvalidElementss(const util::Config &config) {
+DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements(const util::Config &config) {
     checkSetup();
 
-    size_t invalid_elements = 0;
+    DetectInvalidElement::Statistics stats;
 
     ATLAS_TRACE("Detect invalid elements");
     double diagonal_factor = config.getDouble("diagonal-factor",2.5);
@@ -68,14 +108,16 @@ size_t atlas::orca::OrcaData::detectInvalidElementss(const util::Config &config)
     util::Config detection_config;
     detection_config.set("ORCA2", (std::abs(resolution-2.) < 0.1) );
     detection_config.set("diagonal", resolution*diagonal_factor );
-    atlas::orca::meshgenerator::DetectInvalidElement detect(detection_config);
+    DetectInvalidElement detect(detection_config);
 
     auto is_water = [&](int n) -> bool {
         return Flag{flags[n]}.test(Flag::WATER);
     };
 
+    eckit::ProgressTimer progress("Detect invalid elements",(nj-1)*(ni-1),"point",5.,Log::trace());
     for( idx_t j=0; j<nj-1; ++j ) {
         for( idx_t i=0; i<ni-1; ++i ) {
+            ++progress;
             idx_t n_SW = j*ni + i;
             idx_t n_SE = n_SW + 1;
             idx_t n_NW = (j+1)*ni + i;
@@ -93,7 +135,7 @@ size_t atlas::orca::OrcaData::detectInvalidElementss(const util::Config &config)
             p_NW.normalise(p_SW.lon()-180.);
             p_NE.normalise(p_SW.lon()-180.);
 
-            if(  detect.invalid_element(p_SW,p_SE,p_NE,p_NW) ) {
+            if(  detect.invalid_element(p_SW,p_SE,p_NE,p_NW,stats) ) {
                 if( element_contains_water ) {
                     // So far this only occurs for ORCA2_F grid
                     int invalid_factor = 10;
@@ -115,11 +157,10 @@ size_t atlas::orca::OrcaData::detectInvalidElementss(const util::Config &config)
                     }
                 }
                 Flag{flags[n_SW]}.set(Flag::INVALID_ELEMENT);
-                ++invalid_elements;
             }
         }
     }
-    return invalid_elements;
+    return stats;
 }
 
 void atlas::orca::OrcaData::checkSetup() {

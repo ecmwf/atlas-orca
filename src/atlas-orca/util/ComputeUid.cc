@@ -13,6 +13,7 @@
 #include <algorithm>
 
 #include "eckit/utils/MD5.h"
+#include "eckit/utils/ByteSwap.h"
 
 #include "atlas/runtime/Exception.h"
 #include "atlas/runtime/Trace.h"
@@ -24,6 +25,7 @@
 namespace atlas {
 namespace orca {
 
+namespace uid_v0 {
 std::string compute_uid(const std::string &arrangement, const double lon[], const double lat[], int nx_halo, int ny_halo, const int32_t halo[]) {
 
     ATLAS_TRACE();
@@ -67,6 +69,47 @@ std::string compute_uid(const std::string &arrangement, const double lon[], cons
 std::string compute_uid(const std::string &arrangement, const std::vector<double> &lon, const std::vector<double> &lat, int nx_halo, int ny_halo, const std::array<std::int32_t,4> &halo) {
     return compute_uid( arrangement, lon.data(), lat.data(), nx_halo, ny_halo, halo.data() );
 }
+}
+
+std::string compute_uid(const std::string &arrangement, const double lon[], const double lat[], int nx_halo, int ny_halo, const int32_t halo[]) {
+
+    ATLAS_TRACE();
+
+    std::string P = arrangement;
+    if( P != "T" && P != "W" && P != "F" && P != "U" && P != "V" ) {
+        ATLAS_THROW_EXCEPTION("arrangement expected to be any of {F,T,U,V,W}. Received: " << P);
+    }
+
+    eckit::MD5 hasher;
+    hasher.add( P );
+
+    idx_t size = nx_halo*ny_halo;
+
+    if( eckit_LITTLE_ENDIAN ) {
+        hasher.add(lat,size*sizeof(double));
+        hasher.add(lon,size*sizeof(double));
+    }
+    else {
+        atlas::vector<double> latitude(size);
+        atlas::vector<double> longitude(size);
+        for( idx_t n=0; n<size; ++n ) {
+            latitude[n] = lat[n];
+            longitude[n] = lon[n];
+        }
+        eckit::byteswap(latitude.data(),size);
+        eckit::byteswap(longitude.data(),size);
+        hasher.add(latitude.data(),size*sizeof(double));
+        hasher.add(longitude.data(),size*sizeof(double));
+    }
+    return hasher.digest();
+}
+
+std::string compute_uid(const std::string &arrangement, const std::vector<double> &lon, const std::vector<double> &lat, int nx_halo, int ny_halo, const std::array<std::int32_t,4> &halo) {
+    return compute_uid( arrangement, lon.data(), lat.data(), nx_halo, ny_halo, halo.data() );
+}
+
+
+
 
 }
 }
