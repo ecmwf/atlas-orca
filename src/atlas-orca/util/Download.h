@@ -42,8 +42,7 @@ struct AutoIndent {
 
 
 inline eckit::Length curl_download( const std::string& url, const eckit::PathName& path ) {
-
-    // This version manages to overcome redirects, which URLHandle can currently not cope with
+    // Fallback for when URLHandle cannot handle
     std::string command = "curl --progress-bar -L " + url + " --output " + path;
     Log::debug() << "+ " << command << std::endl;
     if( std::system( command.c_str() ) == 0 ) {
@@ -61,9 +60,22 @@ inline size_t download( const std::string& url, const eckit::PathName& path ) {
     Log::info() << "Downloading " << url << " to " << path << " ..." << std::endl;
     AutoIndent indent;
     eckit::PathName path_tmp = path+".download";
-    auto length = eckit::URLHandle(url).saveInto(path_tmp);
+    eckit::Length length;
+    try {
+        length = eckit::URLHandle(url).saveInto(path_tmp);
+    }
+    catch( eckit::SeriousBug ) {
+        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl command-line tool." << std::endl;
+        length = curl_download(url,path_tmp);
+    }
+    catch(...) {
+        length = 0;
+    }
+
     if( length <= 0 ) {
-        path_tmp.unlink(true);
+        if( path_tmp.exists() ) {
+            path_tmp.unlink(true);
+        }
         return 0;
     }
     if( length < eckit::Length(10*1024) ) {

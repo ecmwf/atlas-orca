@@ -23,40 +23,40 @@
 #include "atlas/util/PeriodicTransform.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
+#include "atlas-orca/util/PointIJ.h"
 
 #include "tests/AtlasTestEnvironment.h"
 
 using Grid   = atlas::Grid;
 using Config = atlas::util::Config;
 
-Grid cache_or_create( const std::string name ) {
-    static std::map<std::string, Grid> grids;
-    if ( grids.find( name ) == grids.end() ) {
-        grids[name] = Grid( name );
-    }
-    return grids[name];
-}
-
 namespace atlas {
 namespace test {
 
 //-----------------------------------------------------------------------------
 
-#if 1
-
 size_t peakMemory() {
     return eckit::system::ResourceUsage().maxResidentSetSize();
 }
 
+//-----------------------------------------------------------------------------
+
+void build_periodic_boundaries( Mesh& mesh ); // definition below
+
+//-----------------------------------------------------------------------------
+
 CASE( "test generate orca mesh" ) {
-    std::string gridname = "ORCA1_V";
-    SECTION( gridname ) {
-        auto grid = cache_or_create( gridname );
+    static std::string gridname = "eORCA1_T";
+    static auto grid = Grid( gridname );
+
+    SECTION( "orca_generate" ) {
         Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
 
         auto meshgenerator = MeshGenerator{"orca"};
         auto mesh          = meshgenerator.generate( grid );
         Log::info() << "mesh.footprint() = " << eckit::Bytes( mesh.footprint() ) << std::endl;
+
+        EXPECT_EQ( mesh.nodes().size(), grid.size() );
 
         if ( mesh.footprint() < 25 * 1e6 ) {  // less than 25 Mb
             output::Gmsh{"orca_2d.msh", Config( "coordinates", "lonlat" )}.write( mesh );
@@ -65,51 +65,59 @@ CASE( "test generate orca mesh" ) {
         ATLAS_DEBUG( "Peak memory: " << eckit::Bytes( peakMemory() ) );
     }
 
-    SECTION( "auto_generate" ) { auto mesh = Mesh{cache_or_create( gridname )}; }
+    SECTION( "auto_generate" ) { auto mesh = Mesh{ grid }; }
 }
 
-CASE( "test orca grid iterator" ) {
-    struct Section {
-        std::string gridname;
-        size_t size;
-    };
+//-----------------------------------------------------------------------------
 
-    std::vector<Section> sections{
-        {"ORCA2_T", 27118},
-        {"ORCA1_T", 105704},
-        //{"ORCA025_T", 1472282},
+CASE( "test orca mesh halo" ) {
+    auto gridnames = std::vector<std::string>{
+        "ORCA2_T",    //
+        "eORCA1_T",    //
+        //"eORCA025_T",  //
     };
-    for ( auto& section : sections ) {
-        std::string gridname = section.gridname;
+    for ( auto gridname : gridnames ) {
         SECTION( gridname ) {
-            OrcaGrid grid = cache_or_create( gridname );
+            auto mesh = Mesh{Grid( gridname )};
+            REQUIRE( mesh.grid() );
+            EXPECT( mesh.grid().name() == gridname );
+            test::build_periodic_boundaries( mesh );
+            auto remote_idx = array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() );
+            auto ij         = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
+            idx_t count{0};
 
-            EXPECT_EQ( grid.size(), section.size );
-
-            Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
-
-            idx_t n = 0;
-            {
-                auto trace = Trace( Here(), "iterating" );
-                for ( auto& p : grid.lonlat() ) {
-                    ++n;
+            functionspace::NodeColumns fs{mesh};
+            Field field   = fs.createField<double>( option::name( "bla" ) );
+            auto f        = array::make_view<double, 1>( field );
+            OrcaGrid grid = mesh.grid();
+            for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
+                if ( remote_idx( jnode ) < 0 ) {
+                    auto p = orca::PointIJ{ij( jnode, 0 ), ij( jnode, 1 )};
+                    orca::PointIJ master;
+                    grid->index2ij( grid->periodicIndex( p.i, p.j ), master.i, master.j );
+                    Log::info() << p << " --> " << master << std::endl;
+                    ++count;
+                    f( jnode ) = 1;
                 }
-                trace.stop();
-                Log::info() << "iterating took " << trace.elapsed() << " seconds" << std::endl;
+                else {
+                    f( jnode ) = 0;
+                }
             }
-            EXPECT_EQ( n, grid.size() );
-            Log::info() << "First point: " << grid.lonlat().front() << std::endl;
-            Log::info() << "Last point: " << grid.lonlat().back() << std::endl;
-
-            ATLAS_TRACE_SCOPE( "Mesh generation" ) {
-                auto mesh = Mesh{grid};
-                EXPECT_EQ( mesh.nodes().size(), grid.size() );
+            EXPECT_EQ( count, 0 );
+            if ( count != 0 ) {
+                Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
+                //                output::Gmsh gmsh(gridname+".msh",Config("coordinates","ij")|Config("ghost",true)|Config("info",true));
+                //                gmsh.write(mesh);
+                //                gmsh.write(field);
             }
         }
     }
 }
-#endif
 
+//-----------------------------------------------------------------------------
+
+// WORK IN PROGRESS: The routine in Atlas should be incorporating the following when
+// use in parallel is required.
 
 void build_periodic_boundaries( Mesh& mesh ) {
     using util::LonLatMicroDeg;
@@ -322,191 +330,6 @@ void build_periodic_boundaries( Mesh& mesh ) {
     }
     mesh.metadata().set( "periodic", true );
 }
-
-struct PointIJ {
-    idx_t i;
-    idx_t j;
-    friend std::ostream& operator<<( std::ostream& out, const PointIJ& p ) {
-        out << "{" << p.j << "," << p.i << "}";
-        return out;
-    }
-    bool operator==( const PointIJ& other ) const { return other.i == i && other.j == j; }
-    bool operator!=( const PointIJ& other ) const { return other.i != i || other.j != j; }
-    bool operator<( const PointIJ& other ) const {
-        if ( j < other.j ) {
-            return true;
-        }
-        if ( j == other.j && i < other.i ) {
-            return true;
-        }
-        return false;
-    }
-};
-
-
-#if 1
-
-CASE( "test orca mesh halo" ) {
-    auto gridnames = std::vector<std::string>{
-        "ORCA2_T",    //
-        "ORCA1_T",    //
-        //"ORCA025_T",  //
-    };
-    auto& out = Log::debug();
-    for ( auto gridname : gridnames ) {
-        SECTION( gridname ) {
-            auto mesh = Mesh{cache_or_create( gridname )};
-            REQUIRE( mesh.grid() );
-            EXPECT( mesh.grid().name() == gridname );
-            build_periodic_boundaries( mesh );
-            auto remote_idx = array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() );
-            auto ij         = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
-            idx_t count{0};
-
-            functionspace::NodeColumns fs{mesh};
-            Field field   = fs.createField<double>( option::name( "bla" ) );
-            auto f        = array::make_view<double, 1>( field );
-            OrcaGrid grid = mesh.grid();
-            for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
-                if ( remote_idx( jnode ) < 0 ) {
-                    auto p = PointIJ{ij( jnode, 0 ), ij( jnode, 1 )};
-                    PointIJ master;
-                    grid->index2ij( grid->periodicIndex( p.i, p.j ), master.i, master.j );
-                    Log::info() << p << " --> " << master << std::endl;
-                    ++count;
-                    f( jnode ) = 1;
-                }
-                else {
-                    f( jnode ) = 0;
-                }
-            }
-            EXPECT_EQ( count, 0 );
-            if ( count != 0 ) {
-                Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
-                //                output::Gmsh gmsh(gridname+".msh",Config("coordinates","ij")|Config("ghost",true)|Config("info",true));
-                //                gmsh.write(mesh);
-                //                gmsh.write(field);
-            }
-        }
-    }
-}
-#endif
-
-
-#if 1
-
-CASE( "test periodicity " ) {
-    auto gridnames = std::vector<std::string>{
-        "ORCA2_T",     //
-        "ORCA1_T",     //
-        "eORCA1_T",    //
-        //"ORCA025_T",   //
-        //"eORCA025_T",  //
-        // "ORCA12_T", //
-        // "eORCA12_T",//
-    };
-    auto patch = std::map<std::string, bool>{
-        {"ORCA2_T", false},     //
-        {"ORCA1_T", true},      //
-        {"eORCA1_T", true},     //
-        //{"ORCA025_T", false},   //
-        //{"eORCA025_T", false},  //
-        //{"ORCA12_T", false},    //
-        //{"eORCA12_T", false},   //
-    };
-
-    auto& out = Log::debug();
-    for ( auto gridname : gridnames ) {
-        SECTION( gridname ) {
-            OrcaGrid grid( cache_or_create( gridname ) );
-
-            if ( true ) {
-                idx_t jsubtract  = patch.at( gridname ) ? 1 : 2;
-                double tolerance = 1.e-4;
-                for ( idx_t j = grid.ny() - jsubtract; j < grid.ny() + grid->haloNorth(); ++j ) {
-                    out << "----------------row-----------------" << std::endl;
-                    bool pivot = false;
-                    for ( idx_t i = -grid->haloWest(); i < grid.nx() + grid->haloEast(); ++i ) {
-                        bool is_ghost = grid.ghost( i, j );
-                        PointIJ folded;
-                        grid->index2ij( grid->periodicIndex( i, j ), folded.i, folded.j );
-                        bool is_pivot = folded.i == i && folded.j == j;
-                        if ( not pivot ) {
-                            if ( folded.i <= i && folded.i ) {
-                                out << "===pivot===   ";
-                                pivot = true;
-                            }
-                            if ( folded.i < i && folded.i ) {
-                                out << std::endl;
-                            }
-                        }
-                        out << PointIJ{i, j} << " --> " << folded << "     " << grid.lonlat( i, j ) << std::endl;
-                        if ( is_pivot ) {
-                            EXPECT( not is_ghost );
-                        }
-                        else if ( is_ghost ) {
-                            EXPECT( not grid.ghost( folded.i, folded.j ) );
-                        }
-                        else {
-                            EXPECT( grid.ghost( folded.i, folded.j ) );
-                        }
-                        EXPECT_APPROX_EQ( grid.lonlat( i, j ), grid.lonlat( folded.i, folded.j ), tolerance );
-                    }
-                }
-            }
-
-
-            Geometry geometry( 1. );
-            auto print = [&]( idx_t j, idx_t i ) {
-                Log::info() << grid->index( i, j ) + 1 << "\t" << std::string( grid.ghost( i, j ) ? "G" : " " ) << "\t"
-                            << PointIJ{i, j} << " \t" << grid.lonlat( i, j ) << "\t"
-                            << geometry.xyz( grid.lonlat( i, j ) ) << std::endl;
-            };
-
-            //            for( idx_t j=146; j<149; ++j ) {
-            //              print(j,-1);
-            //              print(j,0);
-            //              print(j,1);
-            //              print(j,178);
-            //              print(j,179);
-            //              print(j,180);
-            //            }
-
-            if ( false ) {
-                auto ref_IJ = PointIJ{178, 147};
-                Log::info() << "Looking for matches for " << ref_IJ << std::endl;
-                auto ref   = grid.lonlat( ref_IJ.i, ref_IJ.j );
-                bool match = false;
-                for ( idx_t j = grid.ny() - 4; j < grid.ny() + grid->haloNorth(); ++j ) {
-                    for ( idx_t i = -grid->haloWest(); i < grid.nx() + grid->haloEast(); ++i ) {
-                        if ( grid.lonlat( i, j ) == ref || approx_eq( grid.lonlat( i, j ), ref ) ) {
-                            Log::info() << "matches " << PointIJ{i, j} << std::endl;
-                            match = true;
-                            //Log::info() << "ix_pivot = " << (double(i+ref_IJ.i))/2. << std::endl;
-                        }
-                    }
-                }
-                EXPECT( match );
-            }
-        }
-    }
-}
-
-#endif
-
-/*
-ORCA1_T
-{290,-1} --> {289,0}     {73,50.0109}
-[0] EXPECT_APPROX_EQ( grid.lonlat(i,j), grid.lonlat(folded.i,folded.j) ) FAILED @ test_orca.cc +440
-[0]  --> lhs = {73.000000000000,50.010940551758}
-[0]  --> rhs = {73.010848999023,50.010940551758}
-
-{290,359} --> {289,0}     {73,50.0109}
-[0] EXPECT_APPROX_EQ( grid.lonlat(i,j), grid.lonlat(folded.i,folded.j) ) FAILED @ test_orca.cc +440
-[0]  --> lhs = {73.000000000000,50.010940551758}
-[0]  --> rhs = {73.010848999023,50.010940551758}
-
-*/
 
 //-----------------------------------------------------------------------------
 
