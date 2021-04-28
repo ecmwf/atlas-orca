@@ -16,10 +16,10 @@
 
 #include "eckit/filesystem/PathName.h"
 
+#include "atlas/io/FileStream.h"
+#include "atlas/runtime/Exception.h"
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
-#include "atlas/runtime/Exception.h"
-#include "atlas/io/FileStream.h"
 
 
 #include "eckit/io/URLHandle.h"
@@ -30,11 +30,9 @@ namespace atlas {
 namespace orca {
 
 struct AutoIndent {
-    AutoIndent() {
-        Log::info().indent();
-    }
+    AutoIndent() { Log::info().indent(); }
     ~AutoIndent() {
-        if( Log::info() ) {
+        if ( Log::info() ) {
             Log::info().unindent();
         }
     }
@@ -45,7 +43,7 @@ inline eckit::Length curl_download( const std::string& url, const eckit::PathNam
     // Fallback for when URLHandle cannot handle
     std::string command = "curl --progress-bar -L " + url + " --output " + path;
     Log::debug() << "+ " << command << std::endl;
-    if( std::system( command.c_str() ) == 0 ) {
+    if ( std::system( command.c_str() ) == 0 ) {
         return path.size();
     }
     return 0;
@@ -53,44 +51,45 @@ inline eckit::Length curl_download( const std::string& url, const eckit::PathNam
 
 
 inline size_t download( const std::string& url, const eckit::PathName& path ) {
-    atlas::Trace trace(Here(),"Downloading ORCA grid data");
+    atlas::Trace trace( Here(), "Downloading ORCA grid data" );
     auto parent_directory = path.dirName();
     parent_directory.mkdir();
     ATLAS_ASSERT( parent_directory.exists() );
     Log::info() << "Downloading " << url << " to " << path << " ..." << std::endl;
     AutoIndent indent;
-    eckit::PathName path_tmp = path+".download";
+    eckit::PathName path_tmp = path + ".download";
     eckit::Length length;
     try {
-        length = eckit::URLHandle(url).saveInto(path_tmp);
+        length = eckit::URLHandle( url ).saveInto( path_tmp );
     }
-    catch( eckit::SeriousBug ) {
-        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl command-line tool." << std::endl;
-        length = curl_download(url,path_tmp);
+    catch ( eckit::SeriousBug ) {
+        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl command-line tool."
+                       << std::endl;
+        length = curl_download( url, path_tmp );
     }
-    catch(...) {
+    catch ( ... ) {
         length = 0;
     }
 
-    if( length <= 0 ) {
-        if( path_tmp.exists() ) {
-            path_tmp.unlink(true);
+    if ( length <= 0 ) {
+        if ( path_tmp.exists() ) {
+            path_tmp.unlink( true );
         }
         return 0;
     }
-    if( length < eckit::Length(10*1024) ) {
-        io::InputFileStream file(path_tmp);
+    if ( length < eckit::Length( 10 * 1024 ) ) {
+        io::InputFileStream file( path_tmp );
         std::string content;
         content.resize( path_tmp.size() );
-        file.read( const_cast<char*>(content.data()),content.size());
-        if( content.find("Error 404") ) {
-            path_tmp.unlink(true);
+        file.read( const_cast<char*>( content.data() ), content.size() );
+        if ( content.find( "Error 404" ) ) {
+            path_tmp.unlink( true );
             return 0;
         }
     }
-    eckit::PathName::rename( path_tmp, path);
+    eckit::PathName::rename( path_tmp, path );
     trace.stop();
-    Log::info() << "Download of " << eckit::Bytes(length) << " took " << trace.elapsed() << " s." << std::endl;
+    Log::info() << "Download of " << eckit::Bytes( length ) << " took " << trace.elapsed() << " s." << std::endl;
     return length;
 };
 

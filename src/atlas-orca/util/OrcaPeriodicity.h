@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
-#include "atlas/library/config.h"
 #include "atlas-orca/util/PointIJ.h"
+#include "atlas/library/config.h"
 
 namespace atlas {
 namespace orca {
@@ -25,8 +25,8 @@ class OrcaData;
 
 class OrcaPeriodicity {
 private:
-    std::array<double,2> pivot_;
-    std::array<std::int32_t,4> halo_;
+    std::array<double, 2> pivot_;
+    std::array<std::int32_t, 4> halo_;
     idx_t nx_;
     idx_t ny_;
     idx_t ibegin_;
@@ -35,31 +35,28 @@ private:
 public:
     OrcaPeriodicity( const OrcaData& orca );
 
-    OrcaPeriodicity( const std::array<std::int32_t,2>& dimensions, const std::array<std::int32_t,4>& halo, const std::array<double,2>& pivot );
+    OrcaPeriodicity( const std::array<std::int32_t, 2>& dimensions, const std::array<std::int32_t, 4>& halo,
+                     const std::array<double, 2>& pivot );
 
-    PointIJ operator()(PointIJ p ) const {
-        return compute(p.i,p.j);
-    }
+    PointIJ operator()( PointIJ p ) const { return compute( p.i, p.j ); }
 
-    PointIJ operator()( idx_t i, idx_t j ) const {
-        return compute(i,j);
-    }
+    PointIJ operator()( idx_t i, idx_t j ) const { return compute( i, j ); }
 
     PointIJ compute( idx_t i, idx_t j ) const {
-        PointIJ master{i,j};
-        if( i < ibegin_ ) {
+        PointIJ master{i, j};
+        if ( i < ibegin_ ) {
             master.i += nx_;
         }
-        if( i >= iend_ ) {
+        if ( i >= iend_ ) {
             master.i -= nx_;
         }
-        if( double(master.j) > pivot_[1] || (double(master.j) == pivot_[1] && double(master.i) > pivot_[0]) ) {
-            master.i = idx_t(2.*pivot_[0]) - master.i;
-            master.j = idx_t(2.*pivot_[1]) - master.j;
-            if( master.i < ibegin_ ) {
+        if ( double( master.j ) > pivot_[1] || ( double( master.j ) == pivot_[1] && double( master.i ) > pivot_[0] ) ) {
+            master.i = idx_t( 2. * pivot_[0] ) - master.i;
+            master.j = idx_t( 2. * pivot_[1] ) - master.j;
+            if ( master.i < ibegin_ ) {
                 master.i += nx_;
             }
-            if( master.i >= iend_ ) {
+            if ( master.i >= iend_ ) {
                 master.i -= nx_;
             }
         }

@@ -11,16 +11,16 @@
 #include "Orca.h"
 
 #include <algorithm>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 #include "atlas-orca/Library.h"
 
+#include "atlas/grid/SpecRegistry.h"
 #include "atlas/grid/detail/grid/GridBuilder.h"
 #include "atlas/grid/detail/grid/GridFactory.h"
-#include "atlas/util/Config.h"
-#include "atlas/grid/SpecRegistry.h"
 #include "atlas/library.h"
+#include "atlas/util/Config.h"
 
 namespace atlas {
 namespace grid {
@@ -41,7 +41,6 @@ public:
     }
 
     const Implementation* create( const std::string& name_or_uid, const Config& /* config */ ) const override {
-
         auto sane_id( name_or_uid );
         std::transform( sane_id.begin(), sane_id.end(), sane_id.begin(), ::tolower );
 

@@ -14,32 +14,32 @@
 
 #include "eckit/filesystem/PathName.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace atlas {
 namespace orca {
 
 class ComputeCachedPath {
 public:
-    ComputeCachedPath( const std::vector<std::string>& known_urls ) : known_urls_{known_urls} {
-    }
-    eckit::PathName operator()(const std::string& url) const {
+    ComputeCachedPath( const std::vector<std::string>& known_urls ) : known_urls_{known_urls} {}
+    eckit::PathName operator()( const std::string& url ) const {
         eckit::PathName path;
         bool is_known_url = false;
-        for( const auto& known_url : known_urls_ ) {
-            if( url.find(known_url) == 0) {
-                is_known_url = true;
-                std::string filepath = url.substr(known_url.size());
-                path = Library::instance().cachePath() + "/atlas/grids/orca" + filepath;
+        for ( const auto& known_url : known_urls_ ) {
+            if ( url.find( known_url ) == 0 ) {
+                is_known_url         = true;
+                std::string filepath = url.substr( known_url.size() );
+                path                 = Library::instance().cachePath() + "/atlas/grids/orca" + filepath;
             }
         }
-        if( not is_known_url ) {
-            std::string filename = url.substr(url.find_last_of("/"),url.size());
-            path = Library::instance().cachePath() + "/atlas/grids/orca/unknown" + filename;
+        if ( not is_known_url ) {
+            std::string filename = url.substr( url.find_last_of( "/" ), url.size() );
+            path                 = Library::instance().cachePath() + "/atlas/grids/orca/unknown" + filename;
         }
         return path;
     }
+
 private:
     std::vector<std::string> known_urls_;
 };

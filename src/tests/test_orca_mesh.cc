@@ -41,13 +41,13 @@ size_t peakMemory() {
 
 //-----------------------------------------------------------------------------
 
-void build_periodic_boundaries( Mesh& mesh ); // definition below
+void build_periodic_boundaries( Mesh& mesh );  // definition below
 
 //-----------------------------------------------------------------------------
 
 CASE( "test generate orca mesh" ) {
     static std::string gridname = "eORCA1_T";
-    static auto grid = Grid( gridname );
+    static auto grid            = Grid( gridname );
 
     SECTION( "orca_generate" ) {
         Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
@@ -65,15 +65,15 @@ CASE( "test generate orca mesh" ) {
         ATLAS_DEBUG( "Peak memory: " << eckit::Bytes( peakMemory() ) );
     }
 
-    SECTION( "auto_generate" ) { auto mesh = Mesh{ grid }; }
+    SECTION( "auto_generate" ) { auto mesh = Mesh{grid}; }
 }
 
 //-----------------------------------------------------------------------------
 
 CASE( "test orca mesh halo" ) {
     auto gridnames = std::vector<std::string>{
-        "ORCA2_T",    //
-        "eORCA1_T",    //
+        "ORCA2_T",   //
+        "eORCA1_T",  //
         //"eORCA025_T",  //
     };
     for ( auto gridname : gridnames ) {

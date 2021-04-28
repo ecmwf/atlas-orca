@@ -38,29 +38,29 @@ namespace atlas {
 namespace test {
 
 CASE( "test generate orca mesh" ) {
-
-    std::vector<std::string> gridnames {
-        "ORCA2_T", "ORCA2_F", "ORCA2_U", "ORCA2_V",
-        "eORCA1_T", "eORCA1_F", "eORCA1_U", "eORCA1_V",
+    std::vector<std::string> gridnames{
+        "ORCA2_T", "ORCA2_F", "ORCA2_U", "ORCA2_V", "eORCA1_T", "eORCA1_F", "eORCA1_U", "eORCA1_V",
         //"ORCA1_T", "ORCA1_F", "ORCA1_U", "ORCA1_V",
         //"eORCA025_T", "eORCA025_F", "eORCA025_U", "eORCA025_V",
     };
 
-    bool gmsh_output = eckit::Resource<bool>( "--gmsh", false );
+    bool gmsh_output          = eckit::Resource<bool>( "--gmsh", false );
     std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );
-    if( not grid_resource.empty() ) {
+    if ( not grid_resource.empty() ) {
         gridnames = {grid_resource};
     }
-    for( const auto& gridname: gridnames ) {
-        SECTION(gridname) {
-            auto mesh            = Mesh{gridname};
+    for ( const auto& gridname : gridnames ) {
+        SECTION( gridname ) {
+            auto mesh = Mesh{gridname};
 
             const auto& connectivity = mesh.cells().node_connectivity();
             auto lonlat              = array::make_view<double, 2>( mesh.nodes().lonlat() );
             const auto elem_glb_idx  = array::make_view<gidx_t, 1>( mesh.cells().global_index() );
             auto flags               = array::make_view<int, 1>( mesh.cells().flags() );
 
-            auto invalidated = [&]( idx_t e ) { return util::Topology::view( flags( e ) ).check( util::Topology::INVALID ); };
+            auto invalidated = [&]( idx_t e ) {
+                return util::Topology::view( flags( e ) ).check( util::Topology::INVALID );
+            };
 
             geometry::Earth geometry;
             bool has_invalid_quads = false;
@@ -75,27 +75,25 @@ CASE( "test generate orca mesh" ) {
                     Quad3D quad{pxyz[0], pxyz[1], pxyz[2], pxyz[3]};
                     if ( not quad.validate() ) {
                         has_invalid_quads = true;
-                        Log::info() << "Invalid quad [" << elem_glb_idx( e ) << "] : [ " << connectivity( e, 0 ) + 1 << ", "
-                                    << connectivity( e, 1 ) + 1 << ", " << connectivity( e, 2 ) + 1 << ", "
+                        Log::info() << "Invalid quad [" << elem_glb_idx( e ) << "] : [ " << connectivity( e, 0 ) + 1
+                                    << ", " << connectivity( e, 1 ) + 1 << ", " << connectivity( e, 2 ) + 1 << ", "
                                     << connectivity( e, 3 ) + 1 << " ]" << std::endl;
                     }
                 }
             }
 
-            if( gmsh_output ) {
+            if ( gmsh_output ) {
                 // Output mesh in different coordinates
                 Config cfg;
                 cfg.set( "info", true );
                 cfg.set( "ghost", true );  //("water",true)("land",false);
-                output::Gmsh( gridname+"-ij.msh", Config( "coordinates", "ij" ) | cfg ).write( mesh );
-                output::Gmsh( gridname+"-lonlat.msh", Config( "coordinates", "lonlat" ) | cfg ).write( mesh );
-                output::Gmsh( gridname+"-xyz.msh", Config( "coordinates", "xyz" ) | cfg ).write( mesh );
+                output::Gmsh( gridname + "-ij.msh", Config( "coordinates", "ij" ) | cfg ).write( mesh );
+                output::Gmsh( gridname + "-lonlat.msh", Config( "coordinates", "lonlat" ) | cfg ).write( mesh );
+                output::Gmsh( gridname + "-xyz.msh", Config( "coordinates", "xyz" ) | cfg ).write( mesh );
             }
             EXPECT( not has_invalid_quads );
         }
     }
-
-
 }
 
 

@@ -12,13 +12,13 @@
 
 #include <string>
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/config/Resource.h"
+#include "eckit/filesystem/PathName.h"
 
-#include "atlas/library/Library.h"
-#include "atlas/grid/SpecRegistry.h"
 #include "atlas-orca/Library.h"
 #include "atlas-orca/version.h"
+#include "atlas/grid/SpecRegistry.h"
+#include "atlas/library/Library.h"
 
 
 namespace atlas {
@@ -66,16 +66,15 @@ void Library::init() {
 std::string Library::cachePath() const {
     return atlas::Library::instance().cachePath();
 }
- bool Library::download() const {
+bool Library::download() const {
     static bool ATLAS_ORCA_DOWNLOAD =
-            bool(eckit::LibResource<bool, atlas::orca::Library>(
-                                "atlas-orca-download;$ATLAS_ORCA_DOWNLOAD",true));
+        bool( eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-download;$ATLAS_ORCA_DOWNLOAD", true ) );
     return ATLAS_ORCA_DOWNLOAD;
 }
 
 std::string Library::gridsPath() const {
     static std::string ATLAS_ORCA_GRIDS_PATH = eckit::LibResource<std::string, atlas::orca::Library>(
-                           "atlas-orca-grids-path;$ATLAS_ORCA_GRIDS_PATH","~atlas-orca/etc/atlas-orca/grids.yaml");
+        "atlas-orca-grids-path;$ATLAS_ORCA_GRIDS_PATH", "~atlas-orca/etc/atlas-orca/grids.yaml" );
     return ATLAS_ORCA_GRIDS_PATH;
 }
 

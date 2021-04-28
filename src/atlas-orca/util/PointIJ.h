@@ -21,7 +21,7 @@ namespace orca {
 
 struct PointIJ {
     PointIJ() = default;
-    PointIJ(idx_t _i, idx_t _j) : i(_i), j(_j) {}
+    PointIJ( idx_t _i, idx_t _j ) : i( _i ), j( _j ) {}
     idx_t i;
     idx_t j;
     friend std::ostream& operator<<( std::ostream& out, const PointIJ& p ) {

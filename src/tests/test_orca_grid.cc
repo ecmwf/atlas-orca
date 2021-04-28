@@ -32,8 +32,7 @@ CASE( "test orca grid iterator" ) {
     };
 
     std::vector<Section> sections{
-        {"ORCA2_T", 27118},
-        {"eORCA1_T", 120184},
+        {"ORCA2_T", 27118}, {"eORCA1_T", 120184},
         //{"ORCA025_T", 1472282},
     };
     for ( auto& section : sections ) {

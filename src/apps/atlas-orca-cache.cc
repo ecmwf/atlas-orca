@@ -9,8 +9,8 @@
  */
 
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 
 
 #include "eckit/filesystem/PathName.h"
@@ -40,27 +40,26 @@ struct Tool : public atlas::AtlasTool {
     }
 
     Tool( int argc, char** argv ) : AtlasTool( argc, argv ) {
-        add_option( new SimpleOption<std::string>( "grid",        "Grid to cache" ) );
-        add_option( new SimpleOption<bool>( "overwrite",   "Overwrite existing cache" ) );
+        add_option( new SimpleOption<std::string>( "grid", "Grid to cache" ) );
+        add_option( new SimpleOption<bool>( "overwrite", "Overwrite existing cache" ) );
     }
 };
 
 //------------------------------------------------------------------------------------------------------
 
 int Tool::execute( const Args& args ) {
-
     auto specs = util::Config( Library::instance().gridsPath() );
 
-    std::string grid="all";
-    args.get("grid",grid);
+    std::string grid = "all";
+    args.get( "grid", grid );
 
     std::vector<std::string> grids;
-    if( grid != "all" ) {
-        if( not specs.has(grid) ) {
+    if ( grid != "all" ) {
+        if ( not specs.has( grid ) ) {
             Log::error() << "Grid " << grid << " is not a known atlas-orca grid" << std::endl;
             return failed();
         }
-        grids.push_back(grid);
+        grids.push_back( grid );
     }
     else {
         for ( auto& id : specs.keys() ) {
@@ -68,45 +67,45 @@ int Tool::execute( const Args& args ) {
         }
     }
     std::set<std::string> urls;
-    for( auto& id: grids ) {
-        auto spec = specs.getSubConfiguration(id);
-        if( spec.has("data") ) {
-            std::string uri = spec.getString("data");
-            if( uri.find("http") == 0 ) {
-                urls.insert(uri);
+    for ( auto& id : grids ) {
+        auto spec = specs.getSubConfiguration( id );
+        if ( spec.has( "data" ) ) {
+            std::string uri = spec.getString( "data" );
+            if ( uri.find( "http" ) == 0 ) {
+                urls.insert( uri );
             }
         }
     }
-    ComputeCachedPath compute_cached_path( {"https://get.ecmwf.int/atlas/grids/orca","http://get.ecmwf.int/atlas/grids/orca"} );
+    ComputeCachedPath compute_cached_path(
+        {"https://get.ecmwf.int/atlas/grids/orca", "http://get.ecmwf.int/atlas/grids/orca"} );
 
     std::vector<std::string> failed_urls;
-    for( auto& url: urls ) {
+    for ( auto& url : urls ) {
         auto path = compute_cached_path( url );
-        if( path.exists() ) {
+        if ( path.exists() ) {
             Log::info() << "File " << url << " was already found in cache: " << path << std::endl;
         }
-        if( ! path.exists() || args.getBool("overwrite",false) ) {
-            if( download( url, path ) == 0 ) {
+        if ( !path.exists() || args.getBool( "overwrite", false ) ) {
+            if ( download( url, path ) == 0 ) {
                 Log::error() << "Error: Could not download file from url " << url << "\n" << std::endl;
-                failed_urls.push_back(url);
+                failed_urls.push_back( url );
             }
             else {
                 try {
                     io::RecordReader record( path );
-                    auto metadata = record.metadata("dimensions");
+                    auto metadata = record.metadata( "dimensions" );
                 }
-                catch( const io::InvalidRecord& ) {
+                catch ( const io::InvalidRecord& ) {
                     Log::error() << "Error: Downloaded file " << path << " is invalid. Deleting...\n" << std::endl;
-                    path.unlink(true);
-                    failed_urls.push_back(url);
+                    path.unlink( true );
+                    failed_urls.push_back( url );
                 }
             }
         }
-
     }
-    if( not failed_urls.empty() ) {
+    if ( not failed_urls.empty() ) {
         Log::error() << "\nErrors occured while downloading from following urls:" << std::endl;
-        for( auto& url: failed_urls ) {
+        for ( auto& url : failed_urls ) {
             Log::error() << "    " << url << std::endl;
         }
         return failed();
@@ -114,7 +113,7 @@ int Tool::execute( const Args& args ) {
     return success();
 }
 
-} // namespace orca
+}  // namespace orca
 }  // namespace atlas
 
 //------------------------------------------------------------------------------------------------------

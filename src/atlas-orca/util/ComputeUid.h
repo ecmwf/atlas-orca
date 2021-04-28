@@ -10,9 +10,9 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <string>
-#include <array>
 #include <vector>
 
 namespace atlas {
@@ -20,11 +20,13 @@ namespace orca {
 
 //------------------------------------------------------------------------------------------------------
 
-std::string compute_uid( const std::string& arrangement, const double lon[], const double lat[], int nx_halo, int ny_halo, const std::int32_t halo[] );
+std::string compute_uid( const std::string& arrangement, const double lon[], const double lat[], int nx_halo,
+                         int ny_halo, const std::int32_t halo[] );
 
-std::string compute_uid( const std::string& arrangement, const std::vector<double>& lon, const std::vector<double>& lat, int nx_halo, int ny_halo, const std::array<std::int32_t,4>& halo );
+std::string compute_uid( const std::string& arrangement, const std::vector<double>& lon, const std::vector<double>& lat,
+                         int nx_halo, int ny_halo, const std::array<std::int32_t, 4>& halo );
 
 //------------------------------------------------------------------------------------------------------
 
-} // namespace orca
+}  // namespace orca
 }  // namespace atlas

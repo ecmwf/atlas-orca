@@ -24,7 +24,7 @@ class Mesh;
 namespace orca {
 class OrcaPeriodicity;
 }
-}
+}  // namespace atlas
 namespace eckit {
 class PathName;
 }
@@ -36,7 +36,6 @@ namespace grid {
 
 class Orca final : public Grid {
 private:
-
     struct ComputePointXY {
         ComputePointXY( const Orca& grid ) : grid_( grid ) {}
 

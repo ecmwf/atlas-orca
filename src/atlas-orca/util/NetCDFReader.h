@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 
 #include "eckit/filesystem/PathName.h"
@@ -32,11 +32,12 @@ public:
     NetCDFReader( const util::Config& config = util::NoConfig() );
 
     void read( const std::string& uri, OrcaData& data );
+
 private:
     std::string arrangement_{"T"};
 };
 
-} // namespace orca
+}  // namespace orca
 }  // namespace atlas
 
 //------------------------------------------------------------------------------------------------------

@@ -22,12 +22,12 @@
 #include "atlas/util/Config.h"
 
 #include "atlas-orca/Library.h"
-#include "atlas-orca/util/OrcaDataFile.h"
-#include "atlas-orca/util/OrcaData.h"
-#include "atlas-orca/util/Flag.h"
-#include "atlas-orca/util/OrcaPeriodicity.h"
 #include "atlas-orca/util/AtlasIOReader.h"
 #include "atlas-orca/util/Enums.h"
+#include "atlas-orca/util/Flag.h"
+#include "atlas-orca/util/OrcaData.h"
+#include "atlas-orca/util/OrcaDataFile.h"
+#include "atlas-orca/util/OrcaPeriodicity.h"
 
 namespace atlas {
 namespace grid {
@@ -37,16 +37,14 @@ namespace grid {
 namespace {
 
 static bool validate_uid() {
-    static bool ATLAS_ORCA_VALIDATE_UID =
-            bool(eckit::LibResource<bool, atlas::orca::Library>(
-                                "atlas-orca-validate-uid;$ATLAS_ORCA_VALIDATE_UID",false));
+    static bool ATLAS_ORCA_VALIDATE_UID = bool(
+        eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-validate-uid;$ATLAS_ORCA_VALIDATE_UID", false ) );
     return ATLAS_ORCA_VALIDATE_UID;
 }
 
 static bool compute_uid() {
-    static bool ATLAS_ORCA_COMPUTE_UID =
-            bool(eckit::LibResource<bool, atlas::orca::Library>(
-                                "atlas-orca-compute-uid;$ATLAS_ORCA_COMPUTE_UID",false));
+    static bool ATLAS_ORCA_COMPUTE_UID = bool(
+        eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-compute-uid;$ATLAS_ORCA_COMPUTE_UID", false ) );
     return ATLAS_ORCA_COMPUTE_UID;
 }
 
@@ -93,62 +91,61 @@ Orca::Orca( const Config& config ) :
 
 Orca::Orca( const std::string& name, const Config& config ) :
     name_( spec_name( config, spec_uid( config, name ) ) ), spec_( config ) {
-
     auto trace = atlas::Trace( Here(), "Orca(" + name_ + ")" );
 
     orca::OrcaData data;
 
     {
         // Read data
-        orca::OrcaDataFile file{ spec_.getString("data") };
-        orca::AtlasIOReader{}.read(file,data);
+        orca::OrcaDataFile file{spec_.getString( "data" )};
+        orca::AtlasIOReader{}.read( file, data );
     }
 
     halo_north_ = data.halo[orca::HALO_NORTH];
-    halo_west_ = data.halo[orca::HALO_WEST];
-    halo_east_ = data.halo[orca::HALO_EAST];
+    halo_west_  = data.halo[orca::HALO_WEST];
+    halo_east_  = data.halo[orca::HALO_EAST];
     halo_south_ = data.halo[orca::HALO_SOUTH];
-    nx_halo_ = data.dimensions[0];
-    ny_halo_ = data.dimensions[1];
-    nx_ = nx_halo_ - halo_west_ - halo_east_;
-    ny_ = ny_halo_ - halo_south_ - halo_north_;
-    istride_ = 1;
-    jstride_ = nx_halo_;
-    imin_ = halo_west_;
-    jmin_ = halo_south_;
+    nx_halo_    = data.dimensions[0];
+    ny_halo_    = data.dimensions[1];
+    nx_         = nx_halo_ - halo_west_ - halo_east_;
+    ny_         = ny_halo_ - halo_south_ - halo_north_;
+    istride_    = 1;
+    jstride_    = nx_halo_;
+    imin_       = halo_west_;
+    jmin_       = halo_south_;
     points_.resize( nx_halo_ * ny_halo_ );
     water_.resize( nx_halo_ * ny_halo_ );
     ghost_.resize( nx_halo_ * ny_halo_ );
     invalid_element_.resize( nx_halo_ * ny_halo_ );
 
     size_t nn{0};
-    for( idx_t j=0; j<ny_halo_; ++j ) {
-        for( idx_t i=0; i<nx_halo_; ++i, ++nn ) {
-            gidx_t n = j*jstride_ + i;
+    for ( idx_t j = 0; j < ny_halo_; ++j ) {
+        for ( idx_t i = 0; i < nx_halo_; ++i, ++nn ) {
+            gidx_t n = j * jstride_ + i;
             std::bitset<8> bits;
-            std::memcpy( &bits, &data.flags[n], sizeof(std::byte) );
-            ghost_[nn] = bits.test(orca::Flag::GHOST);
-            water_[nn] = bits.test(orca::Flag::WATER);
-            invalid_element_[nn] = bits.test(orca::Flag::INVALID_ELEMENT);
+            std::memcpy( &bits, &data.flags[n], sizeof( std::byte ) );
+            ghost_[nn]           = bits.test( orca::Flag::GHOST );
+            water_[nn]           = bits.test( orca::Flag::WATER );
+            invalid_element_[nn] = bits.test( orca::Flag::INVALID_ELEMENT );
             points_[nn].assign( data.lon[n], data.lat[n] );
         }
     }
 
-    if( validate_uid() ) {
+    if ( validate_uid() ) {
         Log::debug() << "Validating uid of ORCA grid" << std::endl;
-        std::string computed_uid = data.computeUid(spec_);
-        std::string uid = spec_.getString("uid");
-        if( uid != computed_uid ) {
+        std::string computed_uid = data.computeUid( spec_ );
+        std::string uid          = spec_.getString( "uid" );
+        if ( uid != computed_uid ) {
             ATLAS_THROW_EXCEPTION( "ORCA grid encoded uid does not validate with computed uid: " << computed_uid );
         }
     }
-    else if( compute_uid() ) {
+    else if ( compute_uid() ) {
         Log::debug() << "Computing uid of ORCA grid" << std::endl;
-        spec_.set("uid", data.computeUid(spec_) );
+        spec_.set( "uid", data.computeUid( spec_ ) );
     }
 
     domain_ = GlobalDomain();
-    periodicity_.reset( new orca::OrcaPeriodicity(data) );
+    periodicity_.reset( new orca::OrcaPeriodicity( data ) );
 }
 
 void Orca::hash( eckit::Hash& h ) const {
@@ -184,7 +181,7 @@ Grid::Config Orca::meshgenerator() const {
 }
 
 Grid::Config Orca::partitioner() const {
-    return Config( "type", "checkerboard" )("regular", true);
+    return Config( "type", "checkerboard" )( "regular", true );
 }
 
 }  // namespace grid

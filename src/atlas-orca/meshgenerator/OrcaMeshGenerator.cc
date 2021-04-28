@@ -17,6 +17,7 @@
 #include "atlas/grid/Partitioner.h"
 #include "atlas/grid/Spacing.h"
 #include "atlas/grid/StructuredGrid.h"
+#include "atlas/interpolation/element/Quad3D.h"
 #include "atlas/library/config.h"
 #include "atlas/mesh/ElementType.h"
 #include "atlas/mesh/Elements.h"
@@ -33,7 +34,6 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Topology.h"
-#include "atlas/interpolation/element/Quad3D.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
 
@@ -122,7 +122,8 @@ struct SurroundingRectangle {
         ny = iy_max - iy_min + 1;
 
         // upper estimate for number of nodes
-        size               = nx * ny;;
+        size = nx * ny;
+        ;
 
         // partitions and local indices in SR
         parts.resize( size, -1 );
@@ -156,8 +157,8 @@ struct SurroundingRectangle {
                 }
             };
             // Loop over all elements
-            nb_cells    = 0;
-            nb_nodes    = 0;
+            nb_cells = 0;
+            nb_nodes = 0;
             for ( idx_t iy = 0; iy < ny - 1; iy++ ) {      // don't loop into ghost/periodicity row
                 for ( idx_t ix = 0; ix < nx - 1; ix++ ) {  // don't loop into ghost/periodicity column
                     if ( !is_ghost[index( ix, iy )] ) {
@@ -205,8 +206,7 @@ struct Nodes {
         //core{array::make_view<int, 1>( mesh.nodes().add(
         //    Field( "core", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
         master_glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
-            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )}
-    {}
+            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )} {}
 };
 
 struct Cells {
@@ -229,7 +229,7 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
     ATLAS_ASSERT( orca );
 
     // Mimic hole in South pole, and numbering from South to North. patch determines if endpoint is at North Pole
-    StructuredGrid::YSpace yspace{grid::LinearSpacing{{-80., 90.}, orca.ny(), true }};//not patch.at( orca.name() )}};
+    StructuredGrid::YSpace yspace{grid::LinearSpacing{{-80., 90.}, orca.ny(), true}};  //not patch.at( orca.name() )}};
     // Periodic xspace
     StructuredGrid::XSpace xspace{grid::LinearSpacing{{0., 360.}, orca.nx(), false}};
 
@@ -247,8 +247,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
 
     Configuration SR_cfg;
-    SR_cfg.mypart             = mypart_;
-    SR_cfg.nparts             = nparts_;
+    SR_cfg.mypart = mypart_;
+    SR_cfg.nparts = nparts_;
     SurroundingRectangle SR( grid, distribution, SR_cfg );
 
 
@@ -295,8 +295,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     //---------------------------------------------------
 
-    int nnodes         = SR.nb_nodes;
-    int ncells         = SR.nb_cells;
+    int nnodes = SR.nb_nodes;
+    int ncells = SR.nb_cells;
 
     if ( nparts == 1 ) {
         ATLAS_ASSERT( ( nx_halo_WE * ny_halo_NS ) == nnodes );
@@ -354,11 +354,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             idx_t iy_glb = SR.iy_min + iy;
             ATLAS_ASSERT( iy_glb < ny_halo );
             double lon00 = orca.xy( 0, 0 ).x();
-            double west = lon00 - 90.;
+            double west  = lon00 - 90.;
 
             auto normalise_lon00 = util::NormaliseLongitude( lon00 - 180. );
-            double lon1 = normalise_lon00(orca.xy(1,iy_glb).x());
-            if( lon1 < lon00 - 10. ) {
+            double lon1          = normalise_lon00( orca.xy( 1, iy_glb ).x() );
+            if ( lon1 < lon00 - 10. ) {
                 west = lon00 - 20.;
             }
 
@@ -444,7 +444,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         flags.set( Topology::BC | Topology::EAST );
                     }
 
-                    nodes.water( inode )  = orca.water( ix_glb, iy_glb );
+                    nodes.water( inode ) = orca.water( ix_glb, iy_glb );
                     //nodes.core( inode ) = not orca.ghost( ix_glb, iy_glb );
                     nodes.halo( inode ) = [&]() -> int {
                         if ( ix_glb < 0 ) {
@@ -558,7 +558,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     if ( elem_contains_land_point ) {
                         cells.flags( jcell ).set( Topology::LAND );
                     }
-                    if( orca.invalidElement(SR.ix_min+ix,SR.iy_min+iy) ) {
+                    if ( orca.invalidElement( SR.ix_min + ix, SR.iy_min + iy ) ) {
                         cells.flags( jcell ).set( Topology::INVALID );
                     }
                 }
