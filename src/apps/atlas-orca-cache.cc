@@ -17,8 +17,6 @@
 
 #include "atlas/runtime/AtlasTool.h"
 #include "atlas/runtime/Exception.h"
-#include "atlas/util/Spec.h"
-#include "atlas/grid/Grid.h"
 
 #include "atlas-orca/util/ComputeCachedPath.h"
 #include "atlas-orca/util/Download.h"
@@ -50,9 +48,8 @@ struct Tool : public atlas::AtlasTool {
 //------------------------------------------------------------------------------------------------------
 
 int Tool::execute( const Args& args ) {
-    using Registry = util::SpecRegistry<atlas::Grid>;
 
-    auto specs = util::Spec( Library::instance().grids() );
+    auto specs = util::Config( Library::instance().gridsPath() );
 
     std::string grid="all";
     args.get("grid",grid);

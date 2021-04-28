@@ -19,7 +19,7 @@
 #include "atlas/grid/detail/grid/GridBuilder.h"
 #include "atlas/grid/detail/grid/GridFactory.h"
 #include "atlas/util/Config.h"
-#include "atlas/util/Spec.h"
+#include "atlas/grid/SpecRegistry.h"
 #include "atlas/library.h"
 
 namespace atlas {
@@ -41,13 +41,12 @@ public:
     }
 
     const Implementation* create( const std::string& name_or_uid, const Config& /* config */ ) const override {
-        using Registry = util::SpecRegistry<atlas::Grid>;
 
         auto sane_id( name_or_uid );
         std::transform( sane_id.begin(), sane_id.end(), sane_id.begin(), ::tolower );
 
-        if ( Registry::has( sane_id ) ) {
-            return create( Registry::lookup( sane_id ) );
+        if ( SpecRegistry::has( sane_id ) ) {
+            return create( SpecRegistry::get( sane_id ) );
         }
 
         auto sane_name( name_or_uid );
@@ -56,8 +55,8 @@ public:
             sane_name.front() = 'e';
         }
 
-        if ( Registry::has( sane_name ) ) {
-            return create( Registry::lookup( sane_name ) );
+        if ( SpecRegistry::has( sane_name ) ) {
+            return create( SpecRegistry::get( sane_name ) );
         }
 
         return nullptr;

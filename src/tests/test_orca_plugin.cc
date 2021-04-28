@@ -10,16 +10,9 @@
 
 
 #include "atlas/grid.h"
-#include "atlas/mesh.h"
 #include "atlas/meshgenerator.h"
-#include "atlas/output/Gmsh.h"
-
-#include "atlas/util/Config.h"
 
 #include "tests/AtlasTestEnvironment.h"
-
-using Grid   = atlas::Grid;
-using Config = atlas::util::Config;
 
 namespace atlas {
 namespace test {

@@ -20,7 +20,6 @@
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
 #include "atlas/util/Config.h"
-#include "atlas/util/Spec.h"
 
 #include "atlas-orca/Library.h"
 #include "atlas-orca/util/OrcaDataFile.h"

@@ -31,9 +31,12 @@ endif()
 ecbuild_add_test( TARGET  atlas_test_orca_plugin
                   SOURCES test_orca_plugin.cc
                   LIBS    atlas
-                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
-                      ATLAS_ORCA_DOWNLOAD=1
-                      ATLAS_ORCA_CACHE_PATH=${CMAKE_BINARY_DIR}/cache )
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )
+
+ecbuild_add_test( TARGET  atlas_test_orca_grid_specs
+                  SOURCES test_orca_grid_specs.cc
+                  LIBS    atlas
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )
 
 ecbuild_add_test( TARGET  atlas_test_orca
                   SOURCES test_orca.cc

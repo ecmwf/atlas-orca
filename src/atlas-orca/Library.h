@@ -29,7 +29,7 @@ public:
 
     std::string cachePath() const;
     bool download() const;
-    std::string grids() const;
+    std::string gridsPath() const;
 };
 
 
