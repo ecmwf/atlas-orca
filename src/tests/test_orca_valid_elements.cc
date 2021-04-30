@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 ECMWF.
+ * (C) Copyright 2021- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -26,7 +26,6 @@
 #include "atlas/mesh/ElementType.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
-//#include "atlas-orca/meshgenerator/FixupMesh.h"
 
 #include "tests/AtlasTestEnvironment.h"
 

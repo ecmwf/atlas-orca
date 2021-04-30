@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 ECMWF.
+ * (C) Copyright 2021- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -20,11 +20,7 @@ namespace orca {
 
 //------------------------------------------------------------------------------------------------------
 
-std::string compute_uid( const std::string& arrangement, const double lon[], const double lat[], int nx_halo,
-                         int ny_halo, const std::int32_t halo[] );
-
-std::string compute_uid( const std::string& arrangement, const std::vector<double>& lon, const std::vector<double>& lat,
-                         int nx_halo, int ny_halo, const std::array<std::int32_t, 4>& halo );
+std::string compute_uid( const std::string& arrangement, const double lon[], const double lat[], size_t size );
 
 //------------------------------------------------------------------------------------------------------
 

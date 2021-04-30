@@ -1,3 +1,11 @@
+# (C) Copyright 2021- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation nor
+# does it submit to any jurisdiction.
 
 configure_file(version.cc.in version.cc)
 
@@ -14,7 +22,6 @@ ecbuild_add_library(
         grid/OrcaGridBuilder.cc
         meshgenerator/OrcaMeshGenerator.cc
         meshgenerator/OrcaMeshGenerator.h
-        util/AsciiReader.h
         util/AtlasIOReader.h
         util/ComputeCachedPath.h
         util/ComputeUid.h
@@ -23,8 +30,6 @@ ecbuild_add_library(
         util/Download.h
         util/Enums.h
         util/Flag.h
-        util/NetCDFReader.h
-        util/NetCDFReader.cc
         util/OrcaData.cc
         util/OrcaData.h
         util/OrcaDataFile.h
@@ -39,8 +44,3 @@ ecbuild_add_library(
        $<INSTALL_INTERFACE:include/atlas-orca>
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src> )
-
-target_compile_definitions( atlas-orca PRIVATE ATLAS_ORCA_HAVE_NETCDF=${HAVE_NETCDF} )
-if( HAVE_NETCDF )
-    target_link_libraries( atlas-orca PRIVATE NetCDF::NetCDF_CXX )
-endif()

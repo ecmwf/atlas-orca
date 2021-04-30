@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 ECMWF.
+ * (C) Copyright 2021- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -23,11 +23,10 @@
 #include "atlas/runtime/AtlasTool.h"
 #include "atlas/runtime/Exception.h"
 
-#include "atlas-orca/util/AsciiReader.h"
+#include "AsciiReader.h"
+#include "NetCDFReader.h"
 #include "atlas-orca/util/AtlasIOReader.h"
-#include "atlas-orca/util/NetCDFReader.h"
 #include "atlas-orca/util/OrcaData.h"
-
 
 namespace atlas {
 namespace orca {

@@ -3,6 +3,8 @@ LIST( APPEND ATLAS_TEST_ENVIRONMENT
     ATLAS_ORCA_DOWNLOAD=1
     ATLAS_CACHE_PATH=${CMAKE_BINARY_DIR}/cache )
 
+include_directories( ${PROJECT_SOURCE_DIR}/src )
+
 ecbuild_add_test( TARGET  atlas_test_orca_plugin
                   SOURCES test_orca_plugin.cc
                   LIBS    atlas

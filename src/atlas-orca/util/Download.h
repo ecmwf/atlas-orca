@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 ECMWF.
+ * (C) Copyright 2021- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -15,6 +15,7 @@
 #include <cstdlib>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "atlas/io/FileStream.h"
 #include "atlas/runtime/Exception.h"
@@ -41,7 +42,7 @@ struct AutoIndent {
 
 inline eckit::Length curl_download( const std::string& url, const eckit::PathName& path ) {
     // Fallback for when URLHandle cannot handle
-    std::string command = "curl --progress-bar -L " + url + " --output " + path;
+    std::string command = "curl -sS -L " + url + " --output " + path;
     Log::debug() << "+ " << command << std::endl;
     if ( std::system( command.c_str() ) == 0 ) {
         return path.size();
@@ -61,9 +62,15 @@ inline size_t download( const std::string& url, const eckit::PathName& path ) {
     eckit::Length length;
     try {
         length = eckit::URLHandle( url ).saveInto( path_tmp );
+        if( length <= 0 && eckit_version_int() <= 11601 /*1.16.1*/ ) {
+            // Problems with eckit::URLHandle fixed in further version
+            Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call."
+                           << std::endl;
+            length = curl_download( url, path_tmp );
+        }
     }
     catch ( eckit::SeriousBug ) {
-        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl command-line tool."
+        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call."
                        << std::endl;
         length = curl_download( url, path_tmp );
     }

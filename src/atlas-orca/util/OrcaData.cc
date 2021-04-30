@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2013 ECMWF.
+ * (C) Copyright 2021- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -88,7 +88,8 @@ std::string atlas::orca::OrcaData::computeUid( const util::Config& config ) {
     if ( not config.get( "arrangement", arrangement ) ) {
         config.get( "orca_arrangement", arrangement );
     }
-    return orca::compute_uid( arrangement, lon, lat, dimensions[0], dimensions[1], halo );
+    size_t size = lon.size();
+    return orca::compute_uid( arrangement, lon.data(), lat.data(), size );
 }
 
 DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( const util::Config& config ) {
@@ -175,13 +176,14 @@ void atlas::orca::OrcaData::checkSetup() {
     ATLAS_ASSERT( not lon.empty() );
     ATLAS_ASSERT( not lat.empty() );
     ATLAS_ASSERT( not flags.empty() );
+    size_t size = dimensions[0] * dimensions[1];
+    ATLAS_ASSERT( lon.size() == size );
+    ATLAS_ASSERT( lat.size() == size );
+    ATLAS_ASSERT( flags.size() == size );
 }
 
 size_t atlas::orca::OrcaData::write( const eckit::PathName& path, const util::Config& config ) {
     checkSetup();
-    ATLAS_ASSERT( lon.size() == dimensions[0] * dimensions[1] );
-    ATLAS_ASSERT( lat.size() == dimensions[0] * dimensions[1] );
-    ATLAS_ASSERT( flags.size() == dimensions[0] * dimensions[1] );
     io::RecordWriter record;
     record.compression( config.getString( "compression", "none" ) );
     record.set( "version", 0 );

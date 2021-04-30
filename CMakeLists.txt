@@ -1,4 +1,4 @@
-# (C) Copyright 1996- ECMWF.
+# (C) Copyright 2021- ECMWF.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -12,14 +12,9 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 find_package(ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
 
-project(atlas-orca VERSION 0.0.0 LANGUAGES CXX)
+project(atlas-orca LANGUAGES CXX)
 
-find_package(atlas 0.22.0 REQUIRED)
-
-ecbuild_add_option( FEATURE NETCDF 
-	            DESCRIPTION "Compile support to convert netcdf file to atlas-orca binary format" 
-                    REQUIRED_PACKAGES "NetCDF COMPONENTS CXX" )
-
+find_package(atlas 0.25.0 REQUIRED)
 
 atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas
