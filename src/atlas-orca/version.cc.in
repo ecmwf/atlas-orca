@@ -1,0 +1,31 @@
+/*
+ * (C) Copyright 2021- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation
+ * nor does it submit to any jurisdiction.
+ */
+
+#include "atlas-orca/version.h"
+
+#define ATLAS_ORCA_MAJOR_VERSION @atlas-orca_VERSION_MAJOR@
+#define ATLAS_ORCA_MINOR_VERSION @atlas-orca_VERSION_MINOR@
+#define ATLAS_ORCA_PATCH_VERSION @atlas-orca_VERSION_PATCH@
+
+const char* atlas_orca_git_sha1() {
+    return "@atlas-orca_GIT_SHA1@";
+}
+
+const char* atlas_orca_version() {
+    return "@atlas-orca_VERSION@";
+}
+
+const char* atlas_orca_version_str() {
+    return "@atlas-orca_VERSION_STR@";
+}
+
+unsigned int atlas_orca_version_int() {
+    return 10000 * ATLAS_ORCA_MAJOR_VERSION + 100 * ATLAS_ORCA_MINOR_VERSION + 1 * ATLAS_ORCA_PATCH_VERSION;
+}

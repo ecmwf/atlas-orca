@@ -1,0 +1,9 @@
+---
+atlas-orca-grids-path:   "~atlas-orca/etc/atlas-orca/grids.yaml"
+atlas-orca-download:     true  # Enable runtime download of data files if not present in cache
+
+# Advanced options for development or testing
+
+atlas-orca-validate-uid: false  # Validates uid upon Orca grid creation
+atlas-orca-compute-uid:  False  # Recompute uid and ignore encoded uid
+...
