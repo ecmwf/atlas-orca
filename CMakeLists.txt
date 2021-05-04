@@ -14,7 +14,13 @@ find_package(ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURR
 
 project(atlas-orca LANGUAGES CXX)
 
+find_package(eckit 1.16.1 REQUIRED)
 find_package(atlas 0.25.0 REQUIRED)
+
+if( NOT eckit_HAVE_LZ4 )
+    ecbuild_warn( "eckit is required to have LZ4 support to decompress atlas-orca binary data files. "
+                  "Continuing regardless with reduced tests" )
+endif()
 
 atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas

@@ -7,9 +7,12 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+# Overcome Cray linking problem where the C++ library is not linked with the C library
+list( APPEND NetCDF_CXX_EXTRA_LIBRARIES NetCDF::NetCDF_C )
+
 ecbuild_add_option( FEATURE NETCDF
                     DESCRIPTION "Compile support to convert netcdf file to atlas-orca binary format"
-                    REQUIRED_PACKAGES "NetCDF COMPONENTS CXX" )
+                    REQUIRED_PACKAGES "NetCDF COMPONENTS C CXX" )
 
 ecbuild_add_executable( TARGET atlas-orca-convert
                         SOURCES atlas-orca-convert.cc
