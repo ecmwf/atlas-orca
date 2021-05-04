@@ -13,6 +13,7 @@
 #include "atlas-orca/Library.h"
 
 #include <cstdlib>
+#include <sstream>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/exception/Exceptions.h"
@@ -42,9 +43,11 @@ struct AutoIndent {
 
 inline eckit::Length curl_download( const std::string& url, const eckit::PathName& path ) {
     // Fallback for when URLHandle cannot handle
-    std::string command = "curl -sS -L " + url + " --output " + path;
-    Log::debug() << "+ " << command << std::endl;
-    if ( std::system( command.c_str() ) == 0 ) {
+    std::stringstream command;
+    command << "curl -sS -k -L " << url << " --output " << path;
+    Log::debug() << "+ " << command.str() << std::endl;
+    auto errcode = std::system( command.str().c_str() );
+    if ( errcode == 0 ) {
         return path.size();
     }
     return 0;
