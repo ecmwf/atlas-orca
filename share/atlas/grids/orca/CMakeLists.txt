@@ -7,8 +7,8 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
-set( files       config.yaml )
-set( destination etc/atlas-orca )
+set( files       grids.yaml )
+set( destination share/atlas/grids/orca )
 
 install(
     FILES       ${files}

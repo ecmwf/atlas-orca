@@ -12,7 +12,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
-
+#include "eckit/runtime/Main.h"
 #include "atlas-orca/Library.h"
 #include "atlas-orca/version.h"
 #include "atlas/grid/SpecRegistry.h"
@@ -53,7 +53,6 @@ std::string Library::gitsha1( unsigned int count ) const {
 
 void Library::init() {
     Plugin::init();
-
     auto grids = util::Config( gridsPath() );
     for ( auto& id : grids.keys() ) {
         Log::debug() << "Plugin atlas-orca registering grid " << id << std::endl;
@@ -61,18 +60,24 @@ void Library::init() {
     }
 }
 
+bool Library::caching() const {
+    static bool ATLAS_ORCA_CACHING =
+        bool( eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-caching;$ATLAS_ORCA_CACHING", false ) );
+    return ATLAS_ORCA_CACHING;
+}
+
+std::string Library::dataPath() const {
+    return atlas::Library::instance().dataPath()+":~atlas-orca/share";
+}
+
 std::string Library::cachePath() const {
     return atlas::Library::instance().cachePath();
-}
-bool Library::download() const {
-    static bool ATLAS_ORCA_DOWNLOAD =
-        bool( eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-download;$ATLAS_ORCA_DOWNLOAD", true ) );
-    return ATLAS_ORCA_DOWNLOAD;
 }
 
 std::string Library::gridsPath() const {
     static std::string ATLAS_ORCA_GRIDS_PATH = eckit::LibResource<std::string, atlas::orca::Library>(
-        "atlas-orca-grids-path;$ATLAS_ORCA_GRIDS_PATH", "~atlas-orca/etc/atlas-orca/grids.yaml" );
+        "atlas-orca-grids-path;$ATLAS_ORCA_GRIDS_PATH", "" );
+    ATLAS_ASSERT( not ATLAS_ORCA_GRIDS_PATH.empty() );
     return ATLAS_ORCA_GRIDS_PATH;
 }
 

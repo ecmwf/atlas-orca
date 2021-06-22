@@ -1,6 +1,6 @@
 ---
-atlas-orca-grids-path:   "~atlas-orca/etc/atlas-orca/grids.yaml"
-atlas-orca-download:     true  # Enable runtime download of data files if not present in cache
+atlas-orca-grids-path:   "~atlas-orca/share/atlas/grids/orca/grids.yaml"
+atlas-orca-caching:      false  # Enable runtime caching of data files if not present in atlas-data-path
 
 # Advanced options for development or testing
 

@@ -25,8 +25,9 @@ public:
     std::string gitsha1( unsigned int count ) const override;
     void init() override;
 
+    bool caching() const;
+    std::string dataPath() const;
     std::string cachePath() const;
-    bool download() const;
     std::string gridsPath() const;
 };
 
