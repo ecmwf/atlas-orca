@@ -431,7 +431,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         orca.index2ij( master_idx, master_i, master_j );
                         nodes.part( inode ) = partition( master_i, master_j );
                         flags.set( Topology::GHOST );
-                        nodes.remote_idx( inode ) = -1;
+                        nodes.remote_idx( inode ) = nparts_ == 1 ? master_idx : -1;
                     }
 
                     if ( ix_glb >= nx - orca.haloWest() ) {
@@ -459,8 +459,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         if ( ix_glb < 0 ) {
                             return -ix_glb;
                         }
-                        else if ( ix_glb > nx + 1 ) {
-                            return ix_glb - nx + 1;
+                        else if ( ix_glb > nx ) {
+                            return ix_glb - nx;
                         }
                         else if ( iy_glb < 0 ) {
                             return 0;
@@ -575,7 +575,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
-    mesh.nodes().metadata().set( "parallel", true );
+    if( nparts_ == 1 ) {
+        // Bypass for "BuildParallelFields"
+        mesh.nodes().metadata().set( "parallel", true );
+
+        // Bypass for "BuildPeriodicBoundaries"
+        mesh.metadata().set( "periodic", true );
+    }
+
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
 }
