@@ -110,10 +110,10 @@ struct SurroundingRectangle {
                     for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
                         int p = partition( ix, iy );
                         if ( p == mypart ) {
-                            ix_min = std::min( ix_min, ix );
-                            ix_max = std::max( ix_max, ix );
-                            iy_min = std::min( iy_min, iy );
-                            iy_max = std::max( iy_max, iy );
+                            ix_min = std::min<idx_t>( ix_min, ix );
+                            ix_max = std::max<idx_t>( ix_max, ix );
+                            iy_min = std::min<idx_t>( iy_min, iy );
+                            iy_max = std::max<idx_t>( iy_max, iy );
                             nb_nodes_owned_TP[tid]++;
                         }
                     }
@@ -505,7 +505,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     idx_t jcell = cell_index[ii];
 
                     // define cell corners (local indices)
-                    std::array<int, 4> quad_nodes;
+                    std::array<idx_t, 4> quad_nodes;
                     quad_nodes[0] = node_index[SR.index( ix, iy )];          // lower left
                     quad_nodes[1] = node_index[SR.index( ix + 1, iy )];      // lower right
                     quad_nodes[2] = node_index[SR.index( ix + 1, iy + 1 )];  // upper right
