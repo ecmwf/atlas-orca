@@ -165,20 +165,6 @@ struct SurroundingRectangle {
                     }
                 }
             }
-            if (nparts == 1) {
-              ATLAS_ASSERT(
-                std::all_of(parts.begin(), parts.end(), [](int i){ return i == 0;}));
-              std::ostringstream strm;
-              strm << "how is this possible. is_ghost count true: "
-                   << std::count(is_ghost.begin(), is_ghost.end(), true)
-                   << " false: "
-                   << std::count(is_ghost.begin(), is_ghost.end(), false)
-                   << " iy_min: " << iy_min;
-              ATLAS_TRACE(strm.str());
-              bool no_ghost_nodes_when_nparts_1 =
-                std::none_of(is_ghost.begin(), is_ghost.end(), [](bool b){ return b;});
-              ATLAS_ASSERT(no_ghost_nodes_when_nparts_1);
-            }
         }
         // determine number of cells and number of nodes
         {  // Compute SR.is_node
