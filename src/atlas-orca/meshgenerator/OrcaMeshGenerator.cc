@@ -59,7 +59,8 @@ struct Configuration {
 
 struct SurroundingRectangle {
     std::vector<int> parts;
-    std::vector<bool> is_ghost;
+    std::vector<int> is_ghost;
+    // WARNING vector<bool> is not thread-safe, don't assign in parallel region
     std::vector<bool> is_node;
     int size;
     int nx, ny;
@@ -76,6 +77,7 @@ struct SurroundingRectangle {
         ATLAS_TRACE();
         OrcaGrid orca{grid};
         int mypart     = cfg.mypart;
+        int nparts     = cfg.nparts;
         int nx_glb     = orca.nx();
         int ny_glb     = orca.ny();
         int ny_halo    = ny_glb + orca.haloNorth();
@@ -103,23 +105,32 @@ struct SurroundingRectangle {
 
         {
             ATLAS_TRACE( "bounds" );
-            std::vector<int> nb_nodes_owned_TP( atlas_omp_get_max_threads(), 0 );
             atlas_omp_parallel {
-                const size_t tid = atlas_omp_get_thread_num();
+                int ix_min_TP = ix_min;
+                int ix_max_TP = ix_max;
+                int iy_min_TP = iy_min;
+                int iy_max_TP = iy_max;
+                int nb_nodes_owned_TP = 0;
                 atlas_omp_for( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
                     for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
                         int p = partition( ix, iy );
                         if ( p == mypart ) {
-                            ix_min = std::min<idx_t>( ix_min, ix );
-                            ix_max = std::max<idx_t>( ix_max, ix );
-                            iy_min = std::min<idx_t>( iy_min, iy );
-                            iy_max = std::max<idx_t>( iy_max, iy );
-                            nb_nodes_owned_TP[tid]++;
+                            ix_min_TP = std::min<idx_t>( ix_min_TP, ix );
+                            ix_max_TP = std::max<idx_t>( ix_max_TP, ix );
+                            iy_min_TP = std::min<idx_t>( iy_min_TP, iy );
+                            iy_max_TP = std::max<idx_t>( iy_max_TP, iy );
+                            nb_nodes_owned_TP++;
                         }
                     }
                 }
+                atlas_omp_critical {
+                    nb_nodes_owned += nb_nodes_owned_TP;
+                    ix_min = std::min<int>( ix_min_TP, ix_min);
+                    ix_max = std::max<int>( ix_max_TP, ix_max);
+                    iy_min = std::min<int>( iy_min_TP, iy_min);
+                    iy_max = std::max<int>( iy_max_TP, iy_max);
+                }
             }
-            nb_nodes_owned = std::accumulate( nb_nodes_owned_TP.begin(), nb_nodes_owned_TP.end(), 0 );
         }
 
         // add one row/column for ghost nodes (which include periodicity points)
