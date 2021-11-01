@@ -422,14 +422,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
                     // normal calculation
                     orca.xy( ix_glb, iy_glb, _xy );
-                    normalise( _xy );
-
-                    nodes.xy( inode, LON ) = _xy[LON];
-                    nodes.xy( inode, LAT ) = _xy[LAT];
 
                     // geographic coordinates by using projection
                     nodes.lonlat( inode, LON ) = _xy[LON];
                     nodes.lonlat( inode, LAT ) = _xy[LAT];
+
+                    normalise( _xy );
+
+                    nodes.xy( inode, LON ) = _xy[LON];
+                    nodes.xy( inode, LAT ) = _xy[LAT];
 
                     // part and remote_idx
                     nodes.part( inode )           = SR.parts[ii];
