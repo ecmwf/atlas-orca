@@ -32,3 +32,9 @@ ecbuild_add_test( TARGET  atlas_test_orca_valid_elements
                   LIBS    atlas-orca
                   ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
                   CONDITION eckit_HAVE_LZ4 )
+
+ecbuild_add_test( TARGET atlas_test_orca_interpolation_bil
+                  SOURCES   test_orca_interpolation_bil.cc
+                  LIBS      atlas
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT} )
+
