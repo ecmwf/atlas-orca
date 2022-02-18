@@ -72,7 +72,7 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
 
         auto pc_view = array::make_view<double, 2>(pointcloud.lonlat());
         std::vector<double> check;
-        for (int i = 0; i < pc_view.size(); ++i) {
+        for (int i = 0; i < pc_view.shape(0); ++i) {
             check.push_back(func(pc_view(i, 0)));
         }
 
@@ -118,7 +118,7 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
 
         auto pc_view = array::make_view<double, 2>(pointcloud.lonlat());
         std::vector<double> check;
-        for (int i = 0; i < pc_view.size(); ++i) {
+        for (int i = 0; i < pc_view.shape(0); ++i) {
             check.push_back(func(pc_view(i, 0)));
         }
 
