@@ -40,16 +40,24 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
 
     SECTION("at the equator, after seam") {
         PointCloud pointcloud({{80., 0.},
-                               {90., 0.},
                                {100., 0.},
-                               {110., 0.},
                                {120., 0.},
-                               {130., 0.},
                                {140., 0.},
-                               {150., 0.},
-                               {160., 0.}});
+                               {160., 0.},
+                               {180., 0.},
+                               {200., 0.},
+                               {220., 0.},
+                               {240., 0.},
+                               {260., 0.},
+                               {280., 0.},
+                               {300., 0.},
+                               {320., 0.},
+                               {340., 0.},
+                               {360., 0.}});
 
-        Interpolation interpolation(option::type("bilinear-remapping") | util::Config("non_linear", "missing-if-all-missing"), fs, pointcloud);
+        Interpolation interpolation(option::type("bilinear-remapping") |
+                                    util::Config("non_linear", "missing-if-all-missing") |
+                                    util::Config("max_fraction_elems_to_try", 0) , fs, pointcloud);
 
         Field field_source = fs.createField<double>(option::name("source"));
         field_source.metadata().set("missing_value", -3278.0);
@@ -95,7 +103,9 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
         PointCloud pointcloud(
             {{00., 0.}, {10., 0.}, {20., 0.}, {30., 0.}, {40., 0.}, {50., 0.}, {60., 0.}, {72., 0.}, {80., 0.}});
 
-        Interpolation interpolation(option::type("bilinear-remapping") | util::Config("non_linear", "missing-if-all-missing"), fs, pointcloud);
+        Interpolation interpolation(option::type("bilinear-remapping") |
+                                    util::Config("non_linear", "missing-if-all-missing") |
+                                    util::Config("max_fraction_elems_to_try", 0) , fs, pointcloud);
 
         Field field_source = fs.createField<double>(option::name("source"));
         field_source.metadata().set("missing_value", -3278.0);
