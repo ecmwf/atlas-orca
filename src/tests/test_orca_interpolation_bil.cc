@@ -53,6 +53,7 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
                                {300., 0.},
                                {320., 0.},
                                {340., 0.},
+                               {359., 0.},
                                {360., 0.}});
 
         Interpolation interpolation(option::type("bilinear-remapping") |
@@ -91,10 +92,12 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
           missing_vals[j] = mv(target(j));
         }
 
+        Log::info() << "(lon,lat): test ~= known-good - missing[T/F]"  << std::endl;
         for (idx_t j = 0; j < pointcloud.size(); ++j) {
             static double interpolation_tolerance = 1.e-4;
             char b = missing_vals[j] ? 'T' : 'F';
-            Log::info() << target(j) << "  " << check[j] << " " << b << std::endl;
+            Log::info() << "(" << pc_view(j,0) << " " << pc_view(j,1) << "): "
+                        << target(j) << " ~= " << check[j] << " - " << b << std::endl;
             EXPECT(eckit::types::is_approximately_equal(target(j), check[j], interpolation_tolerance));
             EXPECT(!missing_vals[j]);
         }
@@ -139,10 +142,12 @@ CASE("test_interpolation_points_to_ORCA2_bilinear_remapping") {
           missing_vals[j] = mv(target(j));
         }
 
+        Log::info() << "(lon,lat): test ~= known-good - missing[T/F]"  << std::endl;
         for (idx_t j = 0; j < pointcloud.size(); ++j) {
             static double interpolation_tolerance = 1.e-4;
             char b = missing_vals[j] ? 'T' : 'F';
-            Log::info() << target(j) << "  " << check[j] << " " << b << std::endl;
+            Log::info() << "(" << pc_view(j,0) << " " << pc_view(j,1) << "): "
+                        << target(j) << " ~= " << check[j] << " - " << b << std::endl;
             EXPECT(eckit::types::is_approximately_equal(target(j), check[j], interpolation_tolerance));
             EXPECT(!missing_vals[j]);
         }
