@@ -386,8 +386,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             auto normalise_lon_second_half = util::NormaliseLongitude{lon00 + 90.};
             for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
                 idx_t ix_glb   = SR.ix_min + ix;
+                idx_t ix_glb_master = ix_glb;
                 auto normalise = [&]( double _xy[2] ) {
-                    if ( ix_glb < nx / 2 ) {
+                    if ( ix_glb_master < nx / 2 ) {
                         _xy[LON] = normalise_lon_first_half( _xy[LON] );
                     }
                     else {
@@ -443,16 +444,40 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         nodes.part( inode ) = partition( master_i, master_j );
                         flags.set( Topology::GHOST );
                         nodes.remote_idx( inode ) = nparts_ == 1 ? master_idx : -1;
-                    }
 
-                    if ( ix_glb >= nx - orca.haloWest() ) {
-                        flags.set( Topology::PERIODIC );
-                    }
-                    else if ( ix_glb < orca.haloEast() ) {
-                        flags.set( Topology::PERIODIC );
-                    }
-                    if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
-                        flags.set( Topology::PERIODIC );
+                        if( nodes.glb_idx(inode) != nodes.master_glb_idx(inode) ) {
+                            if ( ix_glb >= nx - orca.haloWest() ) {
+                                flags.set( Topology::PERIODIC );
+                            }
+                            else if ( ix_glb < orca.haloEast() - 1 ) {
+                                flags.set( Topology::PERIODIC );
+                            }
+                            if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
+                                flags.set( Topology::PERIODIC );
+                                if( _xy[LON] > lon00 + 90. ) {
+                                    flags.set( Topology::EAST );
+                                }
+                                else {
+                                    flags.set( Topology::WEST );
+                                }
+                            }
+
+                            if( flags.check( Topology::PERIODIC ) ) {
+                                // It can still happen that nodes were flagged as periodic wrongly
+                                // e.g. where the grid folds into itself
+
+                                idx_t iy_glb_master;
+                                double xy_master[2];
+                                orca.index2ij( master_idx, ix_glb_master, iy_glb_master );
+                                orca.lonlat(ix_glb_master,iy_glb_master,xy_master);
+                                normalise( xy_master );
+                                if( std::abs(xy_master[LON] - _xy[LON]) < 1.e-12 ) {
+                                    flags.unset(Topology::PERIODIC);
+                                }
+                            }
+
+                        }
+
                     }
 
                     flags.set( orca.land( ix_glb, iy_glb ) ? Topology::LAND : Topology::WATER );
