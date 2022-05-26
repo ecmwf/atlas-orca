@@ -53,15 +53,11 @@ CASE( "test orca partition is full" ) {
             auto mesh = meshgenerator.generate( grid, partitioner );
             auto part = array::make_view<int, 1>(mesh.nodes().partition());
 
-            std::vector<int> counts(mpi::size());
             for (int p = 0; p<part.size(); p++) {
-              ++counts[part(p)];
               if (part(p) < 0)
                 std::cout << "[" << mypart << "] part(" << p << ") " << part(p) << std::endl;
               ASSERT(part(p) >= 0);
             }
-            //for (int p = 0; p<mpi::size(); p++)
-            //  std::cout << "[" << mypart << "] counts[" << p << "] " << counts[p] << std::endl;
         }
       }
     }
@@ -84,36 +80,8 @@ CASE( "test orca partition construction inside meshgenerator.generate" ) {
       for ( auto method : methodnames ) {
         SECTION( gridname + std::string(" ") + method) {
           auto meshgenerator = MeshGenerator{"orca"};
-          grid::Partitioner partitioner("equal_regions", atlas::mpi::size());
+          grid::Partitioner partitioner(method, atlas::mpi::size());
           auto mesh = meshgenerator.generate(grid, partitioner);
-        }
-      }
-    }
-}
-
-CASE( "test orca available partitioners" ) {
-    auto gridnames = std::vector<std::string>{
-        "ORCA2_T",   //
-        "eORCA1_T",  //
-        //"eORCA025_T",  //
-    };
-    auto methodnames = std::vector<std::string>{
-        "bands",   //
-        "equal_regions",  //
-        "checkerboard",  //
-    };
-    for ( auto gridname : gridnames ) {
-      auto grid = Grid( gridname );
-      for ( auto method : methodnames ) {
-        SECTION( gridname + std::string(" ") + method) {
-            grid::Partitioner partitioner(method, atlas::mpi::size());
-            grid::Distribution distribution = partitioner.partition(grid);
-        }
-        SECTION( gridname + std::string(" ") + method + std::string(" from config ")) {
-            auto config = grid.partitioner();  // recommended by the grid itself
-            config.set("type", method);
-            grid::Partitioner partitioner = grid::Partitioner{config};
-            grid::Distribution distribution = partitioner.partition(grid);
         }
       }
     }
