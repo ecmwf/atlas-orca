@@ -65,13 +65,27 @@ public:
             std::string url = uri_.asRawString();
 
             Log::debug() << "Looking for " << file_search.file(url) << " in " << file_search.searchPath() << std::endl;
-            bool found = file_search( url, path_ );
+            int found = 0;
+            if ( mpi::comm().rank() == 0 ) {
+                found = file_search( url, path_ );
+            }
+            mpi::comm().broadcast(found,0);
+            if( not found ) {
+                Log::debug() << "File " << uri << " has not been found in " << file_search.searchPath() << std::endl;
+            }
             if( found ) {
+                if( mpi::comm().rank() != 0 ) {
+                    // Find path also on non-zero ranks
+                    ATLAS_ASSERT( file_search( url, path_ ) );
+                }
                 Log::debug() << "File " << uri << " has been found: " << path_ << std::endl;
             }
             else if ( Library::instance().caching() ) {
+                path_ = ComputeCachedPath{known_urls()}(url);
+
+                Log::debug() << "Caching enabled. Downloading " << uri << " to " << path_ << std::endl;
+
                 if ( mpi::comm().rank() == 0 ) {
-                    path_ = ComputeCachedPath{known_urls()}(url);
                    if ( download( url, path_ ) == 0 ) {
                         std::stringstream errmsg;
                         errmsg << "Could not download file from url " << url;
