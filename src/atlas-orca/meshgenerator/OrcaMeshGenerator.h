@@ -55,6 +55,7 @@ private:
 
     bool include_pole_{false};
     bool fixup_{true};
+    int halosize_{0};
     int nparts_;
     int mypart_;
 };

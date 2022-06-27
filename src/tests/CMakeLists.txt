@@ -24,8 +24,9 @@ ecbuild_add_test( TARGET  atlas_test_orca_grid
 ecbuild_add_test( TARGET  atlas_test_orca_mesh
                   SOURCES test_orca_mesh.cc
                   LIBS    atlas-orca
+                  MPI     2
                   ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
-                  CONDITION eckit_HAVE_LZ4 )
+                  CONDITION eckit_HAVE_LZ4 AND eckit_HAVE_MPI)
 
 ecbuild_add_test( TARGET  atlas_test_orca_valid_elements
                   SOURCES test_orca_valid_elements.cc

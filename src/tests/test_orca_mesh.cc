@@ -8,6 +8,8 @@
  * nor does it submit to any jurisdiction.
  */
 
+#include <numeric>
+
 #include "eckit/log/Bytes.h"
 #include "eckit/system/ResourceUsage.h"
 
@@ -21,6 +23,7 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/LonLatMicroDeg.h"
 #include "atlas/util/PeriodicTransform.h"
+#include "atlas/util/Unique.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
 #include "atlas-orca/util/PointIJ.h"
@@ -41,26 +44,27 @@ size_t peakMemory() {
 
 //-----------------------------------------------------------------------------
 
+void build_remote_halo_info(Mesh& mesh, array::ArrayView<int, 1> remote_halo );
 void build_periodic_boundaries( Mesh& mesh );  // definition below
 
 //-----------------------------------------------------------------------------
 
 CASE( "test generate orca mesh" ) {
-    static std::string gridname = "eORCA1_T";
+    static std::string gridname = "ORCA2_T";
     static auto grid            = Grid( gridname );
 
     SECTION( "orca_generate" ) {
         Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
 
-        auto meshgenerator = MeshGenerator{"orca"};
+        auto meshgenerator = MeshGenerator{"orca", option::halo( 1 ) };
         auto mesh          = meshgenerator.generate( grid );
         Log::info() << "mesh.footprint() = " << eckit::Bytes( mesh.footprint() ) << std::endl;
 
-        EXPECT_EQ( mesh.nodes().size(), grid.size() );
+        if (mpi::comm().size() == 1) EXPECT_EQ( mesh.nodes().size(), grid.size() );
 
         if ( mesh.footprint() < 25 * 1e6 ) {  // less than 25 Mb
-            output::Gmsh{"orca_2d.msh", Config( "coordinates", "lonlat" )}.write( mesh );
-            output::Gmsh{"orca_3d.msh", Config( "coordinates", "xyz" )}.write( mesh );
+            output::Gmsh{"2d.msh", Config( "coordinates", "lonlat" )}.write( mesh );
+            output::Gmsh{"3d.msh", Config( "coordinates", "xyz" )}.write( mesh );
         }
         ATLAS_DEBUG( "Peak memory: " << eckit::Bytes( peakMemory() ) );
     }
@@ -73,45 +77,114 @@ CASE( "test generate orca mesh" ) {
 CASE( "test orca mesh halo" ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",   //
-        "eORCA1_T",  //
+        //"eORCA1_T",  //
         //"eORCA025_T",  //
+        //"eORCA12_T",  //
     };
     for ( auto gridname : gridnames ) {
         SECTION( gridname ) {
-            auto mesh = Mesh{Grid( gridname )};
+            OrcaGrid grid      = Grid( gridname );
+            grid::Partitioner partitioner("equal_regions", atlas::mpi::size());
+            auto meshgenerator = MeshGenerator{"orca", option::halo( 2 ) };
+            auto mesh          = meshgenerator.generate( grid, partitioner );
             REQUIRE( mesh.grid() );
             EXPECT( mesh.grid().name() == gridname );
-            test::build_periodic_boundaries( mesh );
+            int mpi_rank = mpi::rank();
             auto remote_idx = array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() );
             auto ij         = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
             idx_t count{0};
 
-            functionspace::NodeColumns fs{mesh};
-            Field field   = fs.createField<double>( option::name( "bla" ) );
-            auto f        = array::make_view<double, 1>( field );
-            OrcaGrid grid = mesh.grid();
+            functionspace::NodeColumns fs{mesh,  option::halo( 2 )};
+            Field field   = fs.createField<int>( option::name( "remote_halo" ));
+            auto f        = array::make_view<int, 1>( field );
+            Field mismatch_field   = fs.createField<int>( option::name( "glb_idx_mismatch" ));
+            auto f2        = array::make_view<int, 1>( mismatch_field );
+            auto master_glb_index = array::make_view<gidx_t, 1>(mesh.nodes().field("master_global_index"));
+            auto glb_index = array::make_view<gidx_t, 1>(mesh.nodes().global_index());
             for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
+                f(jnode) = 0;
+                f2(jnode) = 0;
+                if (glb_index(jnode) != master_glb_index(jnode)) f2(jnode) = 1;
                 if ( remote_idx( jnode ) < 0 ) {
                     auto p = orca::PointIJ{ij( jnode, 0 ), ij( jnode, 1 )};
                     orca::PointIJ master;
                     grid->index2ij( grid->periodicIndex( p.i, p.j ), master.i, master.j );
-                    Log::info() << p << " --> " << master << std::endl;
+                    //std::cout << "[" << mpi_rank << "] " << p << " --> " << master << std::endl;
                     ++count;
-                    f( jnode ) = 1;
-                }
-                else {
-                    f( jnode ) = 0;
                 }
             }
-            EXPECT_EQ( count, 0 );
-            if ( count != 0 ) {
+            build_remote_halo_info( mesh, f );
+            //if ( count != 0 ) {
                 Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
-                //                output::Gmsh gmsh(gridname+".msh",Config("coordinates","ij")|Config("ghost",true)|Config("info",true));
-                //                gmsh.write(mesh);
-                //                gmsh.write(field);
-            }
+                output::Gmsh gmsh(gridname+".msh",Config("coordinates","ij")|Config("ghost",true)|Config("info",true));
+                //output::Gmsh gmsh(gridname+".msh",Config("coordinates","ij")|Config("info",true));
+                gmsh.write(mesh);
+                gmsh.write(field);
+                gmsh.write(mismatch_field);
+                gmsh.write(mesh.nodes().global_index());
+                gmsh.write(mesh.nodes().field("master_global_index"));
+                gmsh.write(mesh.nodes().remote_index());
+            //}
+            //EXPECT_EQ( count, 0 );
         }
     }
+}
+
+void build_remote_halo_info(Mesh& mesh, array::ArrayView<int, 1> remote_halo ) {
+    auto mpi_size = mpi::size();
+    auto mypart   = mpi::rank();
+    mesh::Nodes& nodes = mesh.nodes();
+    int nb_nodes = nodes.size();
+
+    // get hold of the halo data remote indices, partitions, and halo values
+    auto gidx    = array::make_indexview<gidx_t, 1>( nodes.global_index() );
+    if (nodes.has_field("master_global_index"))
+      gidx    = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
+    auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
+    auto part    = array::make_view<int, 1>( nodes.partition() );
+    auto ghost   = array::make_view<int, 1>( nodes.ghost() );
+    auto halo    = array::make_view<int, 1>( nodes.halo() );
+
+    // organise the halo data into send buffers
+    std::vector<std::vector<int>> send_halo( mpi_size );
+    std::vector<std::vector<int>> send_gidx( mpi_size );
+
+    for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
+        if (halo (jnode) != 0) {
+            send_halo[part(jnode)].push_back(halo(jnode));
+            send_gidx[part(jnode)].push_back(gidx(jnode));
+        }
+    }
+
+    std::vector<std::vector<int>> recv_halo( mpi_size );
+    std::vector<std::vector<int>> recv_gidx( mpi_size );
+
+    // send this data to the correct partition, remember dummy all to all sends
+    // element[their_part] -> element[mypart] on the remote task
+    mpi::comm().allToAll( send_halo, recv_halo );
+    mpi::comm().allToAll( send_gidx, recv_gidx );
+
+    // adjust the values of the remote_halo field according to the results
+    for ( idx_t p =0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_halo[p].size(); ++i ) {
+          //auto jnode = std::find(gidx.begin(), gidx.end(), recv_gidx[p][i]);
+          idx_t found_idx = -1;
+          for (idx_t jnode = 0; jnode < nb_nodes; ++jnode) {
+              if (gidx(jnode) == recv_gidx[p][i]) {
+                found_idx = jnode;
+                break;
+              }
+          }
+          if (found_idx == -1) {
+              ATLAS_DEBUG("global index not found: " << recv_gidx[p][i]);
+          } else {
+              //ATLAS_DEBUG("global index found with remote index: " << ridx(found_idx)
+              //    << " partition " << part(found_idx));
+              remote_halo (found_idx) = recv_halo[p][i];
+          }
+      }
+    }
+
 }
 
 //-----------------------------------------------------------------------------
