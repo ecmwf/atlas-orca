@@ -679,6 +679,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
+    if (nparts_ > 1) OrcaMeshGenerator::build_remote_index(mesh);
+
     if( nparts_ == 1 ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
@@ -709,6 +711,71 @@ void OrcaMeshGenerator::generate( const Grid& grid, Mesh& mesh ) const {
 
 void OrcaMeshGenerator::hash( eckit::Hash& h ) const {
     h.add( "OrcaMeshGenerator" );
+}
+
+void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
+    auto mpi_size = mpi::size();
+    auto mypart   = mpi::rank();
+    mesh::Nodes& nodes = mesh.nodes();
+    int nb_nodes = nodes.size();
+
+    // get the indices and partition data
+    auto gidx    = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
+    auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
+    auto part    = array::make_view<int, 1>( nodes.partition() );
+
+    // find the nodes I want to request the data for
+    std::vector<std::vector<int>> send_gidx( mpi_size );
+    std::vector<std::vector<int>> req_lidx( mpi_size );
+
+    for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
+        if (part (jnode) != mypart) {
+            send_gidx[part(jnode)].push_back(gidx(jnode));
+            req_lidx[part(jnode)].push_back(jnode);
+            ridx(jnode) = -1;
+        } else {
+            ridx(jnode) = jnode;
+        }
+    }
+
+    std::vector<std::vector<int>> recv_gidx( mpi_size );
+
+    mpi::comm().allToAll( send_gidx, recv_gidx );
+
+    std::vector<std::vector<int>> send_ridx( mpi_size );
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_gidx[p].size(); ++i ) {
+          idx_t found_idx = -1;
+          for (idx_t jnode = 0; jnode < nb_nodes; ++jnode) {
+              if (gidx(jnode) == recv_gidx[p][i]) {
+                found_idx = jnode;
+                break;
+              }
+          }
+          ATLAS_ASSERT(found_idx != -1,
+              "global index not found: " + std::to_string(recv_gidx[p][i]));
+          //ATLAS_DEBUG("global index found with remote index: " << ridx(found_idx)
+          //    << " partition " << part(found_idx));
+          send_ridx[p].push_back(ridx(found_idx));
+      }
+    }
+
+    std::vector<std::vector<int>> recv_ridx( mpi_size );
+
+    mpi::comm().allToAll( send_ridx, recv_ridx );
+
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
+        ridx(req_lidx[p][i]) = recv_ridx[p][i];
+      }
+    }
+
+    // sanity check
+    for (idx_t jnode = 0; jnode < nb_nodes; ++jnode)
+      ATLAS_ASSERT(ridx(jnode) >= 0,
+        "ridx not filled with part " + std::to_string(part(jnode)) + " at "
+        + std::to_string(jnode));
+
 }
 
 namespace {
