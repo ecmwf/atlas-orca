@@ -713,7 +713,9 @@ void OrcaMeshGenerator::hash( eckit::Hash& h ) const {
     h.add( "OrcaMeshGenerator" );
 }
 
+using Unique2Node = std::map<gidx_t, idx_t>;
 void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
+    ATLAS_TRACE();
     auto mpi_size = mpi::size();
     auto mypart   = mpi::rank();
     mesh::Nodes& nodes = mesh.nodes();
@@ -723,22 +725,30 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     auto gidx    = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
     auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
     auto part    = array::make_view<int, 1>( nodes.partition() );
+    auto ghost    = array::make_view<int, 1>( nodes.ghost() );
 
     // find the nodes I want to request the data for
-    std::vector<std::vector<int>> send_gidx( mpi_size );
+    std::vector<std::vector<gidx_t>> send_gidx( mpi_size );
     std::vector<std::vector<int>> req_lidx( mpi_size );
 
+    Unique2Node global2local;
     for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
+        gidx_t uid     = gidx(jnode);
         if (part (jnode) != mypart) {
-            send_gidx[part(jnode)].push_back(gidx(jnode));
+            send_gidx[part(jnode)].push_back(uid);
             req_lidx[part(jnode)].push_back(jnode);
             ridx(jnode) = -1;
         } else {
             ridx(jnode) = jnode;
         }
+        if (not ghost(jnode)) {
+            bool inserted = global2local.insert(std::make_pair(uid, jnode)).second;
+            ATLAS_ASSERT(inserted, std::string("index already inserted ") + std::to_string(uid) + ", "
+                + std::to_string(jnode) + " at jnode " + std::to_string(global2local[uid]));
+        }
     }
 
-    std::vector<std::vector<int>> recv_gidx( mpi_size );
+    std::vector<std::vector<gidx_t>> recv_gidx( mpi_size );
 
     mpi::comm().allToAll( send_gidx, recv_gidx );
 
@@ -746,11 +756,10 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     for ( idx_t p = 0; p < mpi_size; ++p) {
       for ( idx_t i = 0; i < recv_gidx[p].size(); ++i ) {
           idx_t found_idx = -1;
-          for (idx_t jnode = 0; jnode < nb_nodes; ++jnode) {
-              if (gidx(jnode) == recv_gidx[p][i]) {
-                found_idx = jnode;
-                break;
-              }
+          gidx_t uid     = recv_gidx[p][i];
+          Unique2Node::const_iterator found = global2local.find(uid);
+          if (found != global2local.end()) {
+              found_idx = found->second;
           }
           ATLAS_ASSERT(found_idx != -1,
               "global index not found: " + std::to_string(recv_gidx[p][i]));
