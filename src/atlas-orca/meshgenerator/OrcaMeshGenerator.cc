@@ -681,13 +681,13 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     if (nparts_ > 1) OrcaMeshGenerator::build_remote_index(mesh);
 
-    if( nparts_ == 1 ) {
+    //if( nparts_ == 1 ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
 
         // Bypass for "BuildPeriodicBoundaries"
         mesh.metadata().set( "periodic", true );
-    }
+    //}
 
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
@@ -716,16 +716,18 @@ void OrcaMeshGenerator::hash( eckit::Hash& h ) const {
 using Unique2Node = std::map<gidx_t, idx_t>;
 void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     ATLAS_TRACE();
+
     auto mpi_size = mpi::size();
     auto mypart   = mpi::rank();
     mesh::Nodes& nodes = mesh.nodes();
     int nb_nodes = nodes.size();
 
     // get the indices and partition data
-    auto gidx    = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
+    auto master_glb_idx = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
+    auto glb_idx        = array::make_view<gidx_t, 1>( mesh.nodes().global_index() );
     auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
     auto part    = array::make_view<int, 1>( nodes.partition() );
-    auto ghost    = array::make_view<int, 1>( nodes.ghost() );
+    auto ghost   = array::make_view<int, 1>( nodes.ghost() );
 
     // find the nodes I want to request the data for
     std::vector<std::vector<gidx_t>> send_gidx( mpi_size );
@@ -733,8 +735,11 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
 
     Unique2Node global2local;
     for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
-        gidx_t uid     = gidx(jnode);
-        if (part (jnode) != mypart) {
+        gidx_t uid     = master_glb_idx(jnode);
+        if ( (part (jnode) != mypart)
+             || ((master_glb_idx( jnode ) != glb_idx( jnode )) &&
+                 (part( jnode ) == mypart))
+           ) {
             send_gidx[part(jnode)].push_back(uid);
             req_lidx[part(jnode)].push_back(jnode);
             ridx(jnode) = -1;
@@ -781,9 +786,9 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
 
     // sanity check
     for (idx_t jnode = 0; jnode < nb_nodes; ++jnode)
-      ATLAS_ASSERT(ridx(jnode) >= 0,
-        "ridx not filled with part " + std::to_string(part(jnode)) + " at "
-        + std::to_string(jnode));
+        ATLAS_ASSERT(ridx(jnode) >= 0,
+            "ridx not filled with part " + std::to_string(part(jnode)) + " at "
+            + std::to_string(jnode));
 
 }
 
