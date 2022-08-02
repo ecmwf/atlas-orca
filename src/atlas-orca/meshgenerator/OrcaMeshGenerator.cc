@@ -723,7 +723,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     int nb_nodes = nodes.size();
 
     // get the indices and partition data
-    auto master_glb_idx = array::make_indexview<gidx_t, 1>(nodes.field("master_global_index"));
+    auto master_glb_idx = array::make_view<gidx_t, 1>(nodes.field("master_global_index"));
     auto glb_idx        = array::make_view<gidx_t, 1>( mesh.nodes().global_index() );
     auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
     auto part    = array::make_view<int, 1>( nodes.partition() );
