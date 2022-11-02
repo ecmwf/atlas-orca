@@ -7,6 +7,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+find_package( jedicmake REQUIRED )  # Prefer find modules from jedi-cmake
+find_package( NetCDF COMPONENTS C CXX )
+
 # Overcome Cray linking problem where the C++ library is not linked with the C library
 list( APPEND NetCDF_CXX_EXTRA_LIBRARIES NetCDF::NetCDF_C )
 
