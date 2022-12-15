@@ -15,17 +15,15 @@
 #include <cstdlib>
 #include <sstream>
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/io/URLHandle.h"
+#include "eckit/log/Bytes.h"
 
-#include "atlas/io/FileStream.h"
 #include "atlas/runtime/Exception.h"
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
-
-
-#include "eckit/io/URLHandle.h"
-#include "eckit/log/Bytes.h"
 
 
 namespace atlas {
@@ -88,10 +86,14 @@ inline size_t download( const std::string& url, const eckit::PathName& path ) {
         return 0;
     }
     if ( length < eckit::Length( 10 * 1024 ) ) {
-        io::InputFileStream file( path_tmp );
         std::string content;
         content.resize( path_tmp.size() );
-        file.read( const_cast<char*>( content.data() ), content.size() );
+
+        eckit::FileHandle file(path_tmp);
+        file.openForRead();
+        file.read(const_cast<char*>(content.data()), content.size());
+        file.close();
+
         if ( content.find( "Error 404" ) ) {
             path_tmp.unlink( true );
             return 0;
