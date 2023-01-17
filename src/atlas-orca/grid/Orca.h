@@ -40,7 +40,6 @@ private:
         ComputePointXY( const Orca& grid ) : grid_( grid ) {}
 
         void operator()( idx_t i, idx_t j, PointXY& point ) { grid_.xy( i, j, point.data() ); }
-        void update_iter( idx_t i, idx_t j, PointXY& point ) { grid_.xy_safe( i, j, point.data() ); }
 
         const Orca& grid_;
     };
@@ -49,7 +48,6 @@ private:
         ComputePointLonLat( const Orca& grid ) : grid_( grid ) {}
 
         void operator()( idx_t i, idx_t j, PointLonLat& point ) { grid_.lonlat( i, j, point.data() ); }
-        void update_iter( idx_t i, idx_t j, PointLonLat& point ) { grid_.lonlat_safe( i, j, point.data() ); }
 
         const Orca& grid_;
     };
@@ -81,7 +79,9 @@ private:
                 i_ = ibegin_;
                 j_ = jend_;
             }
-            compute_point_.update_iter( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
         }
 
         bool next( typename Base::value_type& point ) override {
@@ -104,7 +104,9 @@ private:
                 ++j_;
                 i_ = ibegin_;
             }
-            compute_point_.update_iter( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
             return *this;
         }
 
@@ -117,7 +119,9 @@ private:
                 i_ = ibegin_;
             }
             i_ += d;
-            compute_point_.update_iter( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
             return *this;
         }
 
@@ -183,24 +187,11 @@ public:
         crd[1]           = p[1];
     }
 
-    void xy_safe( idx_t i, idx_t j, double crd[] ) const {
-        if (index(i, j) < points_.size()) {
-            const PointXY& p = xy( i, j );
-            crd[0]           = p[0];
-            crd[1]           = p[1];
-        }
-    }
-
     PointLonLat lonlat( idx_t i, idx_t j ) const { return xy( i, j ); }
 
     ATLAS_ALWAYS_INLINE gidx_t index( idx_t i, idx_t j ) const { return ( imin_ + i ) + ( jmin_ + j ) * jstride_; }
 
     void lonlat( idx_t i, idx_t j, double crd[] ) const { xy( i, j, crd ); }
-    void lonlat_safe( idx_t i, idx_t j, double crd[] ) const {
-        if (index(i, j) < points_.size()) {
-            xy( i, j, crd );
-        }
-    }
 
     bool water( idx_t i, idx_t j ) const { return water_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
     bool land( idx_t i, idx_t j ) const { return not water_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
