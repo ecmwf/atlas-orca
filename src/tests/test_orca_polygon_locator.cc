@@ -32,12 +32,19 @@ namespace test {
 //-----------------------------------------------------------------------------
 
 CASE( "test orca polygon locator" ) {
+
     auto gridnames = std::vector<std::string>{
-        //"ORCA2_T",   //
-        //"eORCA1_T",  //
+        "ORCA2_T",   //
+        "eORCA1_T",  //
         "eORCA025_T",  //
-        //"eORCA12_T",  //
+        // "eORCA12_T",  //
     };
+
+    std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );
+    if ( not grid_resource.empty() ) {
+        gridnames = {grid_resource};
+    }
+
     for ( auto gridname : gridnames ) {
         SECTION( gridname ) {
             OrcaGrid grid      = Grid( gridname );
@@ -53,10 +60,14 @@ CASE( "test orca polygon locator" ) {
 
             // fails on ORCA2 because partition polygon is not connected space
             // (ORCA2 grids have a cut out area for the mediterranean)
-            idx_t part = locator({82.0, 10.0});
+            idx_t part;
+            part = locator({82.0, 10.0});
+            ATLAS_DEBUG_VAR( part );
             // would fail on ORCA025 because xy coordinate system doesn't cover
-            // 0-360. A fix for this has been added to the locator in atlas.
+            // 0-360. A fix for this has been added to the locator in atlas 0.32.0.
             part = locator({-173.767, -61.1718});
+            ATLAS_DEBUG_VAR( part );
+
         }
     }
 }
