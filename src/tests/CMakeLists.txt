@@ -41,6 +41,13 @@ ecbuild_add_test( TARGET  atlas_test_orca_partition
                   ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
                   CONDITION eckit_HAVE_LZ4 AND eckit_HAVE_MPI)
 
+ecbuild_add_test( TARGET  atlas_test_orca_polygon_locator
+                  SOURCES test_orca_polygon_locator.cc
+                  LIBS    atlas-orca
+                  MPI     2
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
+                  CONDITION eckit_HAVE_LZ4 AND eckit_HAVE_MPI)
+
 ecbuild_add_test( TARGET  atlas_test_orca_interpolation
                   SOURCES test_orca_interpolation.cc
                   LIBS    atlas-orca
