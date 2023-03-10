@@ -22,6 +22,10 @@ if( NOT eckit_HAVE_LZ4 )
                   "Continuing regardless with reduced tests" )
 endif()
 
+ecbuild_add_option( FEATURE ORCA_GRIDS_DOWNLOAD
+                    DEFAULT OFF
+                    DESCRIPTION "Download ORCA grids during build" )
+
 atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas
     NAMESPACE int.ecmwf )
