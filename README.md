@@ -52,16 +52,36 @@ To generate a atlas-orca mesh:
 
     atlas-meshgen ORCA1_T --3d -o mesh.msh
 
-The above commands will download required data files containing grid coordinates etc. 
-at runtime as needed into the Atlas "cache" directory (default=`/tmp/cache`). This directory can be controlled with
-the environment variable: 
+The above commands will require availability of atlas-orca data files. The location of atlas data files is by default:
+ - For build-dirs: `<build-dir>/share`
+ - For install-dirs: `<install-dir>/share`
+ - Extra search paths can be given by `ATLAS_DATA_PATH` environment variable containing ':'-separated list of read-only search paths.
 
-    export ATLAS_CACHE_PATH=/path/to/cache
+Data files can also be downloaded on-demand at runtime by setting following environment variables:
+```bash
+export ATLAS_ORCA_CACHING=1
+export ATLAS_CACHE_PATH=<atlas-cache-dir>  # If not specified, `/tmp/cache` is used.
+```
+When a data file is not found in the search locations described above, they will be downloaded to the `ATLAS_CACHE_PATH`.
 
-The files can also be cached beforehand with a provided tool to prevent unexpected downloads
 
-    atlas-orca-cache [--help]
-    
-Downloads at runtime can also be explicitly prevented with
+The data files can also be cached beforehand with a provided tool `atlas-orca-cache`. Use its `--help` argument for more info.
 
-    export ATLAS_ORCA_DOWNLOAD=0
+```bash
+export ATLAS_ORCA_CACHING=1
+export ATLAS_CACHE_PATH=<atlas-cache-dir>
+atlas-orca-cache --grid=<gridname>  # use "all" as gridname to proceed for all available grids
+```
+
+You can then for following runs add this `ATLAS_CACHE_PATH` to the `ATLAS_DATA_PATH`.
+
+Installing data files
+---------------------
+
+All orca data files can also be retrieved and installed as part of the build/install steps.
+In order to proceed, configure the build with following CMake arguments:
+```bash
+-DENABLE_RETRIEVE_ORCA_DATA=ON -DENABLE_INSTALL_ORCA_DATA=ON
+```
+This could lead to several minutes of download times for each build. That is not a problem for central deployment.
+However the use of a centralised ATLAS_DATA_PATH could be more beneficial, in a development environment with multiple users (e.g. prepIFS experiments).
