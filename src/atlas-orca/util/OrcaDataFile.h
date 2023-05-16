@@ -33,8 +33,8 @@ namespace orca {
 
 static std::vector<std::string> known_urls() {
     std::vector<std::string> urls;
-    urls.emplace_back("http://get.ecmwf.int/atlas/grids/orca");
-    urls.emplace_back("https://get.ecmwf.int/atlas/grids/orca");
+    urls.emplace_back("http://get.ecmwf.int/repository/atlas/grids/orca");
+    urls.emplace_back("https://get.ecmwf.int/repository/atlas/grids/orca");
     return urls;
 }
 
