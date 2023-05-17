@@ -27,6 +27,7 @@ ecbuild_add_library(
         util/ComputeUid.h
         util/ComputeUid.cc
         util/DetectInvalidElements.h
+        util/Download.cc
         util/Download.h
         util/Enums.h
         util/Flag.h
@@ -44,3 +45,8 @@ ecbuild_add_library(
        $<INSTALL_INTERFACE:include/atlas-orca>
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src> )
+
+if (eckit_HAVE_CURL)
+    set_source_files_properties( util/Download.cc
+                            PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_HAVE_ECKIT_URLHANDLE")
+endif()
