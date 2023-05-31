@@ -26,6 +26,7 @@ ecbuild_add_library(
         util/ComputeCachedPath.h
         util/ComputeUid.h
         util/ComputeUid.cc
+        util/DetectInvalidElements.cc
         util/DetectInvalidElements.h
         util/Download.cc
         util/Download.h

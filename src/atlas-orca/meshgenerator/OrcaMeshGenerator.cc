@@ -26,7 +26,6 @@
 #include "atlas/grid/Partitioner.h"
 #include "atlas/grid/Spacing.h"
 #include "atlas/grid/StructuredGrid.h"
-#include "atlas/interpolation/element/Quad3D.h"
 #include "atlas/library/config.h"
 #include "atlas/mesh/ElementType.h"
 #include "atlas/mesh/Elements.h"
@@ -77,7 +76,6 @@ struct SurroundingRectangle {
         ATLAS_TRACE();
         OrcaGrid orca{grid};
         int mypart     = cfg.mypart;
-        int nparts     = cfg.nparts;
         int nx_glb     = orca.nx();
         int ny_glb     = orca.ny();
         int ny_halo    = ny_glb + orca.haloNorth();

@@ -47,6 +47,12 @@ atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas
     NAMESPACE int.ecmwf )
 
+
+if( CMAKE_CXX_COMPILER_ID MATCHES NVHPC )
+    ecbuild_add_cxx_flags("--diag_suppress declared_but_not_referenced --display_error_number" NAME atlas_orca_cxx_disable_warnings )
+    # For all the variables with side effects (constructor/dectructor functionality)
+  endif()
+
 add_subdirectory(etc)
 add_subdirectory(share)
 add_subdirectory(src)
