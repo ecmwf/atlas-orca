@@ -12,6 +12,8 @@ configure_file(version.cc.in version.cc)
 ecbuild_add_library(
     TARGET atlas-orca
     TYPE SHARED
+    INSTALL_HEADERS LISTED
+    HEADER_DESTINATION "include/atlas-orca"
     SOURCES 
         Library.cc
         Library.h
@@ -40,7 +42,6 @@ ecbuild_add_library(
         util/PointIJ.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         version.h
-    HEADER_DESTINATION "include/atlas-orca"
     PUBLIC_LIBS atlas
     PUBLIC_INCLUDES 
        $<INSTALL_INTERFACE:include/atlas-orca>
