@@ -48,6 +48,13 @@ ecbuild_add_library(
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src> )
 
+if( atlas_VERSION VERSION_GREATER_EQUAL 0.35.0 )
+    set( ATLAS_TEMPORARY_ELEMENTTYPES 0 )
+elseif( NOT DEFINED ATLAS_TEMPORARY_ELEMENTTYPES )
+    set( ATLAS_TEMPORARY_ELEMENTTYPES 1 )
+endif()
+set_source_files_properties( meshgenerator/OrcaMeshGenerator.cc PROPERTIES COMPILE_DEFINITIONS "ATLAS_TEMPORARY_ELEMENTTYPES=${ATLAS_TEMPORARY_ELEMENTTYPES}" )
+
 if (eckit_HAVE_CURL)
     set_source_files_properties( util/Download.cc
                             PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_HAVE_ECKIT_URLHANDLE")

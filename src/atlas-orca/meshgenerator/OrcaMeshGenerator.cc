@@ -325,7 +325,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     Nodes nodes( mesh );
 
     // define cells and associated properties
+#if ATLAS_TEMPORARY_ELEMENTTYPES
+    // DEPRECATED
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
+#else
+    // Use this since atlas 0.35.0
+    mesh.cells().add( mesh::ElementType::create("Quadrilateral"), ncells );
+#endif
+
     Cells cells( mesh );
 
     int inode_nonghost, inode_ghost;
