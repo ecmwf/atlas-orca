@@ -28,15 +28,15 @@ ecbuild_add_option( FEATURE RETRIEVE_ORCA_DATA
 
 # The above is equivalent to calling as part of build step:
 #
-#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<build-dir>/share <build-dir>/atlas-orca-cache --grid=all
+#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<build-dir>/share <build-dir>/bin/atlas-orca-cache --grid=all
 #
 # To be more selective in which grids to retrieve, don't enable above option but instead run after building, for each grid:
 #
-#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<build-dir>/share <build-dir>/atlas-orca-cache --grid=<gridname>
+#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<build-dir>/share <build-dir>/bin/atlas-orca-cache --grid=<gridname>
 #
 # Or just for installation, after installation run for each grid:
 #
-#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<install-dir>/share <install-dir>/atlas-orca-cache --grid=<gridname>
+#    ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=<install-dir>/share <install-dir>/bin/atlas-orca-cache --grid=<gridname>
 #
 
 ecbuild_add_option( FEATURE INSTALL_ORCA_DATA
