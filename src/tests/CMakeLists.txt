@@ -1,7 +1,7 @@
 
 LIST( APPEND ATLAS_TEST_ENVIRONMENT
-    ATLAS_ORCA_DOWNLOAD=1
-    ATLAS_CACHE_PATH=${CMAKE_BINARY_DIR}/cache )
+    ATLAS_ORCA_CACHING=1
+    ATLAS_CACHE_PATH=${CMAKE_BINARY_DIR}/share )
 
 include_directories( ${PROJECT_SOURCE_DIR}/src )
 
@@ -32,3 +32,11 @@ ecbuild_add_test( TARGET  atlas_test_orca_valid_elements
                   LIBS    atlas-orca
                   ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
                   CONDITION eckit_HAVE_LZ4 )
+
+ecbuild_add_test( TARGET  atlas_test_orca_polygon_locator
+                  SOURCES test_orca_polygon_locator.cc
+                  LIBS    atlas-orca
+                  MPI     2
+                  ENVIRONMENT ${ATLAS_TEST_ENVIRONMENT}
+                  CONDITION eckit_HAVE_LZ4 AND eckit_HAVE_MPI)
+

@@ -79,7 +79,9 @@ private:
                 i_ = ibegin_;
                 j_ = jend_;
             }
-            compute_point_( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
         }
 
         bool next( typename Base::value_type& point ) override {
@@ -102,7 +104,9 @@ private:
                 ++j_;
                 i_ = ibegin_;
             }
-            compute_point_( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
             return *this;
         }
 
@@ -115,7 +119,9 @@ private:
                 i_ = ibegin_;
             }
             i_ += d;
-            compute_point_( i_, j_, point_ );
+            if( j_ != jend_ && i_ < iend_ ) {
+                compute_point_(i_, j_, point_);
+            }
             return *this;
         }
 

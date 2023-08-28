@@ -12,6 +12,8 @@ configure_file(version.cc.in version.cc)
 ecbuild_add_library(
     TARGET atlas-orca
     TYPE SHARED
+    INSTALL_HEADERS LISTED
+    HEADER_DESTINATION "include/atlas-orca"
     SOURCES 
         Library.cc
         Library.h
@@ -26,7 +28,9 @@ ecbuild_add_library(
         util/ComputeCachedPath.h
         util/ComputeUid.h
         util/ComputeUid.cc
+        util/DetectInvalidElements.cc
         util/DetectInvalidElements.h
+        util/Download.cc
         util/Download.h
         util/Enums.h
         util/Flag.h
@@ -38,9 +42,20 @@ ecbuild_add_library(
         util/PointIJ.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         version.h
-    HEADER_DESTINATION "include/atlas-orca"
     PUBLIC_LIBS atlas
     PUBLIC_INCLUDES 
        $<INSTALL_INTERFACE:include/atlas-orca>
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/src> )
+
+if( atlas_VERSION VERSION_GREATER_EQUAL 0.35.0 )
+    set( ATLAS_TEMPORARY_ELEMENTTYPES 0 )
+elseif( NOT DEFINED ATLAS_TEMPORARY_ELEMENTTYPES )
+    set( ATLAS_TEMPORARY_ELEMENTTYPES 1 )
+endif()
+set_source_files_properties( meshgenerator/OrcaMeshGenerator.cc PROPERTIES COMPILE_DEFINITIONS "ATLAS_TEMPORARY_ELEMENTTYPES=${ATLAS_TEMPORARY_ELEMENTTYPES}" )
+
+if (eckit_HAVE_CURL)
+    set_source_files_properties( util/Download.cc
+                            PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_HAVE_ECKIT_URLHANDLE")
+endif()

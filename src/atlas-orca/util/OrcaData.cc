@@ -14,6 +14,8 @@
 
 #include "atlas/io/atlas-io.h"
 
+#include "atlas/runtime/Trace.h"
+
 #include "atlas-orca/util/ComputeUid.h"
 #include "atlas-orca/util/DetectInvalidElements.h"
 #include "atlas-orca/util/Enums.h"

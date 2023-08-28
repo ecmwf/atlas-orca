@@ -26,7 +26,6 @@
 #include "atlas/grid/Partitioner.h"
 #include "atlas/grid/Spacing.h"
 #include "atlas/grid/StructuredGrid.h"
-#include "atlas/interpolation/element/Quad3D.h"
 #include "atlas/library/config.h"
 #include "atlas/mesh/ElementType.h"
 #include "atlas/mesh/Elements.h"
@@ -59,7 +58,8 @@ struct Configuration {
 
 struct SurroundingRectangle {
     std::vector<int> parts;
-    std::vector<bool> is_ghost;
+    std::vector<int> is_ghost;
+    // WARNING vector<bool> is not thread-safe, don't assign in parallel region
     std::vector<bool> is_node;
     int size;
     int nx, ny;
@@ -103,23 +103,32 @@ struct SurroundingRectangle {
 
         {
             ATLAS_TRACE( "bounds" );
-            std::vector<int> nb_nodes_owned_TP( atlas_omp_get_max_threads(), 0 );
             atlas_omp_parallel {
-                const size_t tid = atlas_omp_get_thread_num();
+                int ix_min_TP = ix_min;
+                int ix_max_TP = ix_max;
+                int iy_min_TP = iy_min;
+                int iy_max_TP = iy_max;
+                int nb_nodes_owned_TP = 0;
                 atlas_omp_for( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
                     for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
                         int p = partition( ix, iy );
                         if ( p == mypart ) {
-                            ix_min = std::min( ix_min, ix );
-                            ix_max = std::max( ix_max, ix );
-                            iy_min = std::min( iy_min, iy );
-                            iy_max = std::max( iy_max, iy );
-                            nb_nodes_owned_TP[tid]++;
+                            ix_min_TP = std::min<idx_t>( ix_min_TP, ix );
+                            ix_max_TP = std::max<idx_t>( ix_max_TP, ix );
+                            iy_min_TP = std::min<idx_t>( iy_min_TP, iy );
+                            iy_max_TP = std::max<idx_t>( iy_max_TP, iy );
+                            nb_nodes_owned_TP++;
                         }
                     }
                 }
+                atlas_omp_critical {
+                    nb_nodes_owned += nb_nodes_owned_TP;
+                    ix_min = std::min<int>( ix_min_TP, ix_min);
+                    ix_max = std::max<int>( ix_max_TP, ix_max);
+                    iy_min = std::min<int>( iy_min_TP, iy_min);
+                    iy_max = std::max<int>( iy_max_TP, iy_max);
+                }
             }
-            nb_nodes_owned = std::accumulate( nb_nodes_owned_TP.begin(), nb_nodes_owned_TP.end(), 0 );
         }
 
         // add one row/column for ghost nodes (which include periodicity points)
@@ -316,7 +325,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     Nodes nodes( mesh );
 
     // define cells and associated properties
+#if ATLAS_TEMPORARY_ELEMENTTYPES
+    // DEPRECATED
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
+#else
+    // Use this since atlas 0.35.0
+    mesh.cells().add( mesh::ElementType::create("Quadrilateral"), ncells );
+#endif
+
     Cells cells( mesh );
 
     int inode_nonghost, inode_ghost;
@@ -375,8 +391,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             auto normalise_lon_second_half = util::NormaliseLongitude{lon00 + 90.};
             for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
                 idx_t ix_glb   = SR.ix_min + ix;
+                idx_t ix_glb_master = ix_glb;
                 auto normalise = [&]( double _xy[2] ) {
-                    if ( ix_glb < nx / 2 ) {
+                    if ( ix_glb_master < nx / 2 ) {
                         _xy[LON] = normalise_lon_first_half( _xy[LON] );
                     }
                     else {
@@ -431,17 +448,41 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         orca.index2ij( master_idx, master_i, master_j );
                         nodes.part( inode ) = partition( master_i, master_j );
                         flags.set( Topology::GHOST );
-                        nodes.remote_idx( inode ) = -1;
-                    }
+                        nodes.remote_idx( inode ) = nparts_ == 1 ? master_idx : -1;
 
-                    if ( ix_glb >= nx - orca.haloWest() ) {
-                        flags.set( Topology::PERIODIC );
-                    }
-                    else if ( ix_glb < orca.haloEast() ) {
-                        flags.set( Topology::PERIODIC );
-                    }
-                    if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
-                        flags.set( Topology::PERIODIC );
+                        if( nodes.glb_idx(inode) != nodes.master_glb_idx(inode) ) {
+                            if ( ix_glb >= nx - orca.haloWest() ) {
+                                flags.set( Topology::PERIODIC );
+                            }
+                            else if ( ix_glb < orca.haloEast() - 1 ) {
+                                flags.set( Topology::PERIODIC );
+                            }
+                            if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
+                                flags.set( Topology::PERIODIC );
+                                if( _xy[LON] > lon00 + 90. ) {
+                                    flags.set( Topology::EAST );
+                                }
+                                else {
+                                    flags.set( Topology::WEST );
+                                }
+                            }
+
+                            if( flags.check( Topology::PERIODIC ) ) {
+                                // It can still happen that nodes were flagged as periodic wrongly
+                                // e.g. where the grid folds into itself
+
+                                idx_t iy_glb_master;
+                                double xy_master[2];
+                                orca.index2ij( master_idx, ix_glb_master, iy_glb_master );
+                                orca.lonlat(ix_glb_master,iy_glb_master,xy_master);
+                                normalise( xy_master );
+                                if( std::abs(xy_master[LON] - _xy[LON]) < 1.e-12 ) {
+                                    flags.unset(Topology::PERIODIC);
+                                }
+                            }
+
+                        }
+
                     }
 
                     flags.set( orca.land( ix_glb, iy_glb ) ? Topology::LAND : Topology::WATER );
@@ -459,8 +500,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         if ( ix_glb < 0 ) {
                             return -ix_glb;
                         }
-                        else if ( ix_glb > nx + 1 ) {
-                            return ix_glb - nx + 1;
+                        else if ( ix_glb > nx ) {
+                            return ix_glb - nx;
                         }
                         else if ( iy_glb < 0 ) {
                             return 0;
@@ -505,7 +546,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     idx_t jcell = cell_index[ii];
 
                     // define cell corners (local indices)
-                    std::array<int, 4> quad_nodes;
+                    std::array<idx_t, 4> quad_nodes;
                     quad_nodes[0] = node_index[SR.index( ix, iy )];          // lower left
                     quad_nodes[1] = node_index[SR.index( ix + 1, iy )];      // lower right
                     quad_nodes[2] = node_index[SR.index( ix + 1, iy + 1 )];  // upper right
@@ -575,7 +616,14 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
-    mesh.nodes().metadata().set( "parallel", true );
+    if( nparts_ == 1 ) {
+        // Bypass for "BuildParallelFields"
+        mesh.nodes().metadata().set( "parallel", true );
+
+        // Bypass for "BuildPeriodicBoundaries"
+        mesh.metadata().set( "periodic", true );
+    }
+
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
 }
