@@ -23,8 +23,12 @@ if( NOT eckit_HAVE_LZ4 )
 endif()
 
 ecbuild_add_option( FEATURE RETRIEVE_ORCA_DATA
-                    DEFAULT OFF
+	                  DEFAULT OFF
                     DESCRIPTION "Retrieve all available atlas-orca binary data during build step." )
+
+ecbuild_add_option( FEATURE ORCA_IN_MEMORY_CACHE
+	                  DEFAULT OFF
+                    DESCRIPTION "Cache the orca data in order to avoid multiple loads from file" )
 
 # The above is equivalent to calling as part of build step:
 #
@@ -40,13 +44,12 @@ ecbuild_add_option( FEATURE RETRIEVE_ORCA_DATA
 #
 
 ecbuild_add_option( FEATURE INSTALL_ORCA_DATA
-                    DEFAULT OFF
+	                  DEFAULT OFF
                     DESCRIPTION "Install available atlas-orca binary data present in build dir" )
 
 atlas_create_plugin( atlas-orca
     URL       https://sites.ecmwf.int/docs/atlas
     NAMESPACE int.ecmwf )
-
 
 if( CMAKE_CXX_COMPILER_ID MATCHES NVHPC )
     ecbuild_add_cxx_flags("--diag_suppress declared_but_not_referenced --display_error_number" NAME atlas_orca_cxx_disable_warnings )

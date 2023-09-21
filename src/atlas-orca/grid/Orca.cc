@@ -36,6 +36,10 @@ namespace grid {
 
 namespace {
 
+#if defined(HAVE_ORCA_IN_MEMORY_CACHE)
+static std::map<std::string,orca::OrcaData> ORCA_InMemoryCache;
+#endif
+
 static bool validate_uid() {
     static bool ATLAS_ORCA_VALIDATE_UID = bool(
         eckit::LibResource<bool, atlas::orca::Library>( "atlas-orca-validate-uid;$ATLAS_ORCA_VALIDATE_UID", false ) );
@@ -95,10 +99,20 @@ Orca::Orca( const std::string& name, const Config& config ) :
 
     orca::OrcaData data;
 
+#if defined(HAVE_ORCA_IN_MEMORY_CACHE)
+    std::string key = name_;
+    if ( ORCA_InMemoryCache.find(key) == ORCA_InMemoryCache.end() )
+#endif
     {
         // Read data
         orca::OrcaDataFile file{spec_.getString( "data" )};
         orca::AtlasIOReader{}.read( file, data );
+#if defined(HAVE_ORCA_IN_MEMORY_CACHE)
+        ORCA_InMemoryCache[key] = data;
+    }
+    else{
+        data = ORCA_InMemoryCache.at(key);
+#endif
     }
 
     halo_north_ = data.halo[orca::HALO_NORTH];
