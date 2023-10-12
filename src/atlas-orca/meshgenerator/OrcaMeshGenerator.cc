@@ -296,8 +296,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return glbarray_offset + j * glbarray_jstride + i;
     };
 
-    std::string partitioner_name = distribution.type();
-    const bool serial_distribution = (nparts == 1 || partitioner_name == "serial");
+    const bool serial_distribution = (nparts == 1 || distribution.type() == "serial");
 
     auto partition = [&]( idx_t i, idx_t j ) -> int {
         if ( nparts == 1 ) {
