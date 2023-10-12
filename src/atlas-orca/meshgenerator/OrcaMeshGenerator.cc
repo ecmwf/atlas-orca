@@ -266,7 +266,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     Configuration SR_cfg;
     SR_cfg.mypart = mypart_;
-    SR_cfg.nparts = nparts_;
     SurroundingRectangle SR( grid, distribution, SR_cfg );
 
 
@@ -297,6 +296,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return glbarray_offset + j * glbarray_jstride + i;
     };
 
+    std::string partitioner_name = distribution.type();
+    const bool serial_distribution = (nparts == 1 || partitioner_name == "serial");
 
     auto partition = [&]( idx_t i, idx_t j ) -> int {
         if ( nparts == 1 ) {
@@ -316,7 +317,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nnodes = SR.nb_nodes;
     int ncells = SR.nb_cells;
 
-    if ( nparts == 1 ) {
+    if ( serial_distribution ) {
         ATLAS_ASSERT( ( nx_halo_WE * ny_halo_NS ) == nnodes );
     }
 
@@ -448,7 +449,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         orca.index2ij( master_idx, master_i, master_j );
                         nodes.part( inode ) = partition( master_i, master_j );
                         flags.set( Topology::GHOST );
-                        nodes.remote_idx( inode ) = nparts_ == 1 ? master_idx : -1;
+                        nodes.remote_idx( inode ) = serial_distribution ? master_idx : -1;
 
                         if( nodes.glb_idx(inode) != nodes.master_glb_idx(inode) ) {
                             if ( ix_glb >= nx - orca.haloWest() ) {
@@ -616,7 +617,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         }
     }
 
-    if( nparts_ == 1 ) {
+    if ( serial_distribution ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
 
