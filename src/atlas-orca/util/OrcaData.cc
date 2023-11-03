@@ -14,6 +14,7 @@
 
 #include "atlas/io/atlas-io.h"
 
+#include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
 
 #include "atlas-orca/util/ComputeUid.h"
