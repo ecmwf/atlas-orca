@@ -10,6 +10,7 @@
 
 #include "OrcaMeshGenerator.h"
 
+#include <unordered_set>
 #include <algorithm>
 #include <numeric>
 #include <tuple>
@@ -203,7 +204,6 @@ struct Nodes {
     array::ArrayView<int, 1> halo;
     array::ArrayView<int, 1> node_flags;
     array::ArrayView<int, 1> water;
-    //array::ArrayView<int, 1> core;
     array::ArrayView<gidx_t, 1> master_glb_idx;
 
     util::detail::BitflagsView<int> flags( idx_t i ) { return util::Topology::view( node_flags( i ) ); }
@@ -221,8 +221,6 @@ struct Nodes {
         node_flags{array::make_view<int, 1>( mesh.nodes().flags() )},
         water{array::make_view<int, 1>( mesh.nodes().add(
             Field( "water", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
-        //core{array::make_view<int, 1>( mesh.nodes().add(
-        //    Field( "core", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
         master_glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
             "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )} {}
 };
@@ -495,7 +493,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }
 
                     nodes.water( inode ) = orca.water( ix_glb, iy_glb );
-                    //nodes.core( inode ) = not orca.ghost( ix_glb, iy_glb );
                     nodes.halo( inode ) = [&]() -> int {
                         if ( ix_glb < 0 ) {
                             return -ix_glb;
@@ -622,10 +619,101 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
         // Bypass for "BuildPeriodicBoundaries"
         mesh.metadata().set( "periodic", true );
+    } else {
+        build_remote_index(mesh);
     }
 
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
+}
+
+using Unique2Node = std::map<gidx_t, idx_t>;
+void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
+    ATLAS_TRACE();
+
+    mesh::Nodes& nodes = mesh.nodes();
+
+    bool parallel = false;
+    bool periodic = false;
+    nodes.metadata().get("parallel", parallel);
+    mesh.metadata().get("periodic", periodic);
+    if (parallel | periodic) return;
+
+    auto mpi_size = mpi::size();
+    auto mypart   = mpi::rank();
+    int nb_nodes = nodes.size();
+
+    // get the indices and partition data
+    auto master_glb_idx = array::make_view<gidx_t, 1>(nodes.field("master_global_index"));
+    auto glb_idx        = array::make_view<gidx_t, 1>( nodes.global_index() );
+    auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
+    auto part    = array::make_view<int, 1>( nodes.partition() );
+    auto ghost   = array::make_view<int, 1>( nodes.ghost() );
+
+    // find the nodes I want to request the data for
+    std::vector<std::vector<gidx_t>> send_gidx( mpi_size );
+    std::vector<std::vector<int>> req_lidx( mpi_size );
+
+    Unique2Node global2local;
+    for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
+        gidx_t uid     = master_glb_idx(jnode);
+        if ( (part (jnode) != mypart)
+             || ((master_glb_idx( jnode ) != glb_idx( jnode )) &&
+                 (part( jnode ) == mypart))
+           ) {
+            send_gidx[part(jnode)].push_back(uid);
+            req_lidx[part(jnode)].push_back(jnode);
+            ridx(jnode) = -1;
+        } else {
+            ridx(jnode) = jnode;
+        }
+        if (not ghost(jnode)) {
+            bool inserted = global2local.insert(std::make_pair(uid, jnode)).second;
+            ATLAS_ASSERT(inserted, std::string("index already inserted ") + std::to_string(uid) + ", "
+                + std::to_string(jnode) + " at jnode " + std::to_string(global2local[uid]));
+        }
+    }
+
+    std::vector<std::vector<gidx_t>> recv_gidx( mpi_size );
+
+    // Request data from those indices
+    mpi::comm().allToAll( send_gidx, recv_gidx );
+
+    // Find and populate send vector with indices to send
+    std::vector<std::vector<int>> send_ridx( mpi_size );
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_gidx[p].size(); ++i ) {
+          idx_t found_idx = -1;
+          gidx_t uid     = recv_gidx[p][i];
+          Unique2Node::const_iterator found = global2local.find(uid);
+          if (found != global2local.end()) {
+              found_idx = found->second;
+          }
+          ATLAS_ASSERT(found_idx != -1,
+              "global index not found: " + std::to_string(recv_gidx[p][i]));
+          send_ridx[p].push_back(ridx(found_idx));
+      }
+    }
+
+    std::vector<std::vector<int>> recv_ridx( mpi_size );
+
+    mpi::comm().allToAll( send_ridx, recv_ridx );
+
+    // Fill out missing remote indices
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
+        ridx(req_lidx[p][i]) = recv_ridx[p][i];
+      }
+    }
+
+    // sanity check
+    for (idx_t jnode = 0; jnode < nb_nodes; ++jnode)
+        ATLAS_ASSERT(ridx(jnode) >= 0,
+            "ridx not filled with part " + std::to_string(part(jnode)) + " at "
+            + std::to_string(jnode));
+
+    mesh.metadata().set( "periodic", true );
+    nodes.metadata().set( "parallel", true );
 }
 
 OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
@@ -634,6 +722,10 @@ OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
+    std::unordered_set<std::string> valid_distributions = {"serial", "checkerboard", "equal_regions"};
+    ATLAS_ASSERT(valid_distributions.find(partitioner.type()) != valid_distributions.end(),
+                 partitioner.type() + " is not an implemented distribution type. "
+                 + "Valid types are 'serial', 'checkerboard' or 'equal_regions'");
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );
     generate( grid, distribution, mesh );

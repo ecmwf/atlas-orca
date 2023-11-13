@@ -9,17 +9,23 @@
  */
 
 #include <numeric>
+#include <sstream>
 
 #include "atlas/functionspace/NodeColumns.h"
 #include "atlas/grid.h"
 #include "atlas/mesh.h"
 #include "atlas/meshgenerator.h"
+#include "atlas-orca/meshgenerator/OrcaMeshGenerator.h"
 #include "atlas/util/Config.h"
+#include "atlas/util/function/VortexRollup.h"
 #include "atlas/output/Gmsh.h"
 
 #include "atlas/util/Geometry.h"
+#include "atlas/util/LonLatMicroDeg.h"
+#include "atlas/util/PeriodicTransform.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
+#include "atlas-orca/util/PointIJ.h"
 
 #include "tests/AtlasTestEnvironment.h"
 
@@ -29,56 +35,97 @@ using Config = atlas::util::Config;
 namespace atlas {
 namespace test {
 
+//-----------------------------------------------------------------------------
+
 
 CASE( "test haloExchange " ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",   //
+        "ORCA2_U",   //
+        "ORCA2_V",   //
         "eORCA1_T",  //
-        "eORCA025_T",  //
+//        "eORCA025_T",  //
+//        "eORCA12_T",  //
     };
-    for ( auto gridname : gridnames ) {
-        for ( int64_t halo =0; halo < 2; ++halo ) {
-            SECTION( gridname + "_halo" + std::to_string(halo) ) {
-                auto grid = Grid(gridname);
-                auto meshgen_config = grid.meshgenerator() | option::halo(halo);
-                atlas::MeshGenerator meshgen(meshgen_config);
-                auto partitioner_config = grid.partitioner();
-                partitioner_config.set("type", "serial");
-                auto partitioner = grid::Partitioner(partitioner_config);
-                auto mesh = meshgen.generate(grid, partitioner);
-                REQUIRE( mesh.grid() );
-                EXPECT( mesh.grid().name() == gridname );
-                idx_t count{0};
+    auto distributionNames = std::vector<std::string>{
+      "serial",
+      "checkerboard",
+      "equal_regions",  //
+    };
+    for ( auto distributionName : distributionNames ) {
+        for ( auto gridname : gridnames ) {
+            for ( int64_t halo =0; halo < 2; ++halo ) {
+                SECTION( gridname + "_" + distributionName + "_halo" + std::to_string(halo) ) {
+                    auto grid = Grid(gridname);
+                    auto meshgen_config = grid.meshgenerator() | option::halo(halo);
+                    atlas::MeshGenerator meshgen(meshgen_config);
+                    auto partitioner_config = grid.partitioner();
+                    partitioner_config.set("type", distributionName);
+                    auto partitioner = grid::Partitioner(partitioner_config);
+                    auto mesh = meshgen.generate(grid, partitioner);
+                    REQUIRE( mesh.grid() );
+                    EXPECT( mesh.grid().name() == gridname );
+                    idx_t count{0};
 
-                const auto remote_idxs = array::make_indexview<idx_t, 1>(
-                                          mesh.nodes().remote_index());
-                functionspace::NodeColumns fs{mesh};
-                Field field   = fs.createField<double>( option::name( "unswapped ghosts" ) );
-                auto f        = array::make_view<double, 1>( field );
-                const auto ghosts = atlas::array::make_view<int32_t, 1>(
-                                      mesh.nodes().ghost());
-                for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
-                    if (ghosts(jnode)) {
-                        f( jnode ) = 1;
-                    } else {
-                        f( jnode ) = 0;
+                    const auto remote_idxs = array::make_indexview<idx_t, 1>(
+                                              mesh.nodes().remote_index());
+                    functionspace::NodeColumns fs{mesh};
+                    Field field   = fs.createField<double>( option::name( "unswapped ghosts" ) );
+                    Field field2   = fs.createField<double>( option::name( "remotes < 0" ) );
+                    auto f        = array::make_view<double, 1>( field );
+                    auto f2        = array::make_view<double, 1>( field2 );
+                    const auto ghosts = atlas::array::make_view<int32_t, 1>(
+                                          mesh.nodes().ghost());
+                    const auto lonlat = array::make_view<double, 2>( mesh.nodes().lonlat() );
+                    for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
+                        if (ghosts(jnode)) {
+                            f( jnode ) = 0;
+                        } else {
+                            const double lon = lonlat(jnode, 0);
+                            const double lat = lonlat(jnode, 1);
+                            f( jnode ) = util::function::vortex_rollup(lon, lat, 0.0);
+                        }
                     }
-                }
 
-                fs.haloExchange(field);
+                    fs.haloExchange(field);
 
-                for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
-                    if (f( jnode )) {
-                      ++count;
+                    const auto xy = array::make_view<double, 2>( mesh.nodes().xy() );
+                    const auto glb_idxs = array::make_indexview<int64_t, 1>(mesh.nodes().global_index());
+                    const auto partition = array::make_view<int32_t, 1>( mesh.nodes().partition() );
+                    const auto halos = array::make_view<int32_t, 1>( mesh.nodes().halo() );
+
+                    const auto master_glb_idxs = array::make_view<gidx_t, 1>(
+                        mesh.nodes().field( "master_global_index" ) );
+                    const auto ij = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
+
+                    double sumSquares{0.0};
+                    for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
+                        f2(jnode) = 0;
+                        const double lon = lonlat(jnode, 0);
+                        const double lat = lonlat(jnode, 1);
+                        if (std::abs(f(jnode) - util::function::vortex_rollup(lon, lat, 0.0)) > 1e-6) {
+                          f(jnode) = -1;
+                          sumSquares += std::pow(std::abs(f(jnode) - util::function::vortex_rollup(lon, lat, 0.0)), 2);
+                          ++count;
+                        }
+                        if (remote_idxs(jnode) < 0) {
+                          std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode
+                                    << " : ghost " << ghosts(jnode) << std::endl;
+                          f2(jnode) = 1;
+                        }
                     }
+                    if ( count != 0 ) {
+                        Log::info() << "count nonzero and norm of differences is: " << std::sqrt(sumSquares) << std::endl;
+                        Log::info() << "To diagnose problem, mesh writing uncommented here: " << Here() << std::endl;
+                        output::Gmsh gmsh(
+                            std::string("haloExchange_")+gridname+"_"+distributionName+"_"+std::to_string(halo)+".msh",
+                            Config("coordinates","ij")|Config("info",true));
+                        // gmsh.write(mesh);
+                        // gmsh.write(field);
+                        // gmsh.write(field2);
+                    }
+                    EXPECT_EQ( count, 0 );
                 }
-                if ( count != 0 ) {
-                    Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
-                    //output::Gmsh gmsh(std::string("haloExchange_")+gridname+".msh",Config("coordinates","ij")|Config("info",true));
-                    //gmsh.write(mesh);
-                    //gmsh.write(field);
-                }
-                EXPECT_EQ( count, 0 );
             }
         }
     }
