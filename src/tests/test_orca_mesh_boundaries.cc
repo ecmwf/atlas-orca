@@ -52,6 +52,11 @@ CASE( "test haloExchange " ) {
       "checkerboard",
       "equal_regions",  //
     };
+
+    auto rollup_plus = [](const double lon, const double lat) {
+      return 1 + util::function::vortex_rollup(lon, lat, 0.0);
+    };
+
     for ( auto distributionName : distributionNames ) {
         for ( auto gridname : gridnames ) {
             for ( int64_t halo =0; halo < 2; ++halo ) {
@@ -70,7 +75,7 @@ CASE( "test haloExchange " ) {
                     const auto remote_idxs = array::make_indexview<idx_t, 1>(
                                               mesh.nodes().remote_index());
                     functionspace::NodeColumns fs{mesh};
-                    Field field   = fs.createField<double>( option::name( "unswapped ghosts" ) );
+                    Field field   = fs.createField<double>( option::name( "vortex rollup" ) );
                     Field field2   = fs.createField<double>( option::name( "remotes < 0" ) );
                     auto f        = array::make_view<double, 1>( field );
                     auto f2        = array::make_view<double, 1>( field2 );
@@ -83,7 +88,7 @@ CASE( "test haloExchange " ) {
                         } else {
                             const double lon = lonlat(jnode, 0);
                             const double lat = lonlat(jnode, 1);
-                            f( jnode ) = util::function::vortex_rollup(lon, lat, 0.0);
+                            f( jnode ) = rollup_plus(lon, lat);
                         }
                     }
 
@@ -103,9 +108,9 @@ CASE( "test haloExchange " ) {
                         f2(jnode) = 0;
                         const double lon = lonlat(jnode, 0);
                         const double lat = lonlat(jnode, 1);
-                        if (std::abs(f(jnode) - util::function::vortex_rollup(lon, lat, 0.0)) > 1e-6) {
+                        if (std::abs(f(jnode) - rollup_plus(lon, lat)) > 1e-6) {
                           f(jnode) = -1;
-                          sumSquares += std::pow(std::abs(f(jnode) - util::function::vortex_rollup(lon, lat, 0.0)), 2);
+                          sumSquares += std::pow(std::abs(f(jnode) - rollup_plus(lon, lat)), 2);
                           ++count;
                         }
                         if (remote_idxs(jnode) < 0) {
@@ -116,10 +121,10 @@ CASE( "test haloExchange " ) {
                     }
                     if ( count != 0 ) {
                         Log::info() << "count nonzero and norm of differences is: " << std::sqrt(sumSquares) << std::endl;
-                        Log::info() << "To diagnose problem, mesh writing uncommented here: " << Here() << std::endl;
-                        output::Gmsh gmsh(
-                            std::string("haloExchange_")+gridname+"_"+distributionName+"_"+std::to_string(halo)+".msh",
-                            Config("coordinates","ij")|Config("info",true));
+                        Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
+                        // output::Gmsh gmsh(
+                        //     std::string("haloExchange_")+gridname+"_"+distributionName+"_"+std::to_string(halo)+".msh",
+                        //     Config("coordinates","ij")|Config("info",true));
                         // gmsh.write(mesh);
                         // gmsh.write(field);
                         // gmsh.write(field2);
