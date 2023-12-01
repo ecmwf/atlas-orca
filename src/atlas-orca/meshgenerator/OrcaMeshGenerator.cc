@@ -651,7 +651,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     auto ghost   = array::make_view<int, 1>( nodes.ghost() );
 
     // find the nodes I want to request the data for
-    std::vector<std::vector<gidx_t>> send_gidx( mpi_size );
+    std::vector<std::vector<gidx_t>> send_uid( mpi_size );
     std::vector<std::vector<int>> req_lidx( mpi_size );
 
     Unique2Node global2local;
@@ -661,7 +661,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
              || ((master_glb_idx( jnode ) != glb_idx( jnode )) &&
                  (part( jnode ) == mypart))
            ) {
-            send_gidx[part(jnode)].push_back(uid);
+            send_uid[part(jnode)].push_back(uid);
             req_lidx[part(jnode)].push_back(jnode);
             ridx(jnode) = -1;
         } else {
@@ -674,35 +674,45 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
         }
     }
 
-    std::vector<std::vector<gidx_t>> recv_gidx( mpi_size );
+    std::vector<std::vector<gidx_t>> recv_uid( mpi_size );
 
     // Request data from those indices
-    mpi::comm().allToAll( send_gidx, recv_gidx );
+    mpi::comm().allToAll( send_uid, recv_uid );
 
     // Find and populate send vector with indices to send
     std::vector<std::vector<int>> send_ridx( mpi_size );
+    std::vector<std::vector<int>> send_gidx( mpi_size );
+    std::vector<std::vector<int>> send_part( mpi_size );
     for ( idx_t p = 0; p < mpi_size; ++p) {
-      for ( idx_t i = 0; i < recv_gidx[p].size(); ++i ) {
+      for ( idx_t i = 0; i < recv_uid[p].size(); ++i ) {
           idx_t found_idx = -1;
-          gidx_t uid     = recv_gidx[p][i];
+          gidx_t uid     = recv_uid[p][i];
           Unique2Node::const_iterator found = global2local.find(uid);
           if (found != global2local.end()) {
               found_idx = found->second;
           }
           ATLAS_ASSERT(found_idx != -1,
-              "global index not found: " + std::to_string(recv_gidx[p][i]));
+              "master global index not found: " + std::to_string(recv_uid[p][i]));
           send_ridx[p].push_back(ridx(found_idx));
+          send_gidx[p].push_back(glb_idx(found_idx));
+          send_part[p].push_back(part(found_idx));
       }
     }
 
     std::vector<std::vector<int>> recv_ridx( mpi_size );
+    std::vector<std::vector<int>> recv_gidx( mpi_size );
+    std::vector<std::vector<int>> recv_part( mpi_size );
 
     mpi::comm().allToAll( send_ridx, recv_ridx );
+    mpi::comm().allToAll( send_gidx, recv_gidx );
+    mpi::comm().allToAll( send_part, recv_part );
 
     // Fill out missing remote indices
     for ( idx_t p = 0; p < mpi_size; ++p) {
       for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
         ridx(req_lidx[p][i]) = recv_ridx[p][i];
+        glb_idx(req_lidx[p][i]) = recv_gidx[p][i];
+        part(req_lidx[p][i]) = recv_part[p][i];
       }
     }
 
