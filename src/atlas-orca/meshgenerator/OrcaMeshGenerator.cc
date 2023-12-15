@@ -623,6 +623,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         build_remote_index(mesh);
     }
 
+    // Degenerate points in the ORCA mesh mean that the standard BuildHalo
+    // methods for updating halo sizes will not work.
+    mesh.metadata().set("halo_locked", true);
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
 }
@@ -729,6 +732,9 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
 OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
     config.get( "partition", mypart_ = mpi::rank() );
     config.get( "partitions", nparts_ = mpi::size() );
+    config.get( "halo", halo_ = 0 );
+    if (halo_ != 0)
+      throw_NotImplemented("Only 0 halo ORCA grids are currently supported", Here());
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {

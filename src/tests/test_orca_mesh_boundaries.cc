@@ -74,7 +74,11 @@ CASE( "test haloExchange " ) {
 
                     const auto remote_idxs = array::make_indexview<idx_t, 1>(
                                               mesh.nodes().remote_index());
-                    functionspace::NodeColumns fs{mesh};
+                    functionspace::NodeColumns fs(mesh, option::halo(halo));
+                    double halosize = 0;
+                    mesh.metadata().get("halo", halosize);
+                    EXPECT(halosize == halo);
+
                     Field field   = fs.createField<double>( option::name( "vortex rollup" ) );
                     Field field2   = fs.createField<double>( option::name( "remotes < 0" ) );
                     auto f        = array::make_view<double, 1>( field );
@@ -115,7 +119,8 @@ CASE( "test haloExchange " ) {
                         }
                         if (remote_idxs(jnode) < 0) {
                           std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode
-                                    << " : ghost " << ghosts(jnode) << std::endl;
+                                    << " : ghost " << ghosts(jnode) << " master_global_index " << master_glb_idxs(jnode)
+                                    << " lon " << lonlat(jnode, 0) << " lat " << lonlat(jnode, 1) << std::endl;
                           f2(jnode) = 1;
                         }
                     }
