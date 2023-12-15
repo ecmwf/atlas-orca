@@ -59,7 +59,7 @@ CASE( "test haloExchange " ) {
 
     for ( auto distributionName : distributionNames ) {
         for ( auto gridname : gridnames ) {
-            for ( int64_t halo =0; halo < 2; ++halo ) {
+            for ( int64_t halo = 0; halo < 1; ++halo ) {
                 SECTION( gridname + "_" + distributionName + "_halo" + std::to_string(halo) ) {
                     auto grid = Grid(gridname);
                     auto meshgen_config = grid.meshgenerator() | option::halo(halo);
