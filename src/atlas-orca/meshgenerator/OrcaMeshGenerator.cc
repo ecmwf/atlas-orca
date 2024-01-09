@@ -612,7 +612,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
     }
-
+    ATLAS_DEBUG_VAR(serial_distribution);
     if ( serial_distribution ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
@@ -620,6 +620,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         // Bypass for "BuildPeriodicBoundaries"
         mesh.metadata().set( "periodic", true );
     } else {
+        ATLAS_DEBUG("build_remote_index");
         build_remote_index(mesh);
     }
 
@@ -640,7 +641,10 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     bool periodic = false;
     nodes.metadata().get("parallel", parallel);
     mesh.metadata().get("periodic", periodic);
-    if (parallel | periodic) return;
+    if (parallel | periodic) {
+        ATLAS_DEBUG("build_remote_index: already parallel, return");
+        return;
+    }
 
     auto mpi_size = mpi::size();
     auto mypart   = mpi::rank();
@@ -738,10 +742,10 @@ OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
-    std::unordered_set<std::string> valid_distributions = {"serial", "checkerboard", "equal_regions"};
+    std::unordered_set<std::string> valid_distributions = {"serial", "checkerboard", "equal_regions", "equal_area"};
     ATLAS_ASSERT(valid_distributions.find(partitioner.type()) != valid_distributions.end(),
                  partitioner.type() + " is not an implemented distribution type. "
-                 + "Valid types are 'serial', 'checkerboard' or 'equal_regions'");
+                 + "Valid types are 'serial', 'checkerboard' or 'equal_regions', 'equal_area'");
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );
     generate( grid, distribution, mesh );
