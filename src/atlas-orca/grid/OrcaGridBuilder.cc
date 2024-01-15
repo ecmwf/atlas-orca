@@ -61,7 +61,14 @@ public:
         return nullptr;
     }
 
-    const Implementation* create( const Config& config ) const override { return new Orca( config ); }
+    const Implementation* create( const Config& config ) const override {
+        std::string type;
+        config.get("type",type);
+        if (type != "ORCA") {
+            return nullptr;
+        }
+        return new Orca( config );
+    }
 
     void force_link() {}
 

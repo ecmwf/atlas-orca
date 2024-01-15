@@ -10,6 +10,7 @@
 
 #include "OrcaMeshGenerator.h"
 
+#include <unordered_set>
 #include <algorithm>
 #include <numeric>
 #include <tuple>
@@ -203,7 +204,6 @@ struct Nodes {
     array::ArrayView<int, 1> halo;
     array::ArrayView<int, 1> node_flags;
     array::ArrayView<int, 1> water;
-    //array::ArrayView<int, 1> core;
     array::ArrayView<gidx_t, 1> master_glb_idx;
 
     util::detail::BitflagsView<int> flags( idx_t i ) { return util::Topology::view( node_flags( i ) ); }
@@ -221,8 +221,6 @@ struct Nodes {
         node_flags{array::make_view<int, 1>( mesh.nodes().flags() )},
         water{array::make_view<int, 1>( mesh.nodes().add(
             Field( "water", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
-        //core{array::make_view<int, 1>( mesh.nodes().add(
-        //    Field( "core", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
         master_glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
             "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )} {}
 };
@@ -266,7 +264,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     Configuration SR_cfg;
     SR_cfg.mypart = mypart_;
-    SR_cfg.nparts = nparts_;
     SurroundingRectangle SR( grid, distribution, SR_cfg );
 
 
@@ -297,6 +294,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return glbarray_offset + j * glbarray_jstride + i;
     };
 
+    const bool serial_distribution = (nparts == 1 || distribution.type() == "serial");
 
     auto partition = [&]( idx_t i, idx_t j ) -> int {
         if ( nparts == 1 ) {
@@ -316,7 +314,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int nnodes = SR.nb_nodes;
     int ncells = SR.nb_cells;
 
-    if ( nparts == 1 ) {
+    if ( serial_distribution ) {
         ATLAS_ASSERT( ( nx_halo_WE * ny_halo_NS ) == nnodes );
     }
 
@@ -448,7 +446,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         orca.index2ij( master_idx, master_i, master_j );
                         nodes.part( inode ) = partition( master_i, master_j );
                         flags.set( Topology::GHOST );
-                        nodes.remote_idx( inode ) = nparts_ == 1 ? master_idx : -1;
+                        nodes.remote_idx( inode ) = serial_distribution ? master_idx : -1;
 
                         if( nodes.glb_idx(inode) != nodes.master_glb_idx(inode) ) {
                             if ( ix_glb >= nx - orca.haloWest() ) {
@@ -495,7 +493,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }
 
                     nodes.water( inode ) = orca.water( ix_glb, iy_glb );
-                    //nodes.core( inode ) = not orca.ghost( ix_glb, iy_glb );
                     nodes.halo( inode ) = [&]() -> int {
                         if ( ix_glb < 0 ) {
                             return -ix_glb;
@@ -615,25 +612,140 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
     }
-
-    if( nparts_ == 1 ) {
+    ATLAS_DEBUG_VAR(serial_distribution);
+    if ( serial_distribution ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
 
         // Bypass for "BuildPeriodicBoundaries"
         mesh.metadata().set( "periodic", true );
+    } else {
+        ATLAS_DEBUG("build_remote_index");
+        build_remote_index(mesh);
     }
 
+    // Degenerate points in the ORCA mesh mean that the standard BuildHalo
+    // methods for updating halo sizes will not work.
+    mesh.metadata().set("halo_locked", true);
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
+}
+
+using Unique2Node = std::map<gidx_t, idx_t>;
+void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
+    ATLAS_TRACE();
+
+    mesh::Nodes& nodes = mesh.nodes();
+
+    bool parallel = false;
+    bool periodic = false;
+    nodes.metadata().get("parallel", parallel);
+    mesh.metadata().get("periodic", periodic);
+    if (parallel | periodic) {
+        ATLAS_DEBUG("build_remote_index: already parallel, return");
+        return;
+    }
+
+    auto mpi_size = mpi::size();
+    auto mypart   = mpi::rank();
+    int nb_nodes = nodes.size();
+
+    // get the indices and partition data
+    auto master_glb_idx = array::make_view<gidx_t, 1>(nodes.field("master_global_index"));
+    auto glb_idx        = array::make_view<gidx_t, 1>( nodes.global_index() );
+    auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
+    auto part    = array::make_view<int, 1>( nodes.partition() );
+    auto ghost   = array::make_view<int, 1>( nodes.ghost() );
+
+    // find the nodes I want to request the data for
+    std::vector<std::vector<gidx_t>> send_uid( mpi_size );
+    std::vector<std::vector<int>> req_lidx( mpi_size );
+
+    Unique2Node global2local;
+    for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
+        gidx_t uid     = master_glb_idx(jnode);
+        if ( (part (jnode) != mypart)
+             || ((master_glb_idx( jnode ) != glb_idx( jnode )) &&
+                 (part( jnode ) == mypart))
+           ) {
+            send_uid[part(jnode)].push_back(uid);
+            req_lidx[part(jnode)].push_back(jnode);
+            ridx(jnode) = -1;
+        } else {
+            ridx(jnode) = jnode;
+        }
+        if (not ghost(jnode)) {
+            bool inserted = global2local.insert(std::make_pair(uid, jnode)).second;
+            ATLAS_ASSERT(inserted, std::string("index already inserted ") + std::to_string(uid) + ", "
+                + std::to_string(jnode) + " at jnode " + std::to_string(global2local[uid]));
+        }
+    }
+
+    std::vector<std::vector<gidx_t>> recv_uid( mpi_size );
+
+    // Request data from those indices
+    mpi::comm().allToAll( send_uid, recv_uid );
+
+    // Find and populate send vector with indices to send
+    std::vector<std::vector<int>> send_ridx( mpi_size );
+    std::vector<std::vector<int>> send_gidx( mpi_size );
+    std::vector<std::vector<int>> send_part( mpi_size );
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_uid[p].size(); ++i ) {
+          idx_t found_idx = -1;
+          gidx_t uid     = recv_uid[p][i];
+          Unique2Node::const_iterator found = global2local.find(uid);
+          if (found != global2local.end()) {
+              found_idx = found->second;
+          }
+          ATLAS_ASSERT(found_idx != -1,
+              "master global index not found: " + std::to_string(recv_uid[p][i]));
+          send_ridx[p].push_back(ridx(found_idx));
+          send_gidx[p].push_back(glb_idx(found_idx));
+          send_part[p].push_back(part(found_idx));
+      }
+    }
+
+    std::vector<std::vector<int>> recv_ridx( mpi_size );
+    std::vector<std::vector<int>> recv_gidx( mpi_size );
+    std::vector<std::vector<int>> recv_part( mpi_size );
+
+    mpi::comm().allToAll( send_ridx, recv_ridx );
+    mpi::comm().allToAll( send_gidx, recv_gidx );
+    mpi::comm().allToAll( send_part, recv_part );
+
+    // Fill out missing remote indices
+    for ( idx_t p = 0; p < mpi_size; ++p) {
+      for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
+        ridx(req_lidx[p][i]) = recv_ridx[p][i];
+        glb_idx(req_lidx[p][i]) = recv_gidx[p][i];
+        part(req_lidx[p][i]) = recv_part[p][i];
+      }
+    }
+
+    // sanity check
+    for (idx_t jnode = 0; jnode < nb_nodes; ++jnode)
+        ATLAS_ASSERT(ridx(jnode) >= 0,
+            "ridx not filled with part " + std::to_string(part(jnode)) + " at "
+            + std::to_string(jnode));
+
+    mesh.metadata().set( "periodic", true );
+    nodes.metadata().set( "parallel", true );
 }
 
 OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
     config.get( "partition", mypart_ = mpi::rank() );
     config.get( "partitions", nparts_ = mpi::size() );
+    config.get( "halo", halo_ = 0 );
+    if (halo_ != 0)
+      throw_NotImplemented("Only 0 halo ORCA grids are currently supported", Here());
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
+    std::unordered_set<std::string> valid_distributions = {"serial", "checkerboard", "equal_regions", "equal_area"};
+    ATLAS_ASSERT(valid_distributions.find(partitioner.type()) != valid_distributions.end(),
+                 partitioner.type() + " is not an implemented distribution type. "
+                 + "Valid types are 'serial', 'checkerboard' or 'equal_regions', 'equal_area'");
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );
     generate( grid, distribution, mesh );
