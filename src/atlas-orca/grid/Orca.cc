@@ -28,6 +28,7 @@
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/OrcaDataFile.h"
 #include "atlas-orca/util/OrcaPeriodicity.h"
+#include "atlas-orca/util/PointIJ.h"
 
 
 namespace atlas::grid::detail::grid {
@@ -81,6 +82,10 @@ std::string Orca::type() const {
 gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
     auto p = periodicity_->compute( i + imin_, j + jmin_ );
     return index( p.i - imin_, p.j - jmin_ );
+}
+
+orca::PointIJ Orca::periodicIJ( idx_t i, idx_t j ) const {
+    return periodicity_->compute( i + imin_, j + jmin_ );
 }
 
 Orca::Orca( const Config& config ) :

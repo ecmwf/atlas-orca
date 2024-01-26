@@ -72,7 +72,7 @@ CASE( "test orca mesh halo" ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",   //
         "eORCA1_T",  //
-        //"eORCA025_T",  //
+        "eORCA025_T",  //
     };
     for ( auto gridname : gridnames ) {
         SECTION( gridname ) {

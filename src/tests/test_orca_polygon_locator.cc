@@ -36,7 +36,7 @@ CASE( "test orca polygon locator" ) {
         "ORCA2_T",     //
         "eORCA1_T",    //
         "eORCA025_T",  //
-        // "eORCA12_T",  //
+        "eORCA12_T",  //
     };
 
     std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );
