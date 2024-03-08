@@ -36,6 +36,7 @@ ecbuild_add_library(
         util/Flag.h
         util/OrcaData.cc
         util/OrcaData.h
+        util/OrcaDataFile.cc
         util/OrcaDataFile.h
         util/OrcaPeriodicity.cc
         util/OrcaPeriodicity.h
