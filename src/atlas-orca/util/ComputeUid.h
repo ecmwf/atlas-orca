@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -24,5 +24,4 @@ std::string compute_uid( const std::string& arrangement, const double lon[], con
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

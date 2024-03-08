@@ -29,11 +29,17 @@
 #endif
 
 
-namespace atlas {
-namespace orca {
+namespace atlas::orca {
 
 struct AutoIndent {
     AutoIndent() { Log::info().indent(); }
+
+    AutoIndent( const AutoIndent& ) = delete;
+    AutoIndent( AutoIndent&& )      = delete;
+
+    void operator=( const AutoIndent& ) = delete;
+    void operator=( AutoIndent&& )      = delete;
+
     ~AutoIndent() {
         if ( Log::info() ) {
             Log::info().unindent();
@@ -96,20 +102,20 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
 
         eckit::FileHandle file( path_tmp );
         file.openForRead();
-        file.read( const_cast<char*>( content.data() ), content.size() );
+        file.read( const_cast<char*>( content.data() ), static_cast<long>( content.size() ) );
         file.close();
 
-        if ( content.find( "Error 404" ) ) {
+        if ( content.find( "Error 404" ) != 0 ) {
             path_tmp.unlink( true );
             return 0;
         }
     }
     eckit::PathName::rename( path_tmp, path );
     trace.stop();
-    Log::info() << "Download of " << eckit::Bytes( length ) << " took " << trace.elapsed() << " s." << std::endl;
+    Log::info() << "Download of " << eckit::Bytes( static_cast<double>( length ) ) << " took " << trace.elapsed()
+                << " s." << std::endl;
     return length;
 };
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

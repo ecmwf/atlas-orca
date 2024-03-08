@@ -14,8 +14,8 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/Point.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 class DetectInvalidElement {
 public:
@@ -26,7 +26,7 @@ public:
         size_t diagonal_too_large{ 0 };
     };
 
-    DetectInvalidElement( const util::Config& config ) {
+    explicit DetectInvalidElement( const util::Config& config ) {
         config.get( "ORCA2", orca2_ );
         config.get( "diagonal", largest_diatonal_ );
     }
@@ -55,5 +55,4 @@ private:
     bool orca2_{ false };
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

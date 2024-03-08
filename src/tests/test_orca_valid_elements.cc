@@ -33,8 +33,8 @@ using Grid   = atlas::Grid;
 using Config = atlas::util::Config;
 using Quad3D = atlas::interpolation::element::Quad3D;
 
-namespace atlas {
-namespace test {
+
+namespace atlas::test {
 
 CASE( "test generate orca mesh" ) {
     std::vector<std::string> gridnames{
@@ -98,8 +98,8 @@ CASE( "test generate orca mesh" ) {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace atlas
+}  // namespace atlas::test
+
 
 int main( int argc, char** argv ) {
     return atlas::test::run( argc, argv );

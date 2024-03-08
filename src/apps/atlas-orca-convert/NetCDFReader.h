@@ -24,20 +24,20 @@
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/OrcaDataFile.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 class NetCDFReader {
 public:
-    NetCDFReader( const util::Config& config = util::NoConfig() );
+    explicit NetCDFReader( const util::Config& = util::NoConfig() );
 
-    void read( const std::string& uri, OrcaData& data );
+    void read( const std::string& uri, OrcaData& );
 
 private:
     std::string arrangement_{ "T" };
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------

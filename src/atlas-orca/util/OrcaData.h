@@ -22,8 +22,8 @@
 
 #include "atlas-orca/util/DetectInvalidElements.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -51,5 +51,4 @@ public:
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

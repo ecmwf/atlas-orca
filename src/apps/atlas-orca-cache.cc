@@ -23,8 +23,7 @@
 #include "atlas-orca/util/Download.h"
 
 
-namespace atlas {
-namespace orca {
+namespace atlas::orca {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -113,8 +112,8 @@ int Tool::execute( const Args& args ) {
     return success();
 }
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------
 

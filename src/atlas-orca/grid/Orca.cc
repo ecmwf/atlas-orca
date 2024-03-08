@@ -29,12 +29,8 @@
 #include "atlas-orca/util/OrcaDataFile.h"
 #include "atlas-orca/util/OrcaPeriodicity.h"
 
-namespace atlas {
-namespace grid {
-namespace detail {
-namespace grid {
 
-namespace {
+namespace atlas::grid::detail::grid {
 
 static bool validate_uid() {
     static bool ATLAS_ORCA_VALIDATE_UID = bool(
@@ -58,6 +54,8 @@ static std::string spec_uid( const Grid::Spec& spec, const std::string& def = ""
     return spec.getString( "uid", def );
 }
 
+namespace {
+
 template <typename T>
 size_t memory( const T& container ) {
     return sizeof( typename T::value_type ) * container.size();
@@ -65,7 +63,6 @@ size_t memory( const T& container ) {
 size_t memory( const std::vector<bool>& container ) {
     return container.size() / 8;
 }
-
 
 }  // namespace
 
@@ -90,7 +87,12 @@ Orca::Orca( const Config& config ) :
     Orca( spec_name( config, spec_uid( config, config.getString( "name", "" ) ) ), config ) {}
 
 Orca::Orca( const std::string& name, const Config& config ) :
-    name_( spec_name( config, spec_uid( config, name ) ) ), spec_( config ) {
+    name_( spec_name( config, spec_uid( config, name ) ) ),
+    imin_( 0 ),
+    jmin_( 0 ),
+    istride_( 0 ),
+    jstride_( 0 ),
+    spec_( config ) {
     auto trace = atlas::Trace( Here(), "Orca(" + name_ + ")" );
 
     orca::OrcaData data;
@@ -109,10 +111,10 @@ Orca::Orca( const std::string& name, const Config& config ) :
     ny_halo_    = data.dimensions[1];
     nx_         = nx_halo_ - halo_west_ - halo_east_;
     ny_         = ny_halo_ - halo_south_ - halo_north_;
-    istride_    = 1;
-    jstride_    = nx_halo_;
     imin_       = halo_west_;
     jmin_       = halo_south_;
+    istride_    = 1;
+    jstride_    = nx_halo_;
     points_.resize( nx_halo_ * ny_halo_ );
     water_.resize( nx_halo_ * ny_halo_ );
     ghost_.resize( nx_halo_ * ny_halo_ );
@@ -144,8 +146,8 @@ Orca::Orca( const std::string& name, const Config& config ) :
         spec_.set( "uid", data.computeUid( spec_ ) );
     }
 
-    domain_ = GlobalDomain();
-    periodicity_.reset( new orca::OrcaPeriodicity( data ) );
+    domain_      = GlobalDomain();
+    periodicity_ = std::make_unique<orca::OrcaPeriodicity>( data );
 }
 
 void Orca::hash( eckit::Hash& h ) const {
@@ -177,14 +179,11 @@ size_t Orca::footprint() const {
 }
 
 Grid::Config Orca::meshgenerator() const {
-    return Config( "type", "orca" );
+    return { "type", "orca" };
 }
 
 Grid::Config Orca::partitioner() const {
     return Config( "type", "checkerboard" )( "regular", true );
 }
 
-}  // namespace grid
-}  // namespace detail
-}  // namespace grid
-}  // namespace atlas
+}  // namespace atlas::grid::detail::grid

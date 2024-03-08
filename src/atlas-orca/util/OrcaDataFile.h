@@ -28,8 +28,7 @@
 #include "atlas-orca/util/Download.h"
 
 
-namespace atlas {
-namespace orca {
+namespace atlas::orca {
 
 static std::vector<std::string> known_urls() {
     std::vector<std::string> urls;
@@ -43,7 +42,7 @@ static std::vector<std::string> search_paths() {
     eckit::Tokenizer tokenize( ":" );
     std::vector<std::string> tokenized;
     tokenize( Library::instance().dataPath(), tokenized );
-    for ( auto& t : tokenized ) {
+    for ( const auto& t : tokenized ) {
         if ( not t.empty() ) {
             paths.push_back( t );
         }
@@ -57,10 +56,10 @@ static std::vector<std::string> search_paths() {
 
 class OrcaDataFile {
 public:
-    OrcaDataFile( const std::string& uri, const std::string& checksum = "" ) {
-        uri_             = eckit::URI( uri );
-        checksum_        = checksum;
+    explicit OrcaDataFile( const std::string& uri, const std::string& checksum = "" ) :
+        uri_( uri ), checksum_( checksum ) {
         auto file_search = FileSearch{ search_paths(), known_urls() };
+
         if ( uri_.scheme().find( "http" ) == 0 ) {
             std::string url = uri_.asRawString();
 
@@ -68,13 +67,13 @@ public:
                          << std::endl;
             int found = 0;
             if ( mpi::comm().rank() == 0 ) {
-                found = file_search( url, path_ );
+                found = file_search( url, path_ ) ? 1 : 0;
             }
             mpi::comm().broadcast( found, 0 );
-            if ( not found ) {
+            if ( found == 0 ) {
                 Log::debug() << "File " << uri << " has not been found in " << file_search.searchPath() << std::endl;
             }
-            if ( found ) {
+            if ( found == 1 ) {
                 if ( mpi::comm().rank() != 0 ) {
                     // Find path also on non-zero ranks
                     ATLAS_ASSERT( file_search( url, path_ ) );
@@ -104,9 +103,8 @@ public:
             }
         }
         else {
-            bool found;
-            path_ = uri_.path();
-            found = path_.exists();
+            path_      = uri_.path();
+            auto found = path_.exists();
             if ( not found ) {
                 found = file_search( uri_.path(), path_ );
                 if ( found ) {
@@ -121,9 +119,9 @@ public:
 
     const eckit::PathName& path() const { return path_; }
 
-    operator const eckit::PathName&() const { return path(); }
+    explicit operator const eckit::PathName&() const { return path(); }
     operator std::string() const { return path_.asString(); }
-    operator const char*() const { return c_str(); }
+    explicit operator const char*() const { return c_str(); }
     const char* c_str() const { return path_.localPath(); }
 
 private:
@@ -132,5 +130,4 @@ private:
     std::string checksum_;
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

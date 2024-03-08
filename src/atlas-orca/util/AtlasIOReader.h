@@ -20,8 +20,8 @@
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/OrcaDataFile.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 class AtlasIOReader {
 public:
@@ -49,7 +49,7 @@ public:
     }
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------

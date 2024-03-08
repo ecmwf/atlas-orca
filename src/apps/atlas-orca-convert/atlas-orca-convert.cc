@@ -28,8 +28,8 @@
 #include "atlas-orca/util/AtlasIOReader.h"
 #include "atlas-orca/util/OrcaData.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -168,7 +168,8 @@ int Tool::execute( const Args& args ) {
     if ( not yaml_output ) {
         ATLAS_TRACE( "Write data file" );
         auto length = data.write( outputfile, args );
-        Log::info() << "Written " << eckit::Bytes( length ) << " to file " << outputfile << std::endl;
+        Log::info() << "Written " << eckit::Bytes( static_cast<double>( length ) ) << " to file " << outputfile
+                    << std::endl;
     }
 
     if ( yaml_output ) {
@@ -187,8 +188,8 @@ int Tool::execute( const Args& args ) {
     return success();
 }
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------
 

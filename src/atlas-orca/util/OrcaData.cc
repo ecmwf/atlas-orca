@@ -22,8 +22,8 @@
 #include "atlas-orca/util/Flag.h"
 #include "atlas-orca/util/OrcaPeriodicity.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 void OrcaData::setGhost() {
     idx_t ni = dimensions[0];
@@ -53,7 +53,7 @@ void OrcaData::makeHaloConsistent() {
     for ( size_t j = 0; j < nj; ++j ) {
         for ( size_t i = 0; i < ni; ++i ) {
             size_t n        = ni * j + i;
-            auto master     = compute_master( i, j );
+            auto master     = compute_master( static_cast<idx_t>( i ), static_cast<idx_t>( j ) );
             size_t n_master = ni * master.j + master.i;
             if ( n_master != n ) {
                 if ( lon[n] != lon[n_master] || lat[n] != lat[n_master] ) {
@@ -105,7 +105,7 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
     idx_t ni          = dimensions[0];
     idx_t nj          = dimensions[1];
     idx_t nx          = ni - halo[HALO_EAST] - halo[HALO_WEST];
-    double resolution = 360. / double( nx );
+    double resolution = 360. / static_cast<double>( nx );
 
     util::Config detection_config;
     detection_config.set( "ORCA2", ( std::abs( resolution - 2. ) < 0.1 ) );
@@ -147,7 +147,8 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
                     }
                     else {
                         for ( int k = invalid_factor - 1; k >= diagonal_factor; --k ) {
-                            if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW, double( k ) * resolution ) ) {
+                            if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW,
+                                                            static_cast<double>( k ) * resolution ) ) {
                                 Log::warning() << "Element {I,J} = {" << i << "," << j
                                                << "} is not invalidated as it contains water, even though (diagonal > "
                                                << diagonal_factor << " * ref_length)." << std::endl;
@@ -199,5 +200,4 @@ size_t atlas::orca::OrcaData::write( const eckit::PathName& path, const util::Co
 }
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

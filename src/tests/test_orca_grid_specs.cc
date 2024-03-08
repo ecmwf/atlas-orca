@@ -12,8 +12,8 @@
 
 #include "tests/AtlasTestEnvironment.h"
 
-namespace atlas {
-namespace test {
+
+namespace atlas::test {
 
 //-----------------------------------------------------------------------------
 
@@ -64,8 +64,8 @@ CASE( "test spec" ) {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace atlas
+}  // namespace atlas::test
+
 
 int main( int argc, char** argv ) {
     return atlas::test::run( argc, argv );

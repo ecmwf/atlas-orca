@@ -15,8 +15,8 @@
 #include "atlas/interpolation/element/Quad3D.h"
 #include "atlas/util/NormaliseLongitude.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 bool DetectInvalidElement::invalid_quad_2d( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE,
                                             const PointLonLat& p_NW ) const {
@@ -78,8 +78,8 @@ bool DetectInvalidElement::invalid_element( const PointLonLat& p_SW, const Point
             constexpr util::NormaliseLongitude normalized{ -180. };
             double lon_min = normalized( std::min( { p_SW.lon(), p_SE.lon(), p_NE.lon(), p_NW.lon() } ) );
             if ( lon_min > -20. && lon_min < 20. ) {
-                double dlat_W = p_NW.lat() - p_SW.lat();
-                double dlat_E = p_NE.lat() - p_SE.lat();
+                // double dlat_W = p_NW.lat() - p_SW.lat();
+                // double dlat_E = p_NE.lat() - p_SE.lat();
                 double dlon_N = p_NE.lon() - p_NW.lon();
                 double dlon_S = p_SE.lon() - p_SW.lon();
                 if ( std::max( dlon_N, dlon_S ) > 2. * std::min( dlon_N, dlon_S ) ) {
@@ -99,5 +99,4 @@ bool DetectInvalidElement::invalid_element( const PointLonLat& p_SW, const Point
 }
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

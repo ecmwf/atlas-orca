@@ -18,7 +18,7 @@ inline const OrcaGrid::grid_t* orca_grid( const Grid::Implementation* grid ) {
     return dynamic_cast<const OrcaGrid::grid_t*>( grid );
 }
 
-OrcaGrid::OrcaGrid() : Grid() {}
+OrcaGrid::OrcaGrid() = default;
 
 OrcaGrid::OrcaGrid( const std::string& name ) : Grid{ name }, grid_{ orca_grid( Grid::get() ) } {}
 

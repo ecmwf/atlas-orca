@@ -16,8 +16,8 @@
 #include "atlas-orca/util/PointIJ.h"
 #include "atlas/library/config.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ private:
     idx_t iend_;
 
 public:
-    OrcaPeriodicity( const OrcaData& orca );
+    explicit OrcaPeriodicity( const OrcaData& orca );
 
     OrcaPeriodicity( const std::array<std::int32_t, 2>& dimensions, const std::array<std::int32_t, 4>& halo,
                      const std::array<double, 2>& pivot );
@@ -50,9 +50,10 @@ public:
         if ( i >= iend_ ) {
             master.i -= nx_;
         }
-        if ( double( master.j ) > pivot_[1] || ( double( master.j ) == pivot_[1] && double( master.i ) > pivot_[0] ) ) {
-            master.i = idx_t( 2. * pivot_[0] ) - master.i;
-            master.j = idx_t( 2. * pivot_[1] ) - master.j;
+        if ( static_cast<double>( master.j ) > pivot_[1] ||
+             ( static_cast<double>( master.j ) == pivot_[1] && static_cast<double>( master.i ) > pivot_[0] ) ) {
+            master.i = static_cast<idx_t>( 2. * pivot_[0] ) - master.i;
+            master.j = static_cast<idx_t>( 2. * pivot_[1] ) - master.j;
             if ( master.i < ibegin_ ) {
                 master.i += nx_;
             }
@@ -64,5 +65,4 @@ public:
     }
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

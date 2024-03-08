@@ -14,11 +14,10 @@
 
 #include "eckit/filesystem/PathName.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 size_t download( const std::string& url, const eckit::PathName& path );
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

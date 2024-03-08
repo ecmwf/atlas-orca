@@ -22,10 +22,8 @@
 #include "atlas/library.h"
 #include "atlas/util/Config.h"
 
-namespace atlas {
-namespace grid {
-namespace detail {
-namespace grid {
+
+namespace atlas::grid::detail::grid {
 
 
 static class OrcaGridBuilder : public GridBuilder {
@@ -75,7 +73,4 @@ public:
 
 } orca_;
 
-}  // namespace grid
-}  // namespace detail
-}  // namespace grid
-}  // namespace atlas
+}  // namespace atlas::grid::detail::grid

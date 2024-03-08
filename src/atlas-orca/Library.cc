@@ -24,8 +24,7 @@ class Grid;
 }
 
 
-namespace atlas {
-namespace orca {
+namespace atlas::orca {
 
 
 REGISTER_LIBRARY( Library );
@@ -81,5 +80,4 @@ std::string Library::gridsPath() const {
     return ATLAS_ORCA_GRIDS_PATH;
 }
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

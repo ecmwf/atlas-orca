@@ -27,8 +27,8 @@ public:
     OrcaGrid( const std::string& name );
     OrcaGrid( const Grid& );
 
-    bool valid() const { return grid_; }
-    operator bool() const { return valid(); }
+    bool valid() const { return grid_ != nullptr; }
+    explicit operator bool() const { return valid(); }
 
     idx_t ny() const { return grid_->ny(); }
     idx_t nx() const { return grid_->nx(); }
