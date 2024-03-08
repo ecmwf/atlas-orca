@@ -11,8 +11,7 @@
 #include "OrcaData.h"
 
 #include "eckit/log/ProgressTimer.h"
-
-#include "atlas/io/atlas-io.h"
+#include "eckit/codec/codec.h"
 
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
@@ -187,15 +186,15 @@ void atlas::orca::OrcaData::checkSetup() {
 
 size_t atlas::orca::OrcaData::write( const eckit::PathName& path, const util::Config& config ) {
     checkSetup();
-    io::RecordWriter record;
+    eckit::codec::RecordWriter record;
     record.compression( config.getString( "compression", "none" ) );
     record.set( "version", 0 );
-    record.set( "dimensions", io::ref( dimensions ) );
-    record.set( "halo", io::ref( halo ) );
-    record.set( "pivot", io::ref( pivot ) );
-    record.set( "longitude", io::ArrayReference( lon.data(), dimensions ) );
-    record.set( "latitude", io::ArrayReference( lat.data(), dimensions ) );
-    record.set( "flags", io::ArrayReference( flags.data(), dimensions ) );
+    record.set( "dimensions", eckit::codec::ref( dimensions ) );
+    record.set( "halo", eckit::codec::ref( halo ) );
+    record.set( "pivot", eckit::codec::ref( pivot ) );
+    record.set( "longitude", eckit::codec::ArrayReference( lon.data(), dimensions ) );
+    record.set( "latitude", eckit::codec::ArrayReference( lat.data(), dimensions ) );
+    record.set( "flags", eckit::codec::ArrayReference( flags.data(), dimensions ) );
     return record.write( path );
 }
 

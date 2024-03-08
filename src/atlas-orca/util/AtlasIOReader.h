@@ -10,17 +10,11 @@
 
 #pragma once
 
-#include <cstring>
-#include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 
+#include "eckit/codec/codec.h"
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/log/ProgressTimer.h"
-
-#include "atlas/io/atlas-io.h"
 #include "atlas/runtime/Exception.h"
 
 #include "atlas-orca/util/OrcaData.h"
@@ -31,14 +25,14 @@ namespace orca {
 
 class AtlasIOReader {
 public:
-    AtlasIOReader( const util::Config& config = util::NoConfig() ) {}
+    explicit AtlasIOReader( const util::Config& = util::NoConfig() ) {}
 
     void read( const std::string& uri, OrcaData& data ) {
         OrcaDataFile file{uri};
 
-        io::RecordReader reader( file );
+        eckit::codec::RecordReader reader( file );
 
-        int version;
+        int version = 0;
         reader.read( "version", version ).wait();
         if ( version == 0 ) {
             reader.read( "dimensions", data.dimensions );

@@ -42,7 +42,7 @@ ecbuild_add_library(
         util/PointIJ.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         version.h
-    PUBLIC_LIBS atlas
+    PUBLIC_LIBS atlas eckit_codec
     PUBLIC_INCLUDES 
        $<INSTALL_INTERFACE:include/atlas-orca>
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
