@@ -74,13 +74,13 @@ private:
             jend_( grid.ny() + grid.haloNorth() ),
             i_( -grid.haloWest() ),
             j_( -grid.haloSouth() ),
-            compute_point_{grid_} {
+            compute_point_{ grid_ } {
             if ( not begin ) {
                 i_ = ibegin_;
                 j_ = jend_;
             }
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
         }
 
@@ -104,8 +104,8 @@ private:
                 ++j_;
                 i_ = ibegin_;
             }
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
             return *this;
         }
@@ -119,8 +119,8 @@ private:
                 i_ = ibegin_;
             }
             i_ += d;
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
             return *this;
         }

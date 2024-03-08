@@ -67,18 +67,16 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
 #ifdef ATLAS_ORCA_HAVE_ECKIT_URLHANDLE
     try {
         length = eckit::URLHandle( url ).saveInto( path_tmp );
-        if( length <= 0 && eckit_version_int() <= 11601 /*1.16.1*/ ) {
+        if ( length <= 0 && eckit_version_int() <= 11601 /*1.16.1*/ ) {
             // Problems with eckit::URLHandle fixed in further version
-            Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call."
-                           << std::endl;
+            Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call." << std::endl;
             length = curl_download( url, path_tmp );
         }
     }
     catch ( eckit::SeriousBug ) {
-        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call."
-                       << std::endl;
+        Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call." << std::endl;
 #else
-    try{
+    try {
 #endif
         length = curl_download( url, path_tmp );
     }
@@ -96,9 +94,9 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
         std::string content;
         content.resize( path_tmp.size() );
 
-        eckit::FileHandle file(path_tmp);
+        eckit::FileHandle file( path_tmp );
         file.openForRead();
-        file.read(const_cast<char*>(content.data()), content.size());
+        file.read( const_cast<char*>( content.data() ), content.size() );
         file.close();
 
         if ( content.find( "Error 404" ) ) {

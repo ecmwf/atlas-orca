@@ -41,7 +41,7 @@ void NetCDFReader::read( const std::string& uri, OrcaData& data ) {
 #if ATLAS_ORCA_HAVE_NETCDF == 0
     ATLAS_THROW_EXCEPTION( "atlas-orca was not compiled with NetCDF support" );
 #else
-    OrcaDataFile file{uri};
+    OrcaDataFile file{ uri };
 
     netCDF::NcFile ncdata( file, netCDF::NcFile::read );
     auto read_dimensions = [&]( size_t& ni, size_t& nj ) {
@@ -68,12 +68,12 @@ void NetCDFReader::read( const std::string& uri, OrcaData& data ) {
         if ( dims.size() == 3 ) {
             ATLAS_ASSERT( dims[1].getSize() == nj );
             ATLAS_ASSERT( dims[2].getSize() == ni );
-            var.getVar( {0, 0, 0}, {1, nj, ni}, values.data() );
+            var.getVar( { 0, 0, 0 }, { 1, nj, ni }, values.data() );
         }
         else if ( dims.size() == 4 ) {
             ATLAS_ASSERT( dims[2].getSize() == nj );
             ATLAS_ASSERT( dims[3].getSize() == ni );
-            var.getVar( {0, 0, 0, 0}, {1, 1, nj, ni}, values.data() );
+            var.getVar( { 0, 0, 0, 0 }, { 1, 1, nj, ni }, values.data() );
         }
         else {
             std::stringstream errmsg;
@@ -98,10 +98,10 @@ void NetCDFReader::read( const std::string& uri, OrcaData& data ) {
     read_variable( "gphi" + p, data.lat );
     read_variable( p + "mask", mask );
 
-    data.dimensions = {int( ni ), int( nj )};
+    data.dimensions = { int( ni ), int( nj ) };
     data.flags.resize( ni * nj );
     for ( size_t n = 0; n < data.flags.size(); ++n ) {
-        Flag flag{data.flags[n]};
+        Flag flag{ data.flags[n] };
         if ( mask[n] != 0. ) {
             flag.set( Flag::WATER );
         }
@@ -109,10 +109,10 @@ void NetCDFReader::read( const std::string& uri, OrcaData& data ) {
 
     data.halo[HALO_EAST] = 1;
     data.halo[HALO_WEST] = 1;
-    eckit::Fraction resolution{360, int( ni ) - data.halo[HALO_EAST] - data.halo[HALO_WEST]};
+    eckit::Fraction resolution{ 360, int( ni ) - data.halo[HALO_EAST] - data.halo[HALO_WEST] };
     if ( resolution != 1. ) {
         // T-pivot
-        data.pivot = {double( ni / 2 ), double( nj - 2 )};
+        data.pivot = { double( ni / 2 ), double( nj - 2 ) };
         if ( P == "T" || P == "W" ) {
             data.halo[HALO_NORTH] = 1;
             data.halo[HALO_SOUTH] = 1;
@@ -139,7 +139,7 @@ void NetCDFReader::read( const std::string& uri, OrcaData& data ) {
     }
     else {
         // F-pivot
-        data.pivot = {double( ni / 2 - 1 ), double( nj - 2 )};
+        data.pivot = { double( ni / 2 - 1 ), double( nj - 2 ) };
         if ( P == "T" || P == "W" ) {
             data.halo[HALO_NORTH] = 1;
             data.halo[HALO_SOUTH] = 1;

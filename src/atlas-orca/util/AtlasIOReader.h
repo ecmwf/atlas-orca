@@ -28,7 +28,7 @@ public:
     explicit AtlasIOReader( const util::Config& = util::NoConfig() ) {}
 
     void read( const std::string& uri, OrcaData& data ) {
-        OrcaDataFile file{uri};
+        OrcaDataFile file{ uri };
 
         eckit::codec::RecordReader reader( file );
 

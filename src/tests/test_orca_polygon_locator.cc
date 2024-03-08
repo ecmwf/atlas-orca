@@ -32,42 +32,40 @@ namespace test {
 //-----------------------------------------------------------------------------
 
 CASE( "test orca polygon locator" ) {
-
     auto gridnames = std::vector<std::string>{
-        "ORCA2_T",   //
-        "eORCA1_T",  //
+        "ORCA2_T",     //
+        "eORCA1_T",    //
         "eORCA025_T",  //
         // "eORCA12_T",  //
     };
 
     std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );
     if ( not grid_resource.empty() ) {
-        gridnames = {grid_resource};
+        gridnames = { grid_resource };
     }
 
     for ( auto gridname : gridnames ) {
         SECTION( gridname ) {
-            OrcaGrid grid      = Grid( gridname );
-            grid::Partitioner partitioner("equal_regions", atlas::mpi::size());
-            auto meshgenerator = MeshGenerator{"orca"};
+            OrcaGrid grid = Grid( gridname );
+            grid::Partitioner partitioner( "equal_regions", atlas::mpi::size() );
+            auto meshgenerator = MeshGenerator{ "orca" };
             auto mesh          = meshgenerator.generate( grid, partitioner );
             REQUIRE( mesh.grid() );
             EXPECT( mesh.grid().name() == gridname );
-            atlas::util::ListPolygonXY polygon_list(mesh.polygons());
+            atlas::util::ListPolygonXY polygon_list( mesh.polygons() );
             //mesh.polygon(0).outputPythonScript("polygon.py",
             //                                   Config("nodes", false)("coordinates", "xy"));
-            atlas::util::PolygonLocator locator(polygon_list, mesh.projection());
+            atlas::util::PolygonLocator locator( polygon_list, mesh.projection() );
 
             // fails on ORCA2 because partition polygon is not connected space
             // (ORCA2 grids have a cut out area for the mediterranean)
             idx_t part;
-            part = locator({82.0, 10.0});
+            part = locator( { 82.0, 10.0 } );
             ATLAS_DEBUG_VAR( part );
             // would fail on ORCA025 because xy coordinate system doesn't cover
             // 0-360. A fix for this has been added to the locator in atlas 0.32.0.
-            part = locator({-173.767, -61.1718});
+            part = locator( { -173.767, -61.1718 } );
             ATLAS_DEBUG_VAR( part );
-
         }
     }
 }

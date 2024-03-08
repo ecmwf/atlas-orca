@@ -20,10 +20,10 @@ namespace orca {
 class DetectInvalidElement {
 public:
     struct Statistics {
-        size_t invalid_elements{0};
-        size_t invalid_quads_3d{0};
-        size_t invalid_quads_2d{0};
-        size_t diagonal_too_large{0};
+        size_t invalid_elements{ 0 };
+        size_t invalid_quads_3d{ 0 };
+        size_t invalid_quads_2d{ 0 };
+        size_t diagonal_too_large{ 0 };
     };
 
     DetectInvalidElement( const util::Config& config ) {
@@ -51,8 +51,8 @@ public:
 
 private:
     geometry::Earth sphere_;
-    double largest_diatonal_{0};
-    bool orca2_{false};
+    double largest_diatonal_{ 0 };
+    bool orca2_{ false };
 };
 
 }  // namespace orca

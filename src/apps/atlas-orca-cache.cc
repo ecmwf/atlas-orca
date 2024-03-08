@@ -10,9 +10,9 @@
 
 
 #include <iostream>
-#include <vector>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "eckit/codec/codec.h"
 
@@ -30,7 +30,7 @@ namespace orca {
 
 struct Tool : public atlas::AtlasTool {
     bool serial() override { return true; }
-    int execute( const Args&  ) override;
+    int execute( const Args& ) override;
     std::string briefDescription() override { return "Create binary grid data files "; }
     std::string usage() override { return name() + " <file> --grid=NAME [OPTION]... [--help,-h]"; }
     std::string longDescription() override {
@@ -77,7 +77,7 @@ int Tool::execute( const Args& args ) {
         }
     }
     ComputeCachedPath compute_cached_path(
-        {"https://get.ecmwf.int/repository/atlas/grids/orca", "http://get.ecmwf.int/repository/atlas/grids/orca"} );
+        { "https://get.ecmwf.int/repository/atlas/grids/orca", "http://get.ecmwf.int/repository/atlas/grids/orca" } );
 
     std::vector<std::string> failed_urls;
     for ( const auto& url : urls ) {

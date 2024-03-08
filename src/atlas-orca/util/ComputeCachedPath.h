@@ -27,18 +27,16 @@ namespace orca {
 class FileSearch {
 public:
     FileSearch( const std::vector<std::string> search_paths, const std::vector<std::string>& known_urls ) :
-        search_paths_{search_paths},
-        known_urls_{known_urls} {
-    }
+        search_paths_{ search_paths }, known_urls_{ known_urls } {}
     bool operator()( const std::string& url, eckit::PathName& path ) const {
-        std::string search_file = file(url);
-        for( auto& search_path : search_paths_ ) {
+        std::string search_file = file( url );
+        for ( auto& search_path : search_paths_ ) {
             std::string join = "";
-            if( not search_path.empty() && search_path[search_path.size()-1] != '/' ) {
+            if ( not search_path.empty() && search_path[search_path.size() - 1] != '/' ) {
                 join = "/";
             }
             eckit::PathName search = search_path + join + search_file;
-            if( search.exists() ) {
+            if ( search.exists() ) {
                 path = search;
                 return true;
             }
@@ -60,7 +58,7 @@ public:
                 std::string filename = url.substr( url.find_last_of( "/" ), url.size() );
                 return "atlas/grids/orca/unknown" + filename;
             }
-            ATLAS_THROW_EXCEPTION("Should not be here");
+            ATLAS_THROW_EXCEPTION( "Should not be here" );
         }
         else {
             return url;
@@ -69,8 +67,8 @@ public:
 
     std::string searchPath() const {
         std::stringstream joined;
-        for( size_t i=0; i<search_paths_.size(); ++i ) {
-            if( i > 0 ) {
+        for ( size_t i = 0; i < search_paths_.size(); ++i ) {
+            if ( i > 0 ) {
                 joined << ":";
             }
             joined << search_paths_[i];
@@ -85,7 +83,7 @@ private:
 
 class ComputeCachedPath {
 public:
-    ComputeCachedPath( const std::vector<std::string>& known_urls ) : known_urls_{known_urls} {}
+    ComputeCachedPath( const std::vector<std::string>& known_urls ) : known_urls_{ known_urls } {}
     eckit::PathName operator()( const std::string& url ) const {
         eckit::PathName path;
         bool is_known_url = false;

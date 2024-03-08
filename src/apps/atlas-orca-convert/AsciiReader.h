@@ -102,8 +102,8 @@ struct ReadLine {
 
 class AsciiReader {
 private:
-    bool verbose_{false};
-    int version_{2};
+    bool verbose_{ false };
+    int version_{ 2 };
     std::vector<double> pivot_v1_;
 
 public:
@@ -114,21 +114,21 @@ public:
     }
 
     void read( const std::string& uri, OrcaData& data ) {
-        OrcaDataFile file{uri};
+        OrcaDataFile file{ uri };
 
         auto trace = atlas::Trace( Here(), "read" );
 
-        std::ifstream ifstrm{file.c_str()};
+        std::ifstream ifstrm{ file.c_str() };
 
         // Reading header
         std::string line;
         std::getline( ifstrm, line );
-        std::istringstream iss{line};
+        std::istringstream iss{ line };
 
         std::int32_t nx_halo = 0;
         std::int32_t ny_halo = 0;
         auto& halo           = data.halo;
-        halo                 = {0, 0, 0, 0};
+        halo                 = { 0, 0, 0, 0 };
 
         ATLAS_ASSERT( iss >> nx_halo >> ny_halo, "Error while reading header" );
         if ( version_ == 1 ) {
@@ -164,14 +164,14 @@ public:
                 ++progress;
                 master[n] = n;
                 std::getline( ifstrm, line );
-                std::istringstream iss{line};
+                std::istringstream iss{ line };
                 iss >> r;
                 r.fix();
 
                 data.lon[n] = r.lon;
                 data.lat[n] = r.lat;
 
-                Flag flag{data.flags[n]};
+                Flag flag{ data.flags[n] };
                 if ( r.core == 0. ) {  // ghost
                     flag.set( Flag::GHOST );
                     if ( version_ >= 2 ) {
@@ -269,7 +269,7 @@ public:
         constexpr int E = HALO_EAST;
         auto& halo      = data.halo;
 
-        OrcaPeriodicity compute_master{data};
+        OrcaPeriodicity compute_master{ data };
 
         Log::info() << "pivot_i = " << data.pivot[0] << std::endl;
         Log::info() << "pivot_j = " << data.pivot[1] << std::endl;
@@ -280,7 +280,7 @@ public:
             for ( idx_t i = 0; i < ni; ++i ) {
                 auto master = compute_master( i, j );
                 idx_t n     = ni * j + i;
-                Flag flag{data.flags[n]};
+                Flag flag{ data.flags[n] };
 
                 if ( j < halo[S] || j >= nj - halo[N] ) {
                     ATLAS_ASSERT( flag.test( Flag::GHOST ) );

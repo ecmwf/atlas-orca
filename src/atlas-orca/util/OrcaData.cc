@@ -10,8 +10,8 @@
 
 #include "OrcaData.h"
 
-#include "eckit/log/ProgressTimer.h"
 #include "eckit/codec/codec.h"
+#include "eckit/log/ProgressTimer.h"
 
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
@@ -29,11 +29,11 @@ void OrcaData::setGhost() {
     idx_t ni = dimensions[0];
     idx_t nj = dimensions[1];
 
-    OrcaPeriodicity compute_master{*this};
+    OrcaPeriodicity compute_master{ *this };
     for ( idx_t j = 0; j < nj; ++j ) {
         for ( idx_t i = 0; i < ni; ++i ) {
             idx_t n = ni * j + i;
-            Flag flag{flags[n]};
+            Flag flag{ flags[n] };
             flag.unset( Flag::GHOST );
             auto master = compute_master( i, j );
             if ( j < halo[HALO_SOUTH] ) {
@@ -49,7 +49,7 @@ void OrcaData::setGhost() {
 void OrcaData::makeHaloConsistent() {
     size_t ni = dimensions[0];
     size_t nj = dimensions[1];
-    OrcaPeriodicity compute_master{*this};
+    OrcaPeriodicity compute_master{ *this };
     for ( size_t j = 0; j < nj; ++j ) {
         for ( size_t i = 0; i < ni; ++i ) {
             size_t n        = ni * j + i;
@@ -57,8 +57,8 @@ void OrcaData::makeHaloConsistent() {
             size_t n_master = ni * master.j + master.i;
             if ( n_master != n ) {
                 if ( lon[n] != lon[n_master] || lat[n] != lat[n_master] ) {
-                    PointLonLat point_n{lon[n], lat[n]};
-                    PointLonLat point_n_master{lon[n_master], lat[n_master]};
+                    PointLonLat point_n{ lon[n], lat[n] };
+                    PointLonLat point_n_master{ lon[n_master], lat[n_master] };
                     double distance = geometry::Earth().distance( point_n, point_n_master );
                     if ( distance > 1 /*metre*/ ) {
                         Log::warning() << "Fixed halo inconsistency for {" << i << "," << j << "}:  " << point_n
@@ -69,8 +69,8 @@ void OrcaData::makeHaloConsistent() {
                 lon[n] = lon[n_master];
                 lat[n] = lat[n_master];
 
-                Flag flag_n{flags[n]};
-                Flag flag_n_master{flags[n_master]};
+                Flag flag_n{ flags[n] };
+                Flag flag_n_master{ flags[n_master] };
                 if ( flag_n.test( Flag::WATER ) != flag_n_master.test( Flag::WATER ) ) {
                     flag_n.unset( Flag::WATER );
                     if ( flag_n_master.test( Flag::WATER ) ) {
@@ -112,7 +112,7 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
     detection_config.set( "diagonal", resolution * diagonal_factor );
     DetectInvalidElement detect( detection_config );
 
-    auto is_water = [&]( int n ) -> bool { return Flag{flags[n]}.test( Flag::WATER ); };
+    auto is_water = [&]( int n ) -> bool { return Flag{ flags[n] }.test( Flag::WATER ); };
 
     eckit::ProgressTimer progress( "Detect invalid elements", ( nj - 1 ) * ( ni - 1 ), "point", 5., Log::trace() );
     for ( idx_t j = 0; j < nj - 1; ++j ) {
@@ -123,14 +123,14 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
             idx_t n_NW = ( j + 1 ) * ni + i;
             idx_t n_NE = n_NW + 1;
 
-            Flag{flags[n_SW]}.unset( Flag::INVALID_ELEMENT );
+            Flag{ flags[n_SW] }.unset( Flag::INVALID_ELEMENT );
 
             bool element_contains_water = is_water( n_SW ) || is_water( n_SE ) || is_water( n_NW ) || is_water( n_NE );
 
-            PointLonLat p_SW{lon[n_SW], lat[n_SW]};
-            PointLonLat p_SE{lon[n_SE], lat[n_SE]};
-            PointLonLat p_NW{lon[n_NW], lat[n_NW]};
-            PointLonLat p_NE{lon[n_NE], lat[n_NE]};
+            PointLonLat p_SW{ lon[n_SW], lat[n_SW] };
+            PointLonLat p_SE{ lon[n_SE], lat[n_SE] };
+            PointLonLat p_NW{ lon[n_NW], lat[n_NW] };
+            PointLonLat p_NE{ lon[n_NE], lat[n_NE] };
             p_SE.normalise( p_SW.lon() - 180. );
             p_NW.normalise( p_SW.lon() - 180. );
             p_NE.normalise( p_SW.lon() - 180. );
@@ -159,7 +159,7 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
                         continue;
                     }
                 }
-                Flag{flags[n_SW]}.set( Flag::INVALID_ELEMENT );
+                Flag{ flags[n_SW] }.set( Flag::INVALID_ELEMENT );
             }
         }
     }

@@ -29,9 +29,9 @@ namespace orca {
 
 class OrcaData {
 public:
-    std::array<std::int32_t, 2> dimensions{-1, -1};
-    std::array<std::int32_t, 4> halo{-1, -1, -1, -1};
-    std::array<double, 2> pivot{-1, -1};
+    std::array<std::int32_t, 2> dimensions{ -1, -1 };
+    std::array<std::int32_t, 4> halo{ -1, -1, -1, -1 };
+    std::array<double, 2> pivot{ -1, -1 };
     std::vector<double> lon;
     std::vector<double> lat;
     std::vector<std::byte> flags;

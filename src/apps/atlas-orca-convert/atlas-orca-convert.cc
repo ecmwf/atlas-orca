@@ -80,7 +80,7 @@ int Tool::execute( const Args& args ) {
         help( std::cout );
         return failed();
     }
-    std::string input{args( 0 )};
+    std::string input{ args( 0 ) };
     if ( input.find( "http" ) != 0 ) {
         eckit::PathName file( input );
         if ( !file.exists() ) {
@@ -120,7 +120,7 @@ int Tool::execute( const Args& args ) {
     OrcaData data;
 
     if ( input_format.find( "netcdf" ) == 0 ) {
-        NetCDFReader{args}.read( input, data );
+        NetCDFReader{ args }.read( input, data );
     }
     else if ( input_format.find( "ascii-v" ) == 0 ) {
         std::string version_str = input_format.substr( 7 );
@@ -131,7 +131,7 @@ int Tool::execute( const Args& args ) {
         reader.read( input, data );
     }
     else if ( input_format == "atlas-io" ) {
-        AtlasIOReader{util::NoConfig()}.read( input, data );
+        AtlasIOReader{ util::NoConfig() }.read( input, data );
     }
     else {
         Log::warning() << "Unknown input_format \"" << input_format << "\"" << std::endl;
@@ -150,11 +150,11 @@ int Tool::execute( const Args& args ) {
         const int halo_E = data.halo[HALO_EAST];
         int nx           = data.dimensions[0] - halo_W - halo_E;
 
-        Log::info() << "resolution       : " << eckit::Fraction{360, nx} << " degrees" << std::endl;
-        Log::info() << "dimensions       : "
-                    << "[" << data.dimensions[0] << "," << data.dimensions[1] << "]" << std::endl;
-        Log::info() << "halo [N,W,S,E]   : "
-                    << "[" << halo_N << "," << halo_W << "," << halo_S << "," << halo_E << "]" << std::endl;
+        Log::info() << "resolution       : " << eckit::Fraction{ 360, nx } << " degrees" << std::endl;
+        Log::info() << "dimensions       : " << "[" << data.dimensions[0] << "," << data.dimensions[1] << "]"
+                    << std::endl;
+        Log::info() << "halo [N,W,S,E]   : " << "[" << halo_N << "," << halo_W << "," << halo_S << "," << halo_E << "]"
+                    << std::endl;
         Log::info() << "invalid elements : " << invalid_element_statistics.invalid_elements << std::endl;
         if ( invalid_element_statistics.invalid_elements > 0 ) {
             Log::info() << "    quad2d       : " << invalid_element_statistics.invalid_quads_2d << std::endl;

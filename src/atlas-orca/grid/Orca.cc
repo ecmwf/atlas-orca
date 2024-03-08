@@ -97,7 +97,7 @@ Orca::Orca( const std::string& name, const Config& config ) :
 
     {
         // Read data
-        orca::OrcaDataFile file{spec_.getString( "data" )};
+        orca::OrcaDataFile file{ spec_.getString( "data" ) };
         orca::AtlasIOReader{}.read( file, data );
     }
 
@@ -118,7 +118,7 @@ Orca::Orca( const std::string& name, const Config& config ) :
     ghost_.resize( nx_halo_ * ny_halo_ );
     invalid_element_.resize( nx_halo_ * ny_halo_ );
 
-    size_t nn{0};
+    size_t nn{ 0 };
     for ( idx_t j = 0; j < ny_halo_; ++j ) {
         for ( idx_t i = 0; i < nx_halo_; ++i, ++nn ) {
             gidx_t n = j * jstride_ + i;

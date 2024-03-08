@@ -43,7 +43,7 @@ public:
     PointIJ operator()( idx_t i, idx_t j ) const { return compute( i, j ); }
 
     PointIJ compute( idx_t i, idx_t j ) const {
-        PointIJ master{i, j};
+        PointIJ master{ i, j };
         if ( i < ibegin_ ) {
             master.i += nx_;
         }

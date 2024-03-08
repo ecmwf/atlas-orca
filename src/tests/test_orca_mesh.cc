@@ -48,20 +48,22 @@ CASE( "test generate orca mesh" ) {
     SECTION( "orca_generate" ) {
         Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
 
-        auto meshgenerator = MeshGenerator{"orca"};
+        auto meshgenerator = MeshGenerator{ "orca" };
         auto mesh          = meshgenerator.generate( grid );
         Log::info() << "mesh.footprint() = " << eckit::Bytes( mesh.footprint() ) << std::endl;
 
         EXPECT_EQ( mesh.nodes().size(), grid.size() );
 
         if ( mesh.footprint() < 25 * 1e6 ) {  // less than 25 Mb
-            output::Gmsh{"orca_2d.msh", Config( "coordinates", "lonlat" )}.write( mesh );
-            output::Gmsh{"orca_3d.msh", Config( "coordinates", "xyz" )}.write( mesh );
+            output::Gmsh{ "orca_2d.msh", Config( "coordinates", "lonlat" ) }.write( mesh );
+            output::Gmsh{ "orca_3d.msh", Config( "coordinates", "xyz" ) }.write( mesh );
         }
         ATLAS_DEBUG( "Peak memory: " << eckit::Bytes( peakMemory() ) );
     }
 
-    SECTION( "auto_generate" ) { auto mesh = Mesh{grid}; }
+    SECTION( "auto_generate" ) {
+        auto mesh = Mesh{ grid };
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -74,20 +76,20 @@ CASE( "test orca mesh halo" ) {
     };
     for ( auto gridname : gridnames ) {
         SECTION( gridname ) {
-            auto mesh = Mesh{Grid( gridname )};
+            auto mesh = Mesh{ Grid( gridname ) };
             REQUIRE( mesh.grid() );
             EXPECT( mesh.grid().name() == gridname );
             auto remote_idx = array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() );
             auto ij         = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
-            idx_t count{0};
+            idx_t count{ 0 };
 
-            functionspace::NodeColumns fs{mesh};
+            functionspace::NodeColumns fs{ mesh };
             Field field   = fs.createField<double>( option::name( "bla" ) );
             auto f        = array::make_view<double, 1>( field );
             OrcaGrid grid = mesh.grid();
             for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
                 if ( remote_idx( jnode ) < 0 ) {
-                    auto p = orca::PointIJ{ij( jnode, 0 ), ij( jnode, 1 )};
+                    auto p = orca::PointIJ{ ij( jnode, 0 ), ij( jnode, 1 ) };
                     orca::PointIJ master;
                     grid->index2ij( grid->periodicIndex( p.i, p.j ), master.i, master.j );
                     Log::info() << p << " --> " << master << std::endl;

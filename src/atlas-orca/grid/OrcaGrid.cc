@@ -20,8 +20,8 @@ inline const OrcaGrid::grid_t* orca_grid( const Grid::Implementation* grid ) {
 
 OrcaGrid::OrcaGrid() : Grid() {}
 
-OrcaGrid::OrcaGrid( const std::string& name ) : Grid{name}, grid_{orca_grid( Grid::get() )} {}
+OrcaGrid::OrcaGrid( const std::string& name ) : Grid{ name }, grid_{ orca_grid( Grid::get() ) } {}
 
-OrcaGrid::OrcaGrid( const Grid& grid ) : Grid{grid}, grid_{orca_grid( Grid::get() )} {}
+OrcaGrid::OrcaGrid( const Grid& grid ) : Grid{ grid }, grid_{ orca_grid( Grid::get() ) } {}
 
 }  // namespace atlas

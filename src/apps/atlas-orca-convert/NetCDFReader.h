@@ -34,7 +34,7 @@ public:
     void read( const std::string& uri, OrcaData& data );
 
 private:
-    std::string arrangement_{"T"};
+    std::string arrangement_{ "T" };
 };
 
 }  // namespace orca

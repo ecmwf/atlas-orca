@@ -10,10 +10,10 @@
 
 #include "OrcaMeshGenerator.h"
 
-#include <unordered_set>
 #include <algorithm>
 #include <numeric>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 
 #include "eckit/utils/Hash.h"
@@ -75,7 +75,7 @@ struct SurroundingRectangle {
 
     SurroundingRectangle( const Grid& grid, const grid::Distribution& distribution, const Configuration& cfg ) {
         ATLAS_TRACE();
-        OrcaGrid orca{grid};
+        OrcaGrid orca{ grid };
         int mypart     = cfg.mypart;
         int nx_glb     = orca.nx();
         int ny_glb     = orca.ny();
@@ -105,10 +105,10 @@ struct SurroundingRectangle {
         {
             ATLAS_TRACE( "bounds" );
             atlas_omp_parallel {
-                int ix_min_TP = ix_min;
-                int ix_max_TP = ix_max;
-                int iy_min_TP = iy_min;
-                int iy_max_TP = iy_max;
+                int ix_min_TP         = ix_min;
+                int ix_max_TP         = ix_max;
+                int iy_min_TP         = iy_min;
+                int iy_max_TP         = iy_max;
                 int nb_nodes_owned_TP = 0;
                 atlas_omp_for( idx_t iy = iy_glb_min; iy <= iy_glb_max; iy++ ) {
                     for ( idx_t ix = ix_glb_min; ix <= ix_glb_max; ix++ ) {
@@ -124,10 +124,10 @@ struct SurroundingRectangle {
                 }
                 atlas_omp_critical {
                     nb_nodes_owned += nb_nodes_owned_TP;
-                    ix_min = std::min<int>( ix_min_TP, ix_min);
-                    ix_max = std::max<int>( ix_max_TP, ix_max);
-                    iy_min = std::min<int>( iy_min_TP, iy_min);
-                    iy_max = std::max<int>( iy_max_TP, iy_max);
+                    ix_min = std::min<int>( ix_min_TP, ix_min );
+                    ix_max = std::max<int>( ix_max_TP, ix_max );
+                    iy_min = std::min<int>( iy_min_TP, iy_min );
+                    iy_max = std::max<int>( iy_max_TP, iy_max );
                 }
             }
         }
@@ -209,20 +209,20 @@ struct Nodes {
     util::detail::BitflagsView<int> flags( idx_t i ) { return util::Topology::view( node_flags( i ) ); }
 
     Nodes( Mesh& mesh ) :
-        ij{array::make_view<idx_t, 2>( mesh.nodes().add(
-            Field( "ij", array::make_datatype<idx_t>(), array::make_shape( mesh.nodes().size(), 2 ) ) ) )},
-        xy{array::make_view<double, 2>( mesh.nodes().xy() )},
-        lonlat{array::make_view<double, 2>( mesh.nodes().lonlat() )},
-        glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().global_index() )},
-        remote_idx{array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() )},
-        part{array::make_view<int, 1>( mesh.nodes().partition() )},
-        ghost{array::make_view<int, 1>( mesh.nodes().ghost() )},
-        halo{array::make_view<int, 1>( mesh.nodes().halo() )},
-        node_flags{array::make_view<int, 1>( mesh.nodes().flags() )},
-        water{array::make_view<int, 1>( mesh.nodes().add(
-            Field( "water", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) )},
-        master_glb_idx{array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
-            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) )} {}
+        ij{ array::make_view<idx_t, 2>( mesh.nodes().add(
+            Field( "ij", array::make_datatype<idx_t>(), array::make_shape( mesh.nodes().size(), 2 ) ) ) ) },
+        xy{ array::make_view<double, 2>( mesh.nodes().xy() ) },
+        lonlat{ array::make_view<double, 2>( mesh.nodes().lonlat() ) },
+        glb_idx{ array::make_view<gidx_t, 1>( mesh.nodes().global_index() ) },
+        remote_idx{ array::make_indexview<idx_t, 1>( mesh.nodes().remote_index() ) },
+        part{ array::make_view<int, 1>( mesh.nodes().partition() ) },
+        ghost{ array::make_view<int, 1>( mesh.nodes().ghost() ) },
+        halo{ array::make_view<int, 1>( mesh.nodes().halo() ) },
+        node_flags{ array::make_view<int, 1>( mesh.nodes().flags() ) },
+        water{ array::make_view<int, 1>( mesh.nodes().add(
+            Field( "water", array::make_datatype<int>(), array::make_shape( mesh.nodes().size() ) ) ) ) },
+        master_glb_idx{ array::make_view<gidx_t, 1>( mesh.nodes().add( Field(
+            "master_global_index", array::make_datatype<gidx_t>(), array::make_shape( mesh.nodes().size() ) ) ) ) } {}
 };
 
 struct Cells {
@@ -233,10 +233,10 @@ struct Cells {
     mesh::HybridElements::Connectivity& node_connectivity;
     util::detail::BitflagsView<int> flags( idx_t i ) { return util::Topology::view( flags_view( i ) ); }
     Cells( Mesh& mesh ) :
-        part{array::make_view<int, 1>( mesh.cells().partition() )},
-        halo{array::make_view<int, 1>( mesh.cells().halo() )},
-        glb_idx{array::make_view<gidx_t, 1>( mesh.cells().global_index() )},
-        flags_view{array::make_view<int, 1>( mesh.cells().flags() )},
+        part{ array::make_view<int, 1>( mesh.cells().partition() ) },
+        halo{ array::make_view<int, 1>( mesh.cells().halo() ) },
+        glb_idx{ array::make_view<gidx_t, 1>( mesh.cells().global_index() ) },
+        flags_view{ array::make_view<int, 1>( mesh.cells().flags() ) },
         node_connectivity( mesh.cells().node_connectivity() ) {}
 };
 
@@ -245,11 +245,12 @@ StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
     ATLAS_ASSERT( orca );
 
     // Mimic hole in South pole, and numbering from South to North. patch determines if endpoint is at North Pole
-    StructuredGrid::YSpace yspace{grid::LinearSpacing{{-80., 90.}, orca.ny(), true}};  //not patch.at( orca.name() )}};
+    StructuredGrid::YSpace yspace{
+        grid::LinearSpacing{ { -80., 90. }, orca.ny(), true } };  //not patch.at( orca.name() )}};
     // Periodic xspace
-    StructuredGrid::XSpace xspace{grid::LinearSpacing{{0., 360.}, orca.nx(), false}};
+    StructuredGrid::XSpace xspace{ grid::LinearSpacing{ { 0., 360. }, orca.nx(), false } };
 
-    return StructuredGrid{xspace, yspace};
+    return StructuredGrid{ xspace, yspace };
 }
 }  // namespace
 
@@ -257,7 +258,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     ATLAS_TRACE( "OrcaMeshGenerator::generate" );
     using Topology = util::Topology;
 
-    OrcaGrid orca{grid};
+    OrcaGrid orca{ grid };
     ATLAS_ASSERT( orca );
     ATLAS_ASSERT( !mesh.generated() );
 
@@ -270,7 +271,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     // clone some grid properties
     setGrid( mesh, grid, distribution );
 
-    OrcaGrid rg{grid};
+    OrcaGrid rg{ grid };
 
     int nparts     = nparts_;
     int nx         = rg.nx();
@@ -294,7 +295,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         return glbarray_offset + j * glbarray_jstride + i;
     };
 
-    const bool serial_distribution = (nparts == 1 || distribution.type() == "serial");
+    const bool serial_distribution = ( nparts == 1 || distribution.type() == "serial" );
 
     auto partition = [&]( idx_t i, idx_t j ) -> int {
         if ( nparts == 1 ) {
@@ -328,7 +329,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     mesh.cells().add( new mesh::temporary::Quadrilateral(), ncells );
 #else
     // Use this since atlas 0.35.0
-    mesh.cells().add( mesh::ElementType::create("Quadrilateral"), ncells );
+    mesh.cells().add( mesh::ElementType::create( "Quadrilateral" ), ncells );
 #endif
 
     Cells cells( mesh );
@@ -385,12 +386,12 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 west = lon00 - 20.;
             }
 
-            auto normalise_lon_first_half  = util::NormaliseLongitude{west};
-            auto normalise_lon_second_half = util::NormaliseLongitude{lon00 + 90.};
+            auto normalise_lon_first_half  = util::NormaliseLongitude{ west };
+            auto normalise_lon_second_half = util::NormaliseLongitude{ lon00 + 90. };
             for ( idx_t ix = 0; ix < SR.nx; ix++ ) {
-                idx_t ix_glb   = SR.ix_min + ix;
+                idx_t ix_glb        = SR.ix_min + ix;
                 idx_t ix_glb_master = ix_glb;
-                auto normalise = [&]( double _xy[2] ) {
+                auto normalise      = [&]( double _xy[2] ) {
                     if ( ix_glb_master < nx / 2 ) {
                         _xy[LON] = normalise_lon_first_half( _xy[LON] );
                     }
@@ -448,7 +449,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                         flags.set( Topology::GHOST );
                         nodes.remote_idx( inode ) = serial_distribution ? master_idx : -1;
 
-                        if( nodes.glb_idx(inode) != nodes.master_glb_idx(inode) ) {
+                        if ( nodes.glb_idx( inode ) != nodes.master_glb_idx( inode ) ) {
                             if ( ix_glb >= nx - orca.haloWest() ) {
                                 flags.set( Topology::PERIODIC );
                             }
@@ -457,7 +458,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                             }
                             if ( iy_glb >= ny - orca.haloNorth() - 1 ) {
                                 flags.set( Topology::PERIODIC );
-                                if( _xy[LON] > lon00 + 90. ) {
+                                if ( _xy[LON] > lon00 + 90. ) {
                                     flags.set( Topology::EAST );
                                 }
                                 else {
@@ -465,22 +466,20 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                                 }
                             }
 
-                            if( flags.check( Topology::PERIODIC ) ) {
+                            if ( flags.check( Topology::PERIODIC ) ) {
                                 // It can still happen that nodes were flagged as periodic wrongly
                                 // e.g. where the grid folds into itself
 
                                 idx_t iy_glb_master;
                                 double xy_master[2];
                                 orca.index2ij( master_idx, ix_glb_master, iy_glb_master );
-                                orca.lonlat(ix_glb_master,iy_glb_master,xy_master);
+                                orca.lonlat( ix_glb_master, iy_glb_master, xy_master );
                                 normalise( xy_master );
-                                if( std::abs(xy_master[LON] - _xy[LON]) < 1.e-12 ) {
-                                    flags.unset(Topology::PERIODIC);
+                                if ( std::abs( xy_master[LON] - _xy[LON] ) < 1.e-12 ) {
+                                    flags.unset( Topology::PERIODIC );
                                 }
                             }
-
                         }
-
                     }
 
                     flags.set( orca.land( ix_glb, iy_glb ) ? Topology::LAND : Topology::WATER );
@@ -493,7 +492,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     }
 
                     nodes.water( inode ) = orca.water( ix_glb, iy_glb );
-                    nodes.halo( inode ) = [&]() -> int {
+                    nodes.halo( inode )  = [&]() -> int {
                         if ( ix_glb < 0 ) {
                             return -ix_glb;
                         }
@@ -612,50 +611,51 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
     }
-    ATLAS_DEBUG_VAR(serial_distribution);
+    ATLAS_DEBUG_VAR( serial_distribution );
     if ( serial_distribution ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
 
         // Bypass for "BuildPeriodicBoundaries"
         mesh.metadata().set( "periodic", true );
-    } else {
-        ATLAS_DEBUG("build_remote_index");
-        build_remote_index(mesh);
+    }
+    else {
+        ATLAS_DEBUG( "build_remote_index" );
+        build_remote_index( mesh );
     }
 
     // Degenerate points in the ORCA mesh mean that the standard BuildHalo
     // methods for updating halo sizes will not work.
-    mesh.metadata().set("halo_locked", true);
+    mesh.metadata().set( "halo_locked", true );
     mesh.nodes().metadata().set<size_t>( "NbRealPts", nnodes );
     mesh.nodes().metadata().set<size_t>( "NbVirtualPts", size_t( 0 ) );
 }
 
 using Unique2Node = std::map<gidx_t, idx_t>;
-void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
+void OrcaMeshGenerator::build_remote_index( Mesh& mesh ) {
     ATLAS_TRACE();
 
     mesh::Nodes& nodes = mesh.nodes();
 
     bool parallel = false;
     bool periodic = false;
-    nodes.metadata().get("parallel", parallel);
-    mesh.metadata().get("periodic", periodic);
-    if (parallel | periodic) {
-        ATLAS_DEBUG("build_remote_index: already parallel, return");
+    nodes.metadata().get( "parallel", parallel );
+    mesh.metadata().get( "periodic", periodic );
+    if ( parallel | periodic ) {
+        ATLAS_DEBUG( "build_remote_index: already parallel, return" );
         return;
     }
 
     auto mpi_size = mpi::size();
     auto mypart   = mpi::rank();
-    int nb_nodes = nodes.size();
+    int nb_nodes  = nodes.size();
 
     // get the indices and partition data
-    auto master_glb_idx = array::make_view<gidx_t, 1>(nodes.field("master_global_index"));
+    auto master_glb_idx = array::make_view<gidx_t, 1>( nodes.field( "master_global_index" ) );
     auto glb_idx        = array::make_view<gidx_t, 1>( nodes.global_index() );
-    auto ridx    = array::make_indexview<idx_t, 1>( nodes.remote_index() );
-    auto part    = array::make_view<int, 1>( nodes.partition() );
-    auto ghost   = array::make_view<int, 1>( nodes.ghost() );
+    auto ridx           = array::make_indexview<idx_t, 1>( nodes.remote_index() );
+    auto part           = array::make_view<int, 1>( nodes.partition() );
+    auto ghost          = array::make_view<int, 1>( nodes.ghost() );
 
     // find the nodes I want to request the data for
     std::vector<std::vector<gidx_t>> send_uid( mpi_size );
@@ -663,21 +663,20 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
 
     Unique2Node global2local;
     for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
-        gidx_t uid     = master_glb_idx(jnode);
-        if ( (part (jnode) != mypart)
-             || ((master_glb_idx( jnode ) != glb_idx( jnode )) &&
-                 (part( jnode ) == mypart))
-           ) {
-            send_uid[part(jnode)].push_back(uid);
-            req_lidx[part(jnode)].push_back(jnode);
-            ridx(jnode) = -1;
-        } else {
-            ridx(jnode) = jnode;
+        gidx_t uid = master_glb_idx( jnode );
+        if ( ( part( jnode ) != mypart ) ||
+             ( ( master_glb_idx( jnode ) != glb_idx( jnode ) ) && ( part( jnode ) == mypart ) ) ) {
+            send_uid[part( jnode )].push_back( uid );
+            req_lidx[part( jnode )].push_back( jnode );
+            ridx( jnode ) = -1;
         }
-        if (not ghost(jnode)) {
-            bool inserted = global2local.insert(std::make_pair(uid, jnode)).second;
-            ATLAS_ASSERT(inserted, std::string("index already inserted ") + std::to_string(uid) + ", "
-                + std::to_string(jnode) + " at jnode " + std::to_string(global2local[uid]));
+        else {
+            ridx( jnode ) = jnode;
+        }
+        if ( not ghost( jnode ) ) {
+            bool inserted = global2local.insert( std::make_pair( uid, jnode ) ).second;
+            ATLAS_ASSERT( inserted, std::string( "index already inserted " ) + std::to_string( uid ) + ", " +
+                                        std::to_string( jnode ) + " at jnode " + std::to_string( global2local[uid] ) );
         }
     }
 
@@ -690,20 +689,19 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     std::vector<std::vector<int>> send_ridx( mpi_size );
     std::vector<std::vector<int>> send_gidx( mpi_size );
     std::vector<std::vector<int>> send_part( mpi_size );
-    for ( idx_t p = 0; p < mpi_size; ++p) {
-      for ( idx_t i = 0; i < recv_uid[p].size(); ++i ) {
-          idx_t found_idx = -1;
-          gidx_t uid     = recv_uid[p][i];
-          Unique2Node::const_iterator found = global2local.find(uid);
-          if (found != global2local.end()) {
-              found_idx = found->second;
-          }
-          ATLAS_ASSERT(found_idx != -1,
-              "master global index not found: " + std::to_string(recv_uid[p][i]));
-          send_ridx[p].push_back(ridx(found_idx));
-          send_gidx[p].push_back(glb_idx(found_idx));
-          send_part[p].push_back(part(found_idx));
-      }
+    for ( idx_t p = 0; p < mpi_size; ++p ) {
+        for ( idx_t i = 0; i < recv_uid[p].size(); ++i ) {
+            idx_t found_idx                   = -1;
+            gidx_t uid                        = recv_uid[p][i];
+            Unique2Node::const_iterator found = global2local.find( uid );
+            if ( found != global2local.end() ) {
+                found_idx = found->second;
+            }
+            ATLAS_ASSERT( found_idx != -1, "master global index not found: " + std::to_string( recv_uid[p][i] ) );
+            send_ridx[p].push_back( ridx( found_idx ) );
+            send_gidx[p].push_back( glb_idx( found_idx ) );
+            send_part[p].push_back( part( found_idx ) );
+        }
     }
 
     std::vector<std::vector<int>> recv_ridx( mpi_size );
@@ -715,19 +713,18 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) {
     mpi::comm().allToAll( send_part, recv_part );
 
     // Fill out missing remote indices
-    for ( idx_t p = 0; p < mpi_size; ++p) {
-      for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
-        ridx(req_lidx[p][i]) = recv_ridx[p][i];
-        glb_idx(req_lidx[p][i]) = recv_gidx[p][i];
-        part(req_lidx[p][i]) = recv_part[p][i];
-      }
+    for ( idx_t p = 0; p < mpi_size; ++p ) {
+        for ( idx_t i = 0; i < recv_ridx[p].size(); ++i ) {
+            ridx( req_lidx[p][i] )    = recv_ridx[p][i];
+            glb_idx( req_lidx[p][i] ) = recv_gidx[p][i];
+            part( req_lidx[p][i] )    = recv_part[p][i];
+        }
     }
 
     // sanity check
-    for (idx_t jnode = 0; jnode < nb_nodes; ++jnode)
-        ATLAS_ASSERT(ridx(jnode) >= 0,
-            "ridx not filled with part " + std::to_string(part(jnode)) + " at "
-            + std::to_string(jnode));
+    for ( idx_t jnode = 0; jnode < nb_nodes; ++jnode )
+        ATLAS_ASSERT( ridx( jnode ) >= 0, "ridx not filled with part " + std::to_string( part( jnode ) ) + " at " +
+                                              std::to_string( jnode ) );
 
     mesh.metadata().set( "periodic", true );
     nodes.metadata().set( "parallel", true );
@@ -737,15 +734,15 @@ OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
     config.get( "partition", mypart_ = mpi::rank() );
     config.get( "partitions", nparts_ = mpi::size() );
     config.get( "halo", halo_ = 0 );
-    if (halo_ != 0)
-      throw_NotImplemented("Only 0 halo ORCA grids are currently supported", Here());
+    if ( halo_ != 0 )
+        throw_NotImplemented( "Only 0 halo ORCA grids are currently supported", Here() );
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
-    std::unordered_set<std::string> valid_distributions = {"serial", "checkerboard", "equal_regions", "equal_area"};
-    ATLAS_ASSERT(valid_distributions.find(partitioner.type()) != valid_distributions.end(),
-                 partitioner.type() + " is not an implemented distribution type. "
-                 + "Valid types are 'serial', 'checkerboard' or 'equal_regions', 'equal_area'");
+    std::unordered_set<std::string> valid_distributions = { "serial", "checkerboard", "equal_regions", "equal_area" };
+    ATLAS_ASSERT( valid_distributions.find( partitioner.type() ) != valid_distributions.end(),
+                  partitioner.type() + " is not an implemented distribution type. " +
+                      "Valid types are 'serial', 'checkerboard' or 'equal_regions', 'equal_area'" );
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );
     generate( grid, distribution, mesh );
