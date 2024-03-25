@@ -33,8 +33,8 @@ using Grid   = atlas::Grid;
 using Config = atlas::util::Config;
 using Quad3D = atlas::interpolation::element::Quad3D;
 
-namespace atlas {
-namespace test {
+
+namespace atlas::test {
 
 CASE( "test generate orca mesh" ) {
     std::vector<std::string> gridnames{
@@ -46,11 +46,11 @@ CASE( "test generate orca mesh" ) {
     bool gmsh_output          = eckit::Resource<bool>( "--gmsh", false );
     std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );
     if ( not grid_resource.empty() ) {
-        gridnames = {grid_resource};
+        gridnames = { grid_resource };
     }
     for ( const auto& gridname : gridnames ) {
         SECTION( gridname ) {
-            auto mesh = Mesh{gridname};
+            auto mesh = Mesh{ gridname };
 
             const auto& connectivity = mesh.cells().node_connectivity();
             auto lonlat              = array::make_view<double, 2>( mesh.nodes().lonlat() );
@@ -68,10 +68,10 @@ CASE( "test generate orca mesh" ) {
                     std::array<PointLonLat, 4> pll;
                     std::array<PointXYZ, 4> pxyz;
                     for ( idx_t n = 0; n < 4; ++n ) {
-                        pll[n]  = PointLonLat{lonlat( connectivity( e, n ), 0 ), lonlat( connectivity( e, n ), 1 )};
+                        pll[n]  = PointLonLat{ lonlat( connectivity( e, n ), 0 ), lonlat( connectivity( e, n ), 1 ) };
                         pxyz[n] = geometry.xyz( pll[n] );
                     }
-                    Quad3D quad{pxyz[0], pxyz[1], pxyz[2], pxyz[3]};
+                    Quad3D quad{ pxyz[0], pxyz[1], pxyz[2], pxyz[3] };
                     if ( not quad.validate() ) {
                         has_invalid_quads = true;
                         Log::info() << "Invalid quad [" << elem_glb_idx( e ) << "] : [ " << connectivity( e, 0 ) + 1
@@ -98,8 +98,8 @@ CASE( "test generate orca mesh" ) {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace atlas
+}  // namespace atlas::test
+
 
 int main( int argc, char** argv ) {
     return atlas::test::run( argc, argv );

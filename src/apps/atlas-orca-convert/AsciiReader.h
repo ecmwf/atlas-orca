@@ -26,23 +26,24 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/ProgressTimer.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 
 struct ReadLine {
-    bool verbose = false;
-    int version  = 2;
-    double lat;
-    double lon;
-    double water;
-    double core;
-    int I;
-    int J;
-    int I_master;
-    int J_master;
-    double lat_master;
-    double lon_master;
+    bool verbose      = false;
+    int version       = 2;
+    double lat        = 0;
+    double lon        = 0;
+    double water      = 0;
+    double core       = 0;
+    int I             = 0;
+    int J             = 0;
+    int I_master      = 0;
+    int J_master      = 0;
+    double lat_master = 0;
+    double lon_master = 0;
+
     friend std::istream& operator>>( std::istream& in, ReadLine& r ) {
         if ( r.version >= 1 ) {
             in >> r.lat;
@@ -102,37 +103,37 @@ struct ReadLine {
 
 class AsciiReader {
 private:
-    bool verbose_{false};
-    int version_{2};
+    bool verbose_{ false };
+    int version_{ 2 };
     std::vector<double> pivot_v1_;
 
 public:
-    AsciiReader( const util::Config& config ) {
+    explicit AsciiReader( const util::Config& config ) {
         config.get( "verbose", verbose_ );
         config.get( "version", version_ );
         config.get( "pivot", pivot_v1_ );
     }
 
     void read( const std::string& uri, OrcaData& data ) {
-        OrcaDataFile file{uri};
+        OrcaDataFile file{ uri };
 
         auto trace = atlas::Trace( Here(), "read" );
 
-        std::ifstream ifstrm{file.c_str()};
+        std::ifstream ifstrm{ file.c_str() };
 
         // Reading header
         std::string line;
         std::getline( ifstrm, line );
-        std::istringstream iss{line};
+        std::istringstream iss{ line };
 
         std::int32_t nx_halo = 0;
         std::int32_t ny_halo = 0;
         auto& halo           = data.halo;
-        halo                 = {0, 0, 0, 0};
+        halo                 = { 0, 0, 0, 0 };
 
         ATLAS_ASSERT( iss >> nx_halo >> ny_halo, "Error while reading header" );
         if ( version_ == 1 ) {
-            int periodicity;
+            int periodicity = 0;
             iss >> periodicity >> halo[HALO_EAST] >> halo[HALO_WEST] >> halo[HALO_SOUTH] >> halo[HALO_NORTH];
         }
 
@@ -151,8 +152,8 @@ public:
 
         {
             eckit::Channel blackhole;
-            eckit::ProgressTimer progress( "Reading file " + file.path(), size, " point", double( 1 ),
-                                           size > 5.e6 && verbose_ ? Log::info() : blackhole );
+            eckit::ProgressTimer progress( "Reading file " + file.path(), size, " point", static_cast<double>( 1 ),
+                                           static_cast<double>( size ) > 5.e6 && verbose_ ? Log::info() : blackhole );
 
 
             ReadLine r;
@@ -162,20 +163,21 @@ public:
 
             for ( size_t n = 0; n < size; ++n ) {
                 ++progress;
-                master[n] = n;
+                master[n] = static_cast<idx_t>( n );
                 std::getline( ifstrm, line );
-                std::istringstream iss{line};
+                std::istringstream iss{ line };
                 iss >> r;
                 r.fix();
 
                 data.lon[n] = r.lon;
                 data.lat[n] = r.lat;
 
-                Flag flag{data.flags[n]};
+                Flag flag{ data.flags[n] };
                 if ( r.core == 0. ) {  // ghost
                     flag.set( Flag::GHOST );
                     if ( version_ >= 2 ) {
-                        master[n] = ( r.I_master - 1 ) + ( r.J_master - 1 ) * std::int64_t( jstride );
+                        master[n] = static_cast<idx_t>( ( r.I_master - 1 ) +
+                                                        ( r.J_master - 1 ) * static_cast<std::int64_t>( jstride ) );
                         if ( master[n] < 0 ) {
                             master[n] = -1;
                         }
@@ -187,8 +189,8 @@ public:
                 if ( r.J == ny_halo && r.I == nx_halo / 2 + 2 && version_ >= 2 ) {
                     ATLAS_ASSERT( r.I != r.I_master );
                     ATLAS_ASSERT( r.J != r.J_master );
-                    data.pivot[0] = double( ( r.I - 1 ) + ( r.I_master - 1 ) ) * 0.5;
-                    data.pivot[1] = double( ( r.J - 1 ) + ( r.J_master - 1 ) ) * 0.5;
+                    data.pivot[0] = static_cast<double>( ( r.I - 1 ) + ( r.I_master - 1 ) ) * 0.5;
+                    data.pivot[1] = static_cast<double>( ( r.J - 1 ) + ( r.J_master - 1 ) ) * 0.5;
                 }
             }
             if ( version_ < 2 ) {
@@ -263,13 +265,13 @@ public:
 
 
     void validate( const OrcaData& data, const std::vector<idx_t>& check_master ) {
-        constexpr int N = HALO_NORTH;
-        constexpr int W = HALO_WEST;
-        constexpr int S = HALO_SOUTH;
-        constexpr int E = HALO_EAST;
-        auto& halo      = data.halo;
+        constexpr int N  = HALO_NORTH;
+        constexpr int W  = HALO_WEST;
+        constexpr int S  = HALO_SOUTH;
+        constexpr int E  = HALO_EAST;
+        const auto& halo = data.halo;
 
-        OrcaPeriodicity compute_master{data};
+        OrcaPeriodicity compute_master{ data };
 
         Log::info() << "pivot_i = " << data.pivot[0] << std::endl;
         Log::info() << "pivot_j = " << data.pivot[1] << std::endl;
@@ -280,7 +282,7 @@ public:
             for ( idx_t i = 0; i < ni; ++i ) {
                 auto master = compute_master( i, j );
                 idx_t n     = ni * j + i;
-                Flag flag{data.flags[n]};
+                Flag flag{ data.flags[n] };
 
                 if ( j < halo[S] || j >= nj - halo[N] ) {
                     ATLAS_ASSERT( flag.test( Flag::GHOST ) );
@@ -301,10 +303,11 @@ public:
                         if ( check_master[n] < 0 ) {
                             Log::warning() << "Ignored (1) : ";  //continue;
                         }
-                        else if ( ( double( j_check ) > data.pivot[1] ) ) {
+                        else if ( ( static_cast<double>( j_check ) > data.pivot[1] ) ) {
                             Log::warning() << "Ignored (2) : ";  //continue;
                         }
-                        else if ( ( double( j_check ) == data.pivot[1] ) && ( i_check >= ni - halo[E] - halo[W] ) ) {
+                        else if ( ( static_cast<double>( j_check ) == data.pivot[1] ) &&
+                                  ( i_check >= ni - halo[E] - halo[W] ) ) {
                             Log::warning() << "Ignored (3) : ";  //continue;
                         }
                         Log::warning() << "Mismatch in master index:" << std::endl;
@@ -321,7 +324,7 @@ public:
     }
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------

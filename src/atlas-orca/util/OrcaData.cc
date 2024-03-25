@@ -10,9 +10,19 @@
 
 #include "OrcaData.h"
 
-#include "eckit/log/ProgressTimer.h"
-
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
+#include "eckit/codec/codec.h"
+#else
+// Backward compatibility, DEPRECATED!
 #include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordWriter = atlas::io::RecordWriter;
+using atlas::io::ref;
+using atlas::io::ArrayReference;
+}
+#endif
+
+#include "eckit/log/ProgressTimer.h"
 
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
@@ -23,18 +33,18 @@
 #include "atlas-orca/util/Flag.h"
 #include "atlas-orca/util/OrcaPeriodicity.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 void OrcaData::setGhost() {
     idx_t ni = dimensions[0];
     idx_t nj = dimensions[1];
 
-    OrcaPeriodicity compute_master{*this};
+    OrcaPeriodicity compute_master{ *this };
     for ( idx_t j = 0; j < nj; ++j ) {
         for ( idx_t i = 0; i < ni; ++i ) {
             idx_t n = ni * j + i;
-            Flag flag{flags[n]};
+            Flag flag{ flags[n] };
             flag.unset( Flag::GHOST );
             auto master = compute_master( i, j );
             if ( j < halo[HALO_SOUTH] ) {
@@ -50,16 +60,16 @@ void OrcaData::setGhost() {
 void OrcaData::makeHaloConsistent() {
     size_t ni = dimensions[0];
     size_t nj = dimensions[1];
-    OrcaPeriodicity compute_master{*this};
+    OrcaPeriodicity compute_master{ *this };
     for ( size_t j = 0; j < nj; ++j ) {
         for ( size_t i = 0; i < ni; ++i ) {
             size_t n        = ni * j + i;
-            auto master     = compute_master( i, j );
+            auto master     = compute_master( static_cast<idx_t>( i ), static_cast<idx_t>( j ) );
             size_t n_master = ni * master.j + master.i;
             if ( n_master != n ) {
                 if ( lon[n] != lon[n_master] || lat[n] != lat[n_master] ) {
-                    PointLonLat point_n{lon[n], lat[n]};
-                    PointLonLat point_n_master{lon[n_master], lat[n_master]};
+                    PointLonLat point_n{ lon[n], lat[n] };
+                    PointLonLat point_n_master{ lon[n_master], lat[n_master] };
                     double distance = geometry::Earth().distance( point_n, point_n_master );
                     if ( distance > 1 /*metre*/ ) {
                         Log::warning() << "Fixed halo inconsistency for {" << i << "," << j << "}:  " << point_n
@@ -70,8 +80,8 @@ void OrcaData::makeHaloConsistent() {
                 lon[n] = lon[n_master];
                 lat[n] = lat[n_master];
 
-                Flag flag_n{flags[n]};
-                Flag flag_n_master{flags[n_master]};
+                Flag flag_n{ flags[n] };
+                Flag flag_n_master{ flags[n_master] };
                 if ( flag_n.test( Flag::WATER ) != flag_n_master.test( Flag::WATER ) ) {
                     flag_n.unset( Flag::WATER );
                     if ( flag_n_master.test( Flag::WATER ) ) {
@@ -106,14 +116,14 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
     idx_t ni          = dimensions[0];
     idx_t nj          = dimensions[1];
     idx_t nx          = ni - halo[HALO_EAST] - halo[HALO_WEST];
-    double resolution = 360. / double( nx );
+    double resolution = 360. / static_cast<double>( nx );
 
     util::Config detection_config;
     detection_config.set( "ORCA2", ( std::abs( resolution - 2. ) < 0.1 ) );
     detection_config.set( "diagonal", resolution * diagonal_factor );
     DetectInvalidElement detect( detection_config );
 
-    auto is_water = [&]( int n ) -> bool { return Flag{flags[n]}.test( Flag::WATER ); };
+    auto is_water = [&]( int n ) -> bool { return Flag{ flags[n] }.test( Flag::WATER ); };
 
     eckit::ProgressTimer progress( "Detect invalid elements", ( nj - 1 ) * ( ni - 1 ), "point", 5., Log::trace() );
     for ( idx_t j = 0; j < nj - 1; ++j ) {
@@ -124,14 +134,14 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
             idx_t n_NW = ( j + 1 ) * ni + i;
             idx_t n_NE = n_NW + 1;
 
-            Flag{flags[n_SW]}.unset( Flag::INVALID_ELEMENT );
+            Flag{ flags[n_SW] }.unset( Flag::INVALID_ELEMENT );
 
             bool element_contains_water = is_water( n_SW ) || is_water( n_SE ) || is_water( n_NW ) || is_water( n_NE );
 
-            PointLonLat p_SW{lon[n_SW], lat[n_SW]};
-            PointLonLat p_SE{lon[n_SE], lat[n_SE]};
-            PointLonLat p_NW{lon[n_NW], lat[n_NW]};
-            PointLonLat p_NE{lon[n_NE], lat[n_NE]};
+            PointLonLat p_SW{ lon[n_SW], lat[n_SW] };
+            PointLonLat p_SE{ lon[n_SE], lat[n_SE] };
+            PointLonLat p_NW{ lon[n_NW], lat[n_NW] };
+            PointLonLat p_NE{ lon[n_NE], lat[n_NE] };
             p_SE.normalise( p_SW.lon() - 180. );
             p_NW.normalise( p_SW.lon() - 180. );
             p_NE.normalise( p_SW.lon() - 180. );
@@ -148,7 +158,8 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
                     }
                     else {
                         for ( int k = invalid_factor - 1; k >= diagonal_factor; --k ) {
-                            if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW, double( k ) * resolution ) ) {
+                            if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW,
+                                                            static_cast<double>( k ) * resolution ) ) {
                                 Log::warning() << "Element {I,J} = {" << i << "," << j
                                                << "} is not invalidated as it contains water, even though (diagonal > "
                                                << diagonal_factor << " * ref_length)." << std::endl;
@@ -160,7 +171,7 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
                         continue;
                     }
                 }
-                Flag{flags[n_SW]}.set( Flag::INVALID_ELEMENT );
+                Flag{ flags[n_SW] }.set( Flag::INVALID_ELEMENT );
             }
         }
     }
@@ -187,18 +198,17 @@ void atlas::orca::OrcaData::checkSetup() {
 
 size_t atlas::orca::OrcaData::write( const eckit::PathName& path, const util::Config& config ) {
     checkSetup();
-    io::RecordWriter record;
+    eckit::codec::RecordWriter record;
     record.compression( config.getString( "compression", "none" ) );
     record.set( "version", 0 );
-    record.set( "dimensions", io::ref( dimensions ) );
-    record.set( "halo", io::ref( halo ) );
-    record.set( "pivot", io::ref( pivot ) );
-    record.set( "longitude", io::ArrayReference( lon.data(), dimensions ) );
-    record.set( "latitude", io::ArrayReference( lat.data(), dimensions ) );
-    record.set( "flags", io::ArrayReference( flags.data(), dimensions ) );
+    record.set( "dimensions", eckit::codec::ref( dimensions ) );
+    record.set( "halo", eckit::codec::ref( halo ) );
+    record.set( "pivot", eckit::codec::ref( pivot ) );
+    record.set( "longitude", eckit::codec::ArrayReference( lon.data(), dimensions ) );
+    record.set( "latitude", eckit::codec::ArrayReference( lat.data(), dimensions ) );
+    record.set( "flags", eckit::codec::ArrayReference( flags.data(), dimensions ) );
     return record.write( path );
 }
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

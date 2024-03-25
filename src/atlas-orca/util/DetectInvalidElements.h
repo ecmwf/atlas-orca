@@ -14,19 +14,19 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/Point.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 class DetectInvalidElement {
 public:
     struct Statistics {
-        size_t invalid_elements{0};
-        size_t invalid_quads_3d{0};
-        size_t invalid_quads_2d{0};
-        size_t diagonal_too_large{0};
+        size_t invalid_elements{ 0 };
+        size_t invalid_quads_3d{ 0 };
+        size_t invalid_quads_2d{ 0 };
+        size_t diagonal_too_large{ 0 };
     };
 
-    DetectInvalidElement( const util::Config& config ) {
+    explicit DetectInvalidElement( const util::Config& config ) {
         config.get( "ORCA2", orca2_ );
         config.get( "diagonal", largest_diatonal_ );
     }
@@ -51,9 +51,8 @@ public:
 
 private:
     geometry::Earth sphere_;
-    double largest_diatonal_{0};
-    bool orca2_{false};
+    double largest_diatonal_{ 0 };
+    bool orca2_{ false };
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

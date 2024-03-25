@@ -22,8 +22,8 @@
 
 #include "atlas-orca/util/Enums.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 std::string compute_uid( const std::string& arrangement, const double lon[], const double lat[], size_t size ) {
     ATLAS_TRACE();
@@ -36,9 +36,11 @@ std::string compute_uid( const std::string& arrangement, const double lon[], con
     eckit::MD5 hasher;
     hasher.add( P );
 
+    auto len = static_cast<long>( size * sizeof( double ) );
+
     if ( eckit_LITTLE_ENDIAN ) {
-        hasher.add( lat, size * sizeof( double ) );
-        hasher.add( lon, size * sizeof( double ) );
+        hasher.add( lat, len );
+        hasher.add( lon, len );
     }
     else {
         atlas::vector<double> latitude( size );
@@ -49,11 +51,10 @@ std::string compute_uid( const std::string& arrangement, const double lon[], con
         }
         eckit::byteswap( latitude.data(), size );
         eckit::byteswap( longitude.data(), size );
-        hasher.add( latitude.data(), size * sizeof( double ) );
-        hasher.add( longitude.data(), size * sizeof( double ) );
+        hasher.add( latitude.data(), len );
+        hasher.add( longitude.data(), len );
     }
     return hasher.digest();
 }
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

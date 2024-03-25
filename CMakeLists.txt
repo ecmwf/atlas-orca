@@ -18,7 +18,7 @@ find_package(eckit 1.16.1 REQUIRED)
 find_package(atlas 0.25.0 REQUIRED)
 
 if( NOT eckit_HAVE_LZ4 )
-    ecbuild_warn( "eckit is required to have LZ4 support to decompress atlas-orca binary data files. "
+    ecbuild_warn( "eckit LZ4 support is required to decompress atlas-orca binary data files. "
                   "Continuing regardless with reduced tests" )
 endif()
 

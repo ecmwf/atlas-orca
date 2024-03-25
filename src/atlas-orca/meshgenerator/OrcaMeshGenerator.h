@@ -24,22 +24,21 @@ class Mesh;
 class OrcaGrid;
 }  // namespace atlas
 
-namespace atlas {
-namespace grid {
+
+namespace atlas::grid {
 class Distribution;
-}  // namespace grid
-}  // namespace atlas
+}  // namespace atlas::grid
+
 #endif
 
-namespace atlas {
-namespace orca {
-namespace meshgenerator {
+
+namespace atlas::orca::meshgenerator {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class OrcaMeshGenerator : public MeshGenerator::Implementation {
 public:
-    OrcaMeshGenerator( const eckit::Parametrisation& = util::NoConfig() );
+    explicit OrcaMeshGenerator( const eckit::Parametrisation& = util::NoConfig() );
 
     using MeshGenerator::Implementation::generate;
 
@@ -52,10 +51,10 @@ public:
 
 private:
     void hash( eckit::Hash& ) const override;
-    static void build_remote_index(Mesh& mesh);
+    static void build_remote_index( Mesh& mesh );
 
-    bool include_pole_{false};
-    bool fixup_{true};
+    bool include_pole_{ false };
+    bool fixup_{ true };
     int nparts_;
     int mypart_;
     int halo_;
@@ -63,6 +62,4 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace meshgenerator
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca::meshgenerator

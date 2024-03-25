@@ -8,29 +8,37 @@
  * nor does it submit to any jurisdiction.
  */
 
+
 #include <iostream>
-#include <sstream>
+#include <set>
 #include <string>
+#include <vector>
 
-
-#include "eckit/filesystem/PathName.h"
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
+#include "eckit/codec/codec.h"
+#else
+// Backward compatibility, DEPRECATED!
+#include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordReader = atlas::io::RecordReader;
+using InvalidRecord = atlas::io::InvalidRecord;
+}
+#endif
 
 #include "atlas/runtime/AtlasTool.h"
-#include "atlas/runtime/Exception.h"
 
+#include "atlas-orca/Library.h"
 #include "atlas-orca/util/ComputeCachedPath.h"
 #include "atlas-orca/util/Download.h"
 
-#include "atlas/io/atlas-io.h"
 
-namespace atlas {
-namespace orca {
+namespace atlas::orca {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 struct Tool : public atlas::AtlasTool {
     bool serial() override { return true; }
-    int execute( const Args& args ) override;
+    int execute( const Args& ) override;
     std::string briefDescription() override { return "Create binary grid data files "; }
     std::string usage() override { return name() + " <file> --grid=NAME [OPTION]... [--help,-h]"; }
     std::string longDescription() override {
@@ -77,10 +85,10 @@ int Tool::execute( const Args& args ) {
         }
     }
     ComputeCachedPath compute_cached_path(
-        {"https://get.ecmwf.int/repository/atlas/grids/orca", "http://get.ecmwf.int/repository/atlas/grids/orca"} );
+        { "https://get.ecmwf.int/repository/atlas/grids/orca", "http://get.ecmwf.int/repository/atlas/grids/orca" } );
 
     std::vector<std::string> failed_urls;
-    for ( auto& url : urls ) {
+    for ( const auto& url : urls ) {
         auto path = compute_cached_path( url );
         if ( path.exists() ) {
             Log::info() << "File " << url << " was already found in cache: " << path << std::endl;
@@ -92,10 +100,10 @@ int Tool::execute( const Args& args ) {
             }
             else {
                 try {
-                    io::RecordReader record( path );
+                    eckit::codec::RecordReader record( path );
                     auto metadata = record.metadata( "dimensions" );
                 }
-                catch ( const io::InvalidRecord& ) {
+                catch ( const eckit::codec::InvalidRecord& ) {
                     Log::error() << "Error: Downloaded file " << path << " is invalid. Deleting...\n" << std::endl;
                     path.unlink( true );
                     failed_urls.push_back( url );
@@ -113,8 +121,8 @@ int Tool::execute( const Args& args ) {
     return success();
 }
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------
 

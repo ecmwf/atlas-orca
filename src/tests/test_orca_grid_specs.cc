@@ -12,8 +12,8 @@
 
 #include "tests/AtlasTestEnvironment.h"
 
-namespace atlas {
-namespace test {
+
+namespace atlas::test {
 
 //-----------------------------------------------------------------------------
 
@@ -38,9 +38,9 @@ CASE( "test spec" ) {
     std::vector<std::string> uids;
     std::map<std::string, std::string> check_name;
 
-    std::vector<std::string> grids{"ORCA2", "ORCA1", "eORCA1", "ORCA025", "eORCA025", "ORCA12", "eORCA12"};
+    std::vector<std::string> grids{ "ORCA2", "ORCA1", "eORCA1", "ORCA025", "eORCA025", "ORCA12", "eORCA12" };
     for ( const auto& grid : grids ) {
-        std::vector<std::string> arrangements{"F", "T", "U", "V", "W"};
+        std::vector<std::string> arrangements{ "F", "T", "U", "V", "W" };
         for ( const auto& P : arrangements ) {
             std::string name = grid + "_" + P;
             EXPECT( registered( name ) );
@@ -64,8 +64,8 @@ CASE( "test spec" ) {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace atlas
+}  // namespace atlas::test
+
 
 int main( int argc, char** argv ) {
     return atlas::test::run( argc, argv );
