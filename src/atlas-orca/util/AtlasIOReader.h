@@ -13,8 +13,15 @@
 #include <sstream>
 #include <string>
 
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
 #include "eckit/codec/codec.h"
-
+#else
+// Backward compatibility, DEPRECATED!
+#include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordReader = atlas::io::RecordReader;
+}
+#endif
 #include "atlas/runtime/Exception.h"
 
 #include "atlas-orca/util/OrcaData.h"

@@ -22,10 +22,6 @@ if( NOT eckit_HAVE_LZ4 )
                   "Continuing regardless with reduced tests" )
 endif()
 
-if( NOT TARGET eckit_codec )
-    ecbuild_error( "eckit::codec is required (ENABLE_ECKIT_CODEC=ON)" )
-endif()
-
 ecbuild_add_option( FEATURE RETRIEVE_ORCA_DATA
                     DEFAULT OFF
                     DESCRIPTION "Retrieve all available atlas-orca binary data during build step." )

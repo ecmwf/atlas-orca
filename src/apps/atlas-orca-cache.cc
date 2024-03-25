@@ -14,7 +14,16 @@
 #include <string>
 #include <vector>
 
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
 #include "eckit/codec/codec.h"
+#else
+// Backward compatibility, DEPRECATED!
+#include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordReader = atlas::io::RecordReader;
+using InvalidRecord = atlas::io::InvalidRecord;
+}
+#endif
 
 #include "atlas/runtime/AtlasTool.h"
 

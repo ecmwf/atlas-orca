@@ -10,7 +10,18 @@
 
 #include "OrcaData.h"
 
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
 #include "eckit/codec/codec.h"
+#else
+// Backward compatibility, DEPRECATED!
+#include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordWriter = atlas::io::RecordWriter;
+using atlas::io::ref;
+using atlas::io::ArrayReference;
+}
+#endif
+
 #include "eckit/log/ProgressTimer.h"
 
 #include "atlas/runtime/Log.h"

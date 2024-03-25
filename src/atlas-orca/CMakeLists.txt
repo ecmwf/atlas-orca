@@ -43,7 +43,7 @@ ecbuild_add_library(
         util/PointIJ.h
         ${CMAKE_CURRENT_BINARY_DIR}/version.cc
         version.h
-    PUBLIC_LIBS atlas eckit_codec
+    PUBLIC_LIBS atlas
     PUBLIC_INCLUDES 
        $<INSTALL_INTERFACE:include/atlas-orca>
        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
@@ -59,4 +59,13 @@ set_source_files_properties( meshgenerator/OrcaMeshGenerator.cc PROPERTIES COMPI
 if (eckit_HAVE_CURL)
     set_source_files_properties( util/Download.cc
                             PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_HAVE_ECKIT_URLHANDLE")
+endif()
+
+if( TARGET eckit_codec )
+  target_link_libraries(atlas-orca PUBLIC eckit_codec)
+  target_compile_definitions(atlas-orca PUBLIC ATLAS_ORCA_HAVE_ECKIT_CODEC=1)
+  ecbuild_info("atlas-orca is using eckit_codec")
+else()
+  target_compile_definitions(atlas-orca PUBLIC ATLAS_ORCA_HAVE_ECKIT_CODEC=0)
+  ecbuild_info("atlas-orca is using atlas_io as eckit is not compiled with eckit_codec")
 endif()
