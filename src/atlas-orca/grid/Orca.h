@@ -29,15 +29,13 @@ namespace eckit {
 class PathName;
 }
 
-namespace atlas {
-namespace grid {
-namespace detail {
-namespace grid {
+
+namespace atlas::grid::detail::grid {
 
 class Orca final : public Grid {
 private:
     struct ComputePointXY {
-        ComputePointXY( const Orca& grid ) : grid_( grid ) {}
+        explicit ComputePointXY( const Orca& grid ) : grid_( grid ) {}
 
         void operator()( idx_t i, idx_t j, PointXY& point ) { grid_.xy( i, j, point.data() ); }
 
@@ -45,7 +43,7 @@ private:
     };
 
     struct ComputePointLonLat {
-        ComputePointLonLat( const Orca& grid ) : grid_( grid ) {}
+        explicit ComputePointLonLat( const Orca& grid ) : grid_( grid ) {}
 
         void operator()( idx_t i, idx_t j, PointLonLat& point ) { grid_.lonlat( i, j, point.data() ); }
 
@@ -54,7 +52,6 @@ private:
 
     template <typename Base, typename ComputePoint>
     class OrcaIterator : public Base {
-    protected:
         const Orca& grid_;
         idx_t ibegin_;
         idx_t iend_;
@@ -66,7 +63,7 @@ private:
         ComputePoint compute_point_;
 
     public:
-        OrcaIterator( const Orca& grid, bool begin = true ) :
+        explicit OrcaIterator( const Orca& grid, bool begin = true ) :
             grid_( grid ),
             ibegin_( -grid.haloWest() ),
             iend_( grid.nx() + grid.haloEast() ),
@@ -74,13 +71,13 @@ private:
             jend_( grid.ny() + grid.haloNorth() ),
             i_( -grid.haloWest() ),
             j_( -grid.haloSouth() ),
-            compute_point_{grid_} {
+            compute_point_{ grid_ } {
             if ( not begin ) {
                 i_ = ibegin_;
                 j_ = jend_;
             }
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
         }
 
@@ -104,8 +101,8 @@ private:
                 ++j_;
                 i_ = ibegin_;
             }
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
             return *this;
         }
@@ -119,8 +116,8 @@ private:
                 i_ = ibegin_;
             }
             i_ += d;
-            if( j_ != jend_ && i_ < iend_ ) {
-                compute_point_(i_, j_, point_);
+            if ( j_ != jend_ && i_ < iend_ ) {
+                compute_point_( i_, j_, point_ );
             }
             return *this;
         }
@@ -163,7 +160,7 @@ public:  // methods
     static std::string static_type();
 
     /// Constructor taking a configuration (spec)
-    Orca( const Config& );
+    explicit Orca( const Config& );
 
     /// Constructor taking a name/uid and a configuration (spec)
     Orca( const std::string& name_or_uid, const Config& );
@@ -202,21 +199,21 @@ public:
 
     void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const {
         //gidx = jstride_ * (jmin_+j) + (imin_+i);
-        j = gidx / jstride_ - jmin_;
-        i = gidx - ( jstride_ * ( j + jmin_ ) ) - imin_;
+        j = static_cast<idx_t>( gidx / jstride_ - jmin_ );
+        i = static_cast<idx_t>( gidx - ( jstride_ * ( j + jmin_ ) ) - imin_ );
     }
 
 
-    virtual std::unique_ptr<Grid::IteratorXY> xy_begin() const override {
+    std::unique_ptr<Grid::IteratorXY> xy_begin() const override {
         return std::unique_ptr<Grid::IteratorXY>( new IteratorXY( *this ) );
     }
-    virtual std::unique_ptr<Grid::IteratorXY> xy_end() const override {
+    std::unique_ptr<Grid::IteratorXY> xy_end() const override {
         return std::unique_ptr<Grid::IteratorXY>( new IteratorXY( *this, false ) );
     }
-    virtual std::unique_ptr<Grid::IteratorLonLat> lonlat_begin() const override {
+    std::unique_ptr<Grid::IteratorLonLat> lonlat_begin() const override {
         return std::unique_ptr<Grid::IteratorLonLat>( new IteratorLonLat( *this ) );
     }
-    virtual std::unique_ptr<Grid::IteratorLonLat> lonlat_end() const override {
+    std::unique_ptr<Grid::IteratorLonLat> lonlat_end() const override {
         return std::unique_ptr<Grid::IteratorLonLat>( new IteratorLonLat( *this, false ) );
     }
 
@@ -253,6 +250,8 @@ private:
     idx_t halo_north_;
     idx_t nx_halo_;
     idx_t ny_halo_;
+
+    /// Indices
     idx_t imin_;
     idx_t jmin_;
     idx_t istride_;
@@ -271,7 +270,4 @@ private:
 };
 
 
-}  // namespace grid
-}  // namespace detail
-}  // namespace grid
-}  // namespace atlas
+}  // namespace atlas::grid::detail::grid

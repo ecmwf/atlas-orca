@@ -14,8 +14,8 @@
 
 #include "atlas/library/config.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -52,5 +52,4 @@ struct PointIJ {
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

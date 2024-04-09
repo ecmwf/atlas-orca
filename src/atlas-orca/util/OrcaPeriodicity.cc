@@ -17,24 +17,22 @@
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/PointIJ.h"
 #include "atlas/library/config.h"
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 OrcaPeriodicity::OrcaPeriodicity( const OrcaData& orca ) : OrcaPeriodicity( orca.dimensions, orca.halo, orca.pivot ) {}
 
 OrcaPeriodicity::OrcaPeriodicity( const std::array<std::int32_t, 2>& dimensions,
                                   const std::array<std::int32_t, 4>& halo, const std::array<double, 2>& pivot ) :
-    nx_{dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST]},
-    ny_{dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST]},
-    halo_{halo},
-    pivot_{pivot} {
-    ibegin_ = halo_[HALO_WEST];
-    iend_   = ibegin_ + nx_;
-}
+    nx_{ dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST] },
+    ny_{ dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST] },
+    ibegin_( halo_[HALO_WEST] ),
+    iend_( ibegin_ + nx_ ),
+    halo_{ halo },
+    pivot_{ pivot } {}
 
 //------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

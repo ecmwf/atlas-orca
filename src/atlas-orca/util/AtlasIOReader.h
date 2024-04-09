@@ -10,35 +10,36 @@
 
 #pragma once
 
-#include <cstring>
-#include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 
-
-#include "eckit/filesystem/PathName.h"
-#include "eckit/log/ProgressTimer.h"
-
+#if ATLAS_ORCA_HAVE_ECKIT_CODEC
+#include "eckit/codec/codec.h"
+#else
+// Backward compatibility, DEPRECATED!
 #include "atlas/io/atlas-io.h"
+namespace eckit::codec {
+using RecordReader = atlas::io::RecordReader;
+}
+#endif
 #include "atlas/runtime/Exception.h"
 
 #include "atlas-orca/util/OrcaData.h"
 #include "atlas-orca/util/OrcaDataFile.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 class AtlasIOReader {
 public:
-    AtlasIOReader( const util::Config& config = util::NoConfig() ) {}
+    explicit AtlasIOReader( const util::Config& = util::NoConfig() ) {}
 
     void read( const std::string& uri, OrcaData& data ) {
-        OrcaDataFile file{uri};
+        OrcaDataFile file{ uri };
 
-        io::RecordReader reader( file );
+        eckit::codec::RecordReader reader( file );
 
-        int version;
+        int version = 0;
         reader.read( "version", version ).wait();
         if ( version == 0 ) {
             reader.read( "dimensions", data.dimensions );
@@ -55,7 +56,7 @@ public:
     }
 };
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
+
 
 //------------------------------------------------------------------------------------------------------

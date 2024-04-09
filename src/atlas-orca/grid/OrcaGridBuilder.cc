@@ -22,10 +22,8 @@
 #include "atlas/library.h"
 #include "atlas/util/Config.h"
 
-namespace atlas {
-namespace grid {
-namespace detail {
-namespace grid {
+
+namespace atlas::grid::detail::grid {
 
 
 static class OrcaGridBuilder : public GridBuilder {
@@ -33,7 +31,8 @@ static class OrcaGridBuilder : public GridBuilder {
     using Config         = Grid::Config;
 
 public:
-    OrcaGridBuilder() : GridBuilder( Orca::static_type(), {"^e?ORCA[0-9]+_[FTUVW]$"}, {"[e]ORCA<deg>_{F,T,U,V,W}"} ) {}
+    OrcaGridBuilder() :
+        GridBuilder( Orca::static_type(), { "^e?ORCA[0-9]+_[FTUVW]$" }, { "[e]ORCA<deg>_{F,T,U,V,W}" } ) {}
 
     void print( std::ostream& os ) const override {
         os << std::left << std::setw( 30 ) << "[e]ORCA<deg>_{F,T,U,V,W}"
@@ -63,8 +62,8 @@ public:
 
     const Implementation* create( const Config& config ) const override {
         std::string type;
-        config.get("type",type);
-        if (type != "ORCA") {
+        config.get( "type", type );
+        if ( type != "ORCA" ) {
             return nullptr;
         }
         return new Orca( config );
@@ -74,7 +73,4 @@ public:
 
 } orca_;
 
-}  // namespace grid
-}  // namespace detail
-}  // namespace grid
-}  // namespace atlas
+}  // namespace atlas::grid::detail::grid

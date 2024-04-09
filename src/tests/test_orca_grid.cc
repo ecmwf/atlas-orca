@@ -20,8 +20,8 @@
 using Grid   = atlas::Grid;
 using Config = atlas::util::Config;
 
-namespace atlas {
-namespace test {
+
+namespace atlas::test {
 
 //-----------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ CASE( "test orca grid iterator" ) {
     };
 
     std::vector<Section> sections{
-        {"ORCA2_T", 27118}, {"eORCA1_T", 120184},
+        { "ORCA2_T", 27118 }, { "eORCA1_T", 120184 },
         //{"ORCA025_T", 1472282},
     };
     for ( auto& section : sections ) {
@@ -42,12 +42,13 @@ CASE( "test orca grid iterator" ) {
 
             EXPECT_EQ( grid.size(), section.size );
 
-            Log::info() << "grid.footprint() = " << eckit::Bytes( grid.footprint() ) << std::endl;
+            Log::info() << "grid.footprint() = " << eckit::Bytes( static_cast<double>( grid.footprint() ) )
+                        << std::endl;
 
             idx_t n = 0;
             {
                 auto trace = Trace( Here(), "iterating" );
-                for ( auto& p : grid.lonlat() ) {
+                for ( const auto& p : grid.lonlat() ) {
                     ++n;
                 }
                 trace.stop();
@@ -62,8 +63,8 @@ CASE( "test orca grid iterator" ) {
 
 //-----------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace atlas
+}  // namespace atlas::test
+
 
 int main( int argc, char** argv ) {
     return atlas::test::run( argc, argv );

@@ -42,7 +42,7 @@ namespace test {
 using eckit::types::is_approximately_equal;
 
 class Test;
-static Test* current_test_{nullptr};
+static Test* current_test_{ nullptr };
 
 static size_t ATLAS_MAX_FAILED_EXPECTS() {
     static size_t v = size_t( eckit::Resource<long>( "$ATLAS_MAX_FAILED_EXPECTS", 100 ) );
@@ -62,7 +62,7 @@ public:
     }
     ~Test() { current_test_ = nullptr; }
     void expect_failed( const std::string& message, const eckit::CodeLocation& location ) {
-        failures_.emplace_back( Failure{message, location} );
+        failures_.emplace_back( Failure{ message, location } );
         eckit::Log::error() << message << std::endl;
         if ( failures_.size() == ATLAS_MAX_FAILED_EXPECTS() ) {
             std::stringstream msg;
@@ -180,7 +180,7 @@ struct Printer<PointLonLat> {
 template <>
 struct Printer<eckit::CodeLocation> {
     static void print( std::ostream& out, const eckit::CodeLocation& location ) {
-        out << eckit::PathName{location.file()}.baseName() << " +" << location.line();
+        out << eckit::PathName{ location.file() }.baseName() << " +" << location.line();
     }
 };
 

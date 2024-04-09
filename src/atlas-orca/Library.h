@@ -12,8 +12,8 @@
 
 #include "atlas/library/Plugin.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 
 class Library : public Plugin {
@@ -32,5 +32,4 @@ public:
 };
 
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

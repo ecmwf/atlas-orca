@@ -17,8 +17,8 @@
 #include "atlas/array/DataType.h"
 #include "atlas/runtime/Exception.h"
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -28,8 +28,8 @@ public:
     static constexpr int WATER           = 1;
     static constexpr int INVALID_ELEMENT = 2;
 
-    Flag( std::byte& b ) : byte( b ) { std::memcpy( &bits, &byte, sizeof( std::byte ) ); }
-    Flag( const std::byte& b ) : byte( const_cast<std::byte&>( b ) ), read_only{true} {
+    explicit Flag( std::byte& b ) : byte( b ) { std::memcpy( &bits, &byte, sizeof( std::byte ) ); }
+    explicit Flag( const std::byte& b ) : byte( const_cast<std::byte&>( b ) ), read_only{ true } {
         std::memcpy( &bits, &byte, sizeof( std::byte ) );
     }
     void set( int pos ) {
@@ -47,10 +47,9 @@ public:
 private:
     std::bitset<8> bits;  // 1 byte  ( WARNING, sizeof(std::bitset<8>) != 1; it is compiler dependent, usually 4 or 8 )
     std::byte& byte;
-    bool read_only{false};
+    bool read_only{ false };
 };
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca

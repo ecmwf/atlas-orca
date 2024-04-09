@@ -10,8 +10,8 @@
 
 #pragma once
 
-namespace atlas {
-namespace orca {
+
+namespace atlas::orca {
 
 //------------------------------------------------------------------------------------------------------
 
@@ -22,5 +22,4 @@ static constexpr int HALO_EAST  = 3;
 
 //------------------------------------------------------------------------------------------------------
 
-}  // namespace orca
-}  // namespace atlas
+}  // namespace atlas::orca
