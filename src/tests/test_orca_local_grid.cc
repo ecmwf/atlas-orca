@@ -86,13 +86,13 @@ CASE("test surrounding local_orca ") {
         int iy_glb = local_orca.iy_min() + j;
         ASSERT_MSG(iy_glb < (grid.ny() + std::max(grid.haloNorth(), halo + 1)), "iy_glb in range " +
                    std::to_string(j) + " " + std::to_string(local_orca.iy_min()) + " " +
-                   std::to_string(iy_glb) + " " + std::to_string(grid.ny()) + " " + 
+                   std::to_string(iy_glb) + " " + std::to_string(grid.ny()) + " " +
                    std::to_string(grid.haloNorth()) + " " + std::to_string(halo));
         for (uint64_t i = 0; i < local_orca.nx(); i++) {
           int ix_glb = local_orca.ix_min() + i;
           ASSERT_MSG(ix_glb < (grid.nx() + std::max(grid.haloEast(), halo + 1)), "ix_glb in range " +
                      std::to_string(i) + " " + std::to_string(local_orca.ix_min()) + " " +
-                     std::to_string(ix_glb) + " " + std::to_string(grid.nx()) + " " + 
+                     std::to_string(ix_glb) + " " + std::to_string(grid.nx()) + " " +
                      std::to_string(grid.haloEast()) + " " + std::to_string(halo));
           auto ii = local_orca.index(i, j);
           indices.emplace_back(ii);
@@ -101,11 +101,11 @@ CASE("test surrounding local_orca ") {
           const auto ohgg_ij = local_orca.orca_haloed_global_grid_ij( i, j );
           ASSERT_MSG(ohgg_ij.i < grid.nx() + grid.haloEast(),
              std::string("ohgg_ij.i ") + std::to_string(ohgg_ij.i)
-             + std::string(" grid.nx()) ") + std::to_string(grid.nx()) 
+             + std::string(" grid.nx()) ") + std::to_string(grid.nx())
              + std::string(" grid.haloEast() ") + std::to_string(grid.haloEast()) );
           ASSERT_MSG(ohgg_ij.j < grid.ny() + grid.haloNorth(),
              std::string("ohgg_ij.j ") + std::to_string(ohgg_ij.j)
-             + std::string(" grid.ny() ") + std::to_string(grid.ny()) 
+             + std::string(" grid.ny() ") + std::to_string(grid.ny())
              + std::string(" grid.haloNorth() ") + std::to_string(grid.haloNorth()) );
           ASSERT_MSG(ohgg_ij.i >= -grid.haloWest(),
              std::string("ohgg_ij.i ") + std::to_string(ohgg_ij.i)
@@ -144,7 +144,7 @@ CASE("test surrounding local_orca ") {
               ((ix_glb >= grid.nx()) || (ix_glb > grid.nx()/2 && iy_glb > grid.ny()))) {
             // this grid point should be a ghost point.
             if ( ohgg_ij.j >= 0 or ohgg_ij.i < 0 or ohgg_ij.i >= grid.nx() ) {
-              EXPECT(local_orca.is_ghost_including_orca_halo.at(ii) 
+              EXPECT(local_orca.is_ghost_including_orca_halo.at(ii)
                      >= grid.ghost( ohgg_ij.i, ohgg_ij.j ));
             }
             if ( (ix_glb >= -grid.haloWest()) && (ix_glb < grid.nx() + grid.haloEast()) &&

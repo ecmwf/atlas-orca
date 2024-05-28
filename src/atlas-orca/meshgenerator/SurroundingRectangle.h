@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2021- ECMWF.
+ * (C) Crown Copyright 2024 Met Office
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "eckit/exception/Exceptions.h" 
+#include "eckit/exception/Exceptions.h"
 #include "atlas/meshgenerator/MeshGenerator.h"
 #include "atlas/meshgenerator/detail/MeshGeneratorImpl.h"
 #include "atlas/util/Config.h"
@@ -56,7 +56,7 @@ class SurroundingRectangle {
         void check_consistency() const {
             const auto check = [&](const int value) {
                 if (value == std::numeric_limits<int>::lowest())
-                  eckit::BadParameter("atlas-orca/meshgenerator/SurroundingRectangle: not all parameters set"); 
+                  eckit::BadParameter("atlas-orca/meshgenerator/SurroundingRectangle: not all parameters set");
             };
             check(nparts);
             check(mypart);
@@ -91,4 +91,4 @@ class SurroundingRectangle {
     int iy_min_, iy_max_;
     int halosize_;
 };
-}  // namespace atlas::orca::meshgenerator 
+}  // namespace atlas::orca::meshgenerator

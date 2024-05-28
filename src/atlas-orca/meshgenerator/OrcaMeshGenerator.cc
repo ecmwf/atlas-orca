@@ -306,7 +306,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                       nodes.master_glb_idx( inode ) = master_idx + 1;
                       if ( nparts_ == 1 ) {
                         nodes.part( inode ) = 0;
-                      } else {                        
+                      } else {
                         PointIJ master_ij = local_orca.master_global_ij( ix, iy );
                         auto clamp = []( idx_t value, idx_t lower, idx_t upper ) {
                           // in C++17 this is std::clamp
@@ -562,7 +562,7 @@ OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
     config.get( "halo", halosize_);
     if ( halosize_ < 0 ) {
       throw_NotImplemented("Halo size must be >= 0", Here());
-    } 
+    }
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {

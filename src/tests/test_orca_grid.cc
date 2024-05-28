@@ -117,7 +117,7 @@ CASE("test matchup between orca and regular ij indexing ") {
       EXPECT(internal_size == ij_uid.size());
     }
 
-    auto nx_orca_halo = orca_grid.haloWest() + orca_grid.nx() + orca_grid.haloEast(); 
+    auto nx_orca_halo = orca_grid.haloWest() + orca_grid.nx() + orca_grid.haloEast();
     auto ny_orca_halo = orca_grid.haloSouth() + orca_grid.ny() + orca_grid.haloNorth();
 
     const std::array<std::int32_t, 2> dimensions{nx_orca_halo, ny_orca_halo};

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2021- ECMWF.
+ * (C) Crown Copyright 2024 Met Office
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -175,7 +175,7 @@ SurroundingRectangle::SurroundingRectangle(
       for ( idx_t ix = 0; ix < nx_; ix++ ) {
         idx_t ii = index( ix, iy );
         parts.at( ii ) = partition( ix, iy );
-        
+
         PointIJ pij = global_periodic_ij( ix_min_ + ix, iy_min_ + iy );
         bool periodic_point = ( (pij.i != (ix_min_ + ix) ) || (pij.j != (iy_min_ + iy)) );
         bool halo_found = false;
@@ -205,8 +205,8 @@ SurroundingRectangle::SurroundingRectangle(
             }
           }
           ATLAS_ASSERT_MSG( halo_found, std::string("Halo distance not found at point ") +
-                                        std::to_string(ix) + std::string(", ") + 
-                                        std::to_string(iy) ); 
+                                        std::to_string(ix) + std::string(", ") +
+                                        std::to_string(iy) );
           halo.at( ii ) = halo_dist;
         }
         is_ghost.at( ii ) = ( (parts.at( ii ) != cfg_.mypart) || periodic_point );
@@ -215,4 +215,4 @@ SurroundingRectangle::SurroundingRectangle(
   }
 }
 
-}  // namespace atlas::orca::meshgenerator 
+}  // namespace atlas::orca::meshgenerator

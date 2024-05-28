@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2021- ECMWF.
+ * (C) Crown Copyright 2024 Met Office
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -176,9 +176,9 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
         const auto ij_glb_haloed = this->orca_haloed_global_grid_ij( ix, iy );
         // The southern boundary does not contain halo points apart from at the
         // east and west limits.
-        if ( this->orca_halo( ix, iy ) && 
-             ((ij_glb_haloed.j >= 0) || 
-              (ij_glb_haloed.i < 0) || 
+        if ( this->orca_halo( ix, iy ) &&
+             ((ij_glb_haloed.j >= 0) ||
+              (ij_glb_haloed.i < 0) ||
               (ij_glb_haloed.i >= orca_.nx())) ) {
         // this one should wrap when we have a standard halo, but still
         // preserve the orca halo as though points in the orca are real points
@@ -309,7 +309,7 @@ PointIJ LocalOrcaGrid::orca_haloed_global_grid_ij( idx_t ix, idx_t iy ) const {
 
   ATLAS_ASSERT_MSG( ij.j >= -orca_.haloSouth(),
                     std::string("Cannot extend below the southern ORCA halo: j = ") +
-                    std::to_string(ij.j) + std::string(", orca_.haloSouth() = ") + 
+                    std::to_string(ij.j) + std::string(", orca_.haloSouth() = ") +
                     std::to_string(orca_.haloSouth()) );
 
   // wrap points outside of orca_grid halo back into the orca grid.
