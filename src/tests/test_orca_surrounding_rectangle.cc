@@ -86,8 +86,8 @@ CASE("test surrounding rectangle ") {
       }
       EXPECT(regular_grid.ny() == grid.ny());
       for (idx_t ix = 0; ix < grid.ny(); ++ix) {
-        if (regular_grid.nx(ix)!= grid.nx()) {
-          std::cout << regular_grid.nx(ix)<< " != " << grid.nx() << std::endl;
+        if (regular_grid.nx(ix) != grid.nx()) {
+          std::cout << regular_grid.nx(ix) << " != " << grid.nx() << std::endl;
         }
         EXPECT(regular_grid.nx(ix) == grid.nx());
       }

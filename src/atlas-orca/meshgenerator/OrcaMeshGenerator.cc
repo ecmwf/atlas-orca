@@ -177,6 +177,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     setGrid( mesh, grid, distribution );
 
     const bool serial_distribution = (SR_cfg.nparts == 1 || distribution.type() == "serial");
+    if ( serial_distribution && (halosize_ > 0) ) {
+      throw_NotImplemented("Halo size should be 0 if using a serial distribution or a single partition", Here());
+    }
 
     //---------------------------------------------------
 
@@ -219,70 +222,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int inode_nonghost = 0;
     int inode_ghost    = 0;
 
-
     int ix_pivot = SR_cfg.nx_glb / 2;
     bool patch   = not orca_grid.ghost( ix_pivot + 1, SR_cfg.ny_glb - 1 );
 
     std::vector<idx_t> node_index( local_orca.nx()*local_orca.ny(), -1 );
-
-//    std::stringstream file_spec;
-//    file_spec << orca_grid.name() << "_" << distribution.type() << nparts_ << "_" << mypart_;
-
-//    std::ofstream summary_file, partition_file, ghost_file, is_node_file, xy_file, lonlat_file, cells_file, orca_halo_file;
-//    summary_file.open(file_spec.str() + "_summary.txt");
-//    partition_file.open(file_spec.str() + "_partition.txt");
-//    ghost_file.open(file_spec.str() + "_ghost.txt");
-//    is_node_file.open(file_spec.str() + "_is_node.txt");
-//    xy_file.open(file_spec.str() + "_xy.txt");
-//    lonlat_file.open(file_spec.str() + "_lonlat.txt");
-//    cells_file.open(file_spec.str() + "_cells.txt");
-//    orca_halo_file.open(file_spec.str() + "_orca_halo.txt");
-
-//    orca_halo_file << "inode , ii, nodes.ij( inode, XX ), nodes.ij( inode, YY )"
-//                   << ", nodes.part( inode )"
-//                   << ", nodes.ghost( inode )"
-//                   << ", nodes.remote_idx( inode )"
-//                   << ", nodes.glb_idx( inode )"
-//                   << ", nodes.master_glb_idx( inode )" << std::endl;
-
-//    summary_file << "SR.nx " << SR.nx()
-//                 << "\nSR.ny " << SR.ny()
-//                 << "\nSR.ix_min " << SR.ix_min()
-//                 << "\nSR.ix_max " << SR.ix_max()
-//                 << "\nSR.iy_min " << SR.iy_min()
-//                 << "\nSR.iy_max " << SR.iy_max()
-//                 << "\nSR.nb_nodes_owned " << SR.nb_real_nodes_owned_by_rectangle
-//                 << "\nlocal_orca.nx " << local_orca.nx()
-//                 << "\nlocal_orca.ny " << local_orca.ny()
-//                 << "\nlocal_orca.ix_min " << local_orca.ix_min()
-//                 << "\nlocal_orca.ix_max " << local_orca.ix_max()
-//                 << "\nlocal_orca.iy_min " << local_orca.iy_min()
-//                 << "\nlocal_orca.iy_max " << local_orca.iy_max()
-//                 << "\nlocal_orca.nb_used_real_nodes " << local_orca.nb_used_real_nodes()
-//                 << "\nlocal_orca.nb_used_ghost_nodes " << local_orca.nb_used_ghost_nodes()
-//                 << "\nlocal_orca.nb_used_nodes " << local_orca.nb_used_nodes()
-//                 << std::endl;
-//    int total_is_node = std::count(local_orca.is_node.begin(), local_orca.is_node.end(), true);
-//    int total_is_ghost = std::count(local_orca.is_ghost.begin(), local_orca.is_ghost.end(), true);
-//    std::cout    << "SR.nx " << SR.nx()
-//                 << "\nSR.ny " << SR.ny()
-//                 << "\nSR.ix_min " << SR.ix_min()
-//                 << "\nSR.ix_max " << SR.ix_max()
-//                 << "\nSR.iy_min " << SR.iy_min()
-//                 << "\nSR.iy_max " << SR.iy_max()
-//                 << "\nSR.nb_nodes_owned " << SR.nb_real_nodes_owned_by_rectangle
-//                 << "\nlocal_orca.nx " << local_orca.nx()
-//                 << "\nlocal_orca.ny " << local_orca.ny()
-//                 << "\nlocal_orca.ix_min " << local_orca.ix_min()
-//                 << "\nlocal_orca.ix_max " << local_orca.ix_max()
-//                 << "\nlocal_orca.iy_min " << local_orca.iy_min()
-//                 << "\nlocal_orca.iy_max " << local_orca.iy_max()
-//                 << "\nlocal_orca.nb_used_real_nodes " << local_orca.nb_used_real_nodes()
-//                 << "\nlocal_orca.nb_used_ghost_nodes " << local_orca.nb_used_ghost_nodes()
-//                 << "\nlocal_orca.nb_used_nodes " << local_orca.nb_used_nodes()
-//                 << "\ntotal is node " << total_is_node
-//                 << "\ntotal is ghost" << total_is_ghost
-//                 << std::endl;
 
     {
         ATLAS_TRACE( "nodes" );
@@ -331,7 +274,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
                     // grid ij coordinates
                     {
-                      const auto ij_glb = local_orca.global_ij( ix, iy );
+                      const auto ij_glb = local_orca.orca_haloed_global_grid_ij( ix, iy );
                       nodes.ij( inode, XX ) = ij_glb.i;
                       nodes.ij( inode, YY ) = ij_glb.j;
                     }
@@ -386,39 +329,16 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
                     nodes.water( inode ) = local_orca.water( ix, iy );
                     nodes.halo( inode ) = local_orca.halo[ii];
-                    // print diagnostic properties of nodes
-//                    partition_file << inode << ", " << ii << ", " << nodes.part( inode ) << std::endl;
-//                    ghost_file << inode << ", " << ii << ", " << nodes.ghost( inode ) << std::endl;
-//                    xy_file << inode << ", " << ii << ", " << nodes.xy( inode, 0 ) << ", " << nodes.xy( inode, 1 ) << std::endl;
-//                    lonlat_file << inode << ", " << ii << ", " << nodes.lonlat( inode, 0 ) << ", " << nodes.lonlat( inode, 1 ) << std::endl;
-//                    if ((nodes.ij( inode, XX ) > orca_grid.nx()) ||
-//                        (nodes.ij( inode, XX ) > orca_grid.nx()/2 &&  nodes.ij( inode, YY ) > orca_grid.ny())) {
-//                      orca_halo_file << inode << ", " << ii << ", " << nodes.ij( inode, XX ) << ", " << nodes.ij( inode, YY )
-//                                                            << ", " << nodes.part( inode )
-//                                                            << ", " << nodes.ghost( inode )
-//                                                            << ", " << nodes.remote_idx( inode )
-//                                                            << ", " << nodes.glb_idx( inode )
-//                                                            << ", " << nodes.master_glb_idx( inode ) << std::endl;
-//                    }
-                    // this node doesn't seem to belong on any partition when I build the remote indices
-//                    if ( ( nodes.master_glb_idx( inode ) == 26575 ) ) {
-//                      std::cout << "[" << mypart_ << "] " << inode << ", " << ii << ", " << nodes.ij( inode, XX ) << ", " << nodes.ij( inode, YY )
-//                                                          << ", " << nodes.part( inode )
-//                                                          << ", " << nodes.ghost( inode )
-//                                                          << ", " << nodes.remote_idx( inode )
-//                                                          << ", " << nodes.glb_idx( inode )
-//                                                          << ", " << nodes.master_glb_idx( inode ) << std::endl;
-//                    }
                 }
-//                is_node_file << local_orca.is_node.at( ii ) << std::endl;
             }
         }
     }
     std::vector<idx_t> cell_index( local_orca.nx()*local_orca.ny() );
-    // loop over nodes and define cells
+    // loop over nodes and define cells, putting non-ghost cells first
     {
         ATLAS_TRACE( "elements" );
         idx_t jcell = 0;
+        idx_t jcell_ghost = local_orca.nb_used_real_cells();
         ATLAS_TRACE_SCOPE( "indexing" );
         for ( idx_t iy = 0; iy < local_orca.ny() - 1; iy++ ) {      // don't loop into ghost/periodicity row
             for ( idx_t ix = 0; ix < local_orca.nx() - 1; ix++ ) {  // don't loop into ghost/periodicity column
@@ -426,7 +346,9 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 std::stringstream assert_msg;
                 assert_msg << ii << " > " << cell_index.size() << std::endl;
                 ATLAS_ASSERT(ii <  cell_index.size(), assert_msg.str());
-                if ( local_orca.is_ghost[ii] == 0 ) {
+                if ( local_orca.is_ghost[ii] ) {
+                    cell_index[ii] = jcell_ghost++;
+                } else {
                     cell_index[ii] = jcell++;
                 }
             }
@@ -439,7 +361,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                 idx_t ii   = local_orca.index( ix, iy );
                 int ix_glb = local_orca.ix_min() + ix;
                 int iy_glb = local_orca.iy_min() + iy;
-                if ( !local_orca.is_ghost[ii] ) {
+                if ( local_orca.is_cell[ii] ) {
                     idx_t jcell = cell_index[ii];
 
                     // define cell corners (local indices)
@@ -508,10 +430,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     if ( orca_grid.invalidElement( local_orca.ix_min() + ix, local_orca.iy_min() + iy ) ) {
                         cells.flags( jcell ).set( Topology::INVALID );
                     }
-//                    cells_file << jcell << ", " << quad_nodes[0]
-//                                        << ", " << quad_nodes[1]
-//                                        << ", " << quad_nodes[2]
-//                                        << ", " << quad_nodes[3] << std::endl;
                 }
             }
         }
@@ -528,15 +446,6 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         ATLAS_DEBUG( "build_remote_index" );
         build_remote_index( mesh );
     }
-
-//    summary_file.close();
-//    partition_file.close();
-//    ghost_file.close();
-//    is_node_file.close();
-//    xy_file.close();
-//    lonlat_file.close();
-//    cells_file.close();
-//    orca_halo_file.close();
 
     // Degenerate points in the ORCA mesh mean that the standard BuildHalo
     // methods for updating halo sizes will not work.
@@ -577,9 +486,6 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
     std::vector<std::vector<gidx_t>> send_uid( mpi_size );
     std::vector<std::vector<int>> req_lidx( mpi_size );
 
-//    std::ofstream global2local_file;
-//    global2local_file.open(std::string("global2local_") + std::to_string(mypart) + ".txt");
-//    global2local_file << "uid, jnode" << std::endl;
     Unique2Node global2local;
     for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
         gidx_t uid = master_glb_idx( jnode );
@@ -592,22 +498,12 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
         else {
             ridx( jnode ) = jnode;
         }
-//        if ( uid == 1 ) {
-//            std::cout << "[" << mypart << "] " << jnode << ", --, " << ij( jnode, XX ) << ", " << ij( jnode, YY )
-//                                                << ", " << part( jnode )
-//                                                << ", " << ghost( jnode )
-//                                                << ", " << ridx( jnode )
-//                                                << ", " << glb_idx( jnode )
-//                                                << ", " << master_glb_idx( jnode ) << std::endl;
-//        }
         if ( ghost( jnode ) == 0 ) {
             bool inserted = global2local.insert( std::make_pair( uid, jnode ) ).second;
             ATLAS_ASSERT( inserted, std::string( "index already inserted " ) + std::to_string( uid ) + ", " +
                                         std::to_string( jnode ) + " at jnode " + std::to_string( global2local[uid] ) );
-//            global2local_file << uid << ", " << jnode << std::endl;
         }
     }
-//    global2local_file.close();
 
     std::vector<std::vector<gidx_t>> recv_uid( mpi_size );
 
@@ -664,8 +560,9 @@ OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
     config.get( "partition", mypart_ = mpi::rank() );
     config.get( "partitions", nparts_ = mpi::size() );
     config.get( "halo", halosize_);
-    if (halosize_ < 0 || halosize_ > 1)
-      throw_NotImplemented("Only halo sizes 0 or 1 ORCA grids are currently supported", Here());
+    if ( halosize_ < 0 ) {
+      throw_NotImplemented("Halo size must be >= 0", Here());
+    } 
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& partitioner, Mesh& mesh ) const {
@@ -673,7 +570,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& par
     ATLAS_ASSERT(valid_distributions.find(partitioner.type()) != valid_distributions.end(),
                  partitioner.type() + " is not an implemented distribution type. "
                  + "Valid types are 'serial', 'checkerboard' or 'equal_regions', 'equal_area'");
-    if (partitioner.type() == "serial" && halosize_ > 1)
+    if (partitioner.type() == "serial" && halosize_ >= 1)
       throw_NotImplemented("halo size must be zero for 'serial' distribution type ORCA grids", Here());
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );

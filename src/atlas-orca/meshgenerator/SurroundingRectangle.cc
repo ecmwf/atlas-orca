@@ -44,7 +44,6 @@ int wrap( idx_t value, idx_t lower, idx_t upper ) {
 }
 }  // namespace
 
-
 PointIJ SurroundingRectangle::global_periodic_ij(idx_t ix_glb, idx_t iy_glb) const {
   // wrap around coordinate system when out of bounds on the global rectangle
 
@@ -65,7 +64,7 @@ PointIJ SurroundingRectangle::global_periodic_ij(idx_t ix_glb, idx_t iy_glb) con
     iy_glb_p = -iy_glb_p;
   }
 
-  //// i index periodic east/west boundaries
+  // i index periodic east/west boundaries
   if (ix_glb_p < 0) {
     ix_glb_p = wrap(ix_glb_p + width_x, 0, cfg_.nx_glb);
   }
@@ -106,10 +105,6 @@ SurroundingRectangle::SurroundingRectangle(
   ATLAS_TRACE();
   cfg_.check_consistency();
 
-//  std::ofstream logFile(distribution.type() + "-"
-//      + std::to_string(cfg_.halosize) + "_p"
-//      + std::to_string(cfg_.mypart) + ".log");
-
   // determine rectangle (ix_min_:ix_max_) x (iy_min_:iy_max_) surrounding the nodes on this processor
   ix_min_         = cfg_.nx_glb;
   ix_max_         = 0;
@@ -117,8 +112,6 @@ SurroundingRectangle::SurroundingRectangle(
   iy_max_         = 0;
   nb_real_nodes_owned_by_rectangle = 0;
 
-  // TODO: These "bounds"  are on the imaginary wrapped rectangle including halo and periodic points.
-  // points out of bounds of the reglatlon grid are either in the orca halo points, or are in the halo
   {
     ATLAS_TRACE( "find rectangle bounds" );
     atlas_omp_parallel {
@@ -152,10 +145,11 @@ SurroundingRectangle::SurroundingRectangle(
   }
 
   // add the halo.
-  ix_min_ -= cfg_.halosize;
-  ix_max_ += cfg_.halosize;
-  iy_min_ -= cfg_.halosize;
-  iy_max_ += cfg_.halosize;
+  halosize_ = cfg_.halosize;
+  ix_min_ -= halosize_;
+  ix_max_ += halosize_;
+  iy_min_ -= halosize_;
+  iy_max_ += halosize_;
 
   // +1 to surround the ghost nodes used to complete the cells
   ix_max_ += 1;
@@ -164,11 +158,6 @@ SurroundingRectangle::SurroundingRectangle(
   // dimensions of the surrounding rectangle (+1 because the size of the dimension is one bigger than the index of the last element)
   nx_ = ix_max_ - ix_min_ + 1;
   ny_ = iy_max_ - iy_min_ + 1;
-
-//  logFile << "[" << cfg_.mypart << "] ix_min: "     << ix_min_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] ix_max: "     << ix_max_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] iy_min: "     << iy_min_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] iy_max: "     << iy_max_ << std::endl;
 
   // upper estimate for number of nodes
   uint64_t size = ny_ * nx_;
@@ -186,41 +175,44 @@ SurroundingRectangle::SurroundingRectangle(
       for ( idx_t ix = 0; ix < nx_; ix++ ) {
         idx_t ii = index( ix, iy );
         parts.at( ii ) = partition( ix, iy );
+        
+        PointIJ pij = global_periodic_ij( ix_min_ + ix, iy_min_ + iy );
+        bool periodic_point = ( (pij.i != (ix_min_ + ix) ) || (pij.j != (iy_min_ + iy)) );
         bool halo_found = false;
-        int halo_dist = cfg_.halosize;
-        if ((cfg_.halosize > 0) && parts.at( ii ) != cfg_.mypart ) {
+        int halo_dist = halosize_;
+        if ((halosize_ > 0) && ((parts.at( ii ) != cfg_.mypart) || periodic_point) ) {
           // search the surrounding halosize index square for a node on my
           // partition to determine the halo distance
-          for (idx_t dhy = -cfg_.halosize; dhy <= cfg_.halosize; ++dhy) {
-            for (idx_t dhx = -cfg_.halosize; dhx <= cfg_.halosize; ++dhx) {
-              if (dhx == 0 && dhy == 0) continue;
-              if (partition(ix + dhx, iy + dhy) == cfg_.mypart) {
-                // find the minimum distance from this halo node to
-                // a node on the partition
-                auto dist = std::max(std::abs(dhx), std::abs(dhy));
-                halo_dist = std::min(dist, halo_dist);
-                halo_found = true;
+          for (idx_t searchsize = 1; std::max(nx_, ny_); ++searchsize) {
+            for (idx_t dhy = -searchsize; dhy <= searchsize; ++dhy) {
+              for (idx_t dhx = -searchsize; dhx <= searchsize; ++dhx) {
+                if ( ((std::abs(dhx) != searchsize) && (std::abs(dhy) != searchsize)) ||
+                     (ix + dhx < 0) || (ix + dhx >= nx_) ||
+                     (iy + dhy < 0) || (iy + dhy >= ny_) ) {
+                  continue;
+                }
+                if (partition(ix + dhx, iy + dhy) == cfg_.mypart) {
+                  // find the minimum distance from this halo node to
+                  // a node on the partition
+                  auto dist = std::max(std::abs(dhx), std::abs(dhy));
+                  halo_dist = std::min(dist, halo_dist);
+                  halo_found = true;
+                }
               }
             }
+            if ( halo_found ) {
+                break;
+            }
           }
-          if (halo_found) {
-            halo.at( ii ) = halo_dist;
-          }
+          ATLAS_ASSERT_MSG( halo_found, std::string("Halo distance not found at point ") +
+                                        std::to_string(ix) + std::string(", ") + 
+                                        std::to_string(iy) ); 
+          halo.at( ii ) = halo_dist;
         }
-
-        is_ghost.at( ii ) = ( parts.at( ii ) != cfg_.mypart );
+        is_ghost.at( ii ) = ( (parts.at( ii ) != cfg_.mypart) || periodic_point );
       }
     }
   }
-//  logFile << std::setw(5) << std::setfill('0');
-//  logFile << "[" << cfg_.mypart << "] nx                      = " << nx_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] ny                      = " << ny_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] halosize                = " << cfg_.halosize << std::endl;
-//  logFile << "[" << cfg_.mypart << "] ny * nx_                = " << ny_ * nx_ << std::endl;
-//  logFile << "[" << cfg_.mypart << "] ny * (nx_ + 2*halosize) = " << ny_ * (nx_ + 2*cfg_.halosize) << std::endl;
-//  logFile << "[" << cfg_.mypart << "] nb_real_nodes_owned_by_rectangle = " << nb_real_nodes_owned_by_rectangle << std::endl;
-//  logFile << "[" << cfg_.mypart << "] end of SR output" << std::endl;
-//  logFile.close();
 }
 
 }  // namespace atlas::orca::meshgenerator 

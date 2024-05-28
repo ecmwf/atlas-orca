@@ -39,6 +39,7 @@ class LocalOrcaGrid {
     std::vector<int> is_ghost_including_orca_halo;
     std::vector<int> is_ghost;
     std::vector<int> is_node;
+    std::vector<int> is_cell;
     uint64_t size() const {return size_;}
     int ix_min() const {return ix_orca_min_;}
     int ix_max() const {return ix_orca_max_;}
@@ -54,6 +55,10 @@ class LocalOrcaGrid {
     uint64_t nb_used_nodes() const {return nb_used_nodes_;}
     // number of cells on this partition
     uint64_t nb_cells() const {return nb_cells_;}
+    // number of ghost cells on this partition
+    uint64_t nb_used_ghost_cells() const {return nb_used_ghost_cells_;}
+    // number of real cells on this paritition
+    uint64_t nb_used_real_cells() const {return nb_used_real_cells_;}
 
     int index( idx_t ix, idx_t iy ) const;
     LocalOrcaGrid( const OrcaGrid& grid, const SurroundingRectangle& rectangle );
@@ -67,6 +72,7 @@ class LocalOrcaGrid {
     idx_t orca_haloed_global_grid_index( idx_t ix, idx_t iy ) const;
     void flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& flag_view ) const;
     bool water( idx_t ix, idx_t iy ) const;
+    bool orca_halo( idx_t ix, idx_t iy ) const;
 
  private:
     const OrcaGrid orca_;
@@ -81,6 +87,8 @@ class LocalOrcaGrid {
     uint64_t nb_used_real_nodes_;
     uint64_t nb_used_ghost_nodes_;
     uint64_t nb_cells_;
+    uint64_t nb_used_ghost_cells_;
+    uint64_t nb_used_real_cells_;
     double lon00_;
     util::NormaliseLongitude lon00_normaliser_;
 };

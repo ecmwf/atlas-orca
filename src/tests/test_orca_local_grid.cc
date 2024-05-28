@@ -49,7 +49,7 @@ CASE("test surrounding local_orca ") {
     return 1 + util::function::vortex_rollup(lon, lat, 0.0);
   };
 
-  for (int halo = 0; halo < 2; ++halo) {
+  for (int halo = 0; halo <= 2; ++halo) {
     if ( ( (mpi::size() == 1) && (halo > 0) ) ||
          ( (mpi::size() == 1) && (distributionName != "serial") ) )
       continue;
@@ -84,27 +84,36 @@ CASE("test surrounding local_orca ") {
       int inode_nonghost = 0;
       for (uint64_t j = 0; j < local_orca.ny(); j++) {
         int iy_glb = local_orca.iy_min() + j;
-        EXPECT(iy_glb < grid.ny() + grid.haloNorth() + grid.haloSouth() + halo);
+        ASSERT_MSG(iy_glb < (grid.ny() + std::max(grid.haloNorth(), halo + 1)), "iy_glb in range " +
+                   std::to_string(j) + " " + std::to_string(local_orca.iy_min()) + " " +
+                   std::to_string(iy_glb) + " " + std::to_string(grid.ny()) + " " + 
+                   std::to_string(grid.haloNorth()) + " " + std::to_string(halo));
         for (uint64_t i = 0; i < local_orca.nx(); i++) {
           int ix_glb = local_orca.ix_min() + i;
-          EXPECT(ix_glb < grid.nx() + grid.haloWest() + grid.haloEast() + 2*halo);
+          ASSERT_MSG(ix_glb < (grid.nx() + std::max(grid.haloEast(), halo + 1)), "ix_glb in range " +
+                     std::to_string(i) + " " + std::to_string(local_orca.ix_min()) + " " +
+                     std::to_string(ix_glb) + " " + std::to_string(grid.nx()) + " " + 
+                     std::to_string(grid.haloEast()) + " " + std::to_string(halo));
           auto ii = local_orca.index(i, j);
           indices.emplace_back(ii);
 
-          idx_t reg_grid_glb_idx  = regular_grid.index(ix_glb, iy_glb);
-          idx_t orca_grid_glb_idx = grid.periodicIndex(ix_glb, iy_glb);
-          gidx_t master_idx       = local_orca.master_global_index( i, j );
-          const auto master_global_ij = local_orca.master_global_ij( i, j );
-          ASSERT_MSG(master_global_ij.i < grid.nx(),
-             std::string("master_global_ij.i ") + std::to_string(master_global_ij.i)
-             + " grid.nx() " + std::to_string(grid.nx()) );
-          ASSERT_MSG(master_global_ij.j < grid.ny(),
-             std::string("master_global_ij.j ") + std::to_string(master_global_ij.j)
-             + " grid.ny() " + std::to_string(grid.ny()) );
-          ASSERT_MSG(master_global_ij.i >= -1,
-             std::string("master_global_ij.i ") + std::to_string(master_global_ij.i));
-          ASSERT_MSG(master_global_ij.j >= -1,
-             std::string("master_global_ij.j ") + std::to_string(master_global_ij.j));
+          gidx_t ohgg_idx = local_orca.orca_haloed_global_grid_index( i, j );
+          const auto ohgg_ij = local_orca.orca_haloed_global_grid_ij( i, j );
+          ASSERT_MSG(ohgg_ij.i < grid.nx() + grid.haloEast(),
+             std::string("ohgg_ij.i ") + std::to_string(ohgg_ij.i)
+             + std::string(" grid.nx()) ") + std::to_string(grid.nx()) 
+             + std::string(" grid.haloEast() ") + std::to_string(grid.haloEast()) );
+          ASSERT_MSG(ohgg_ij.j < grid.ny() + grid.haloNorth(),
+             std::string("ohgg_ij.j ") + std::to_string(ohgg_ij.j)
+             + std::string(" grid.ny() ") + std::to_string(grid.ny()) 
+             + std::string(" grid.haloNorth() ") + std::to_string(grid.haloNorth()) );
+          ASSERT_MSG(ohgg_ij.i >= -grid.haloWest(),
+             std::string("ohgg_ij.i ") + std::to_string(ohgg_ij.i)
+             + std::string(" grid.haloWest() ") + std::to_string(grid.haloWest()) );
+          ASSERT_MSG(ohgg_ij.j >= -grid.haloSouth(),
+             std::string("ohgg_ij.j ") + std::to_string(ohgg_ij.j)
+             + std::string(" grid.haloSouth() ") + std::to_string(grid.haloSouth()) );
+
           const auto grid_xy        = local_orca.grid_xy( i, j );
           const auto normed_grid_xy = local_orca.normalised_grid_xy( i, j );
 
@@ -131,19 +140,19 @@ CASE("test surrounding local_orca ") {
           local_orca.flags( i, j, flags_view );
 
           // check points in the orca halo behave as expected.
-          if ((ix_glb > grid.nx()) ||
-              (ix_glb > grid.nx()/2 && iy_glb > grid.ny())) {
-            //std::cout << "ix_glb, iy_glb : " << ix_glb << ", " << iy_glb << " is_ghost "  << local_orca.is_ghost.at(ii)
-            //          << "local_orca.master_global_index(i, j) != local_orca.orca_haloed_global_grid_index(i,j)"
-            //          << local_orca.master_global_index(i, j) << " != " << local_orca.orca_haloed_global_grid_index(i,j)
-            //          << " -- " << grid.ghost( ix_glb, iy_glb ) << std::endl;
+          if (local_orca.orca_halo( i, j ) &&
+              ((ix_glb >= grid.nx()) || (ix_glb > grid.nx()/2 && iy_glb > grid.ny()))) {
             // this grid point should be a ghost point.
-            if ( iy_glb > 0 or ix_glb < 0 ) {
-              EXPECT(local_orca.is_ghost_including_orca_halo.at(ii) >= grid.ghost( ix_glb, iy_glb ));
+            if ( ohgg_ij.j >= 0 or ohgg_ij.i < 0 or ohgg_ij.i >= grid.nx() ) {
+              EXPECT(local_orca.is_ghost_including_orca_halo.at(ii) 
+                     >= grid.ghost( ohgg_ij.i, ohgg_ij.j ));
             }
-            // this grid point should not be a master grid point.
-            //EXPECT(local_orca.master_global_index(i, j)
-            //       != local_orca.orca_haloed_global_grid_index(i,j));
+            if ( (ix_glb >= -grid.haloWest()) && (ix_glb < grid.nx() + grid.haloEast()) &&
+                 (iy_glb >= -grid.haloSouth()) && (iy_glb < grid.ny() + grid.haloNorth())) {
+              // this grid point should not be a master grid point.
+              EXPECT(local_orca.master_global_index(i, j)
+                     != local_orca.orca_haloed_global_grid_index(i,j));
+            }
           }
         }
       }
@@ -186,22 +195,23 @@ CASE("test surrounding local_orca ") {
       }
 
       const idx_t cell_width = 1;
+      // Values below are for ORCA2_T grid.
       if (cfg.nparts == 2) {
         if (cfg.mypart == 0) {
           EXPECT(local_orca.iy_min() == -grid.haloSouth());
-          EXPECT(local_orca.iy_max() == grid.ny() + grid.haloNorth() - 1 + halo);
-          EXPECT(local_orca.ix_min() == -grid.haloWest() - halo);
+          EXPECT(local_orca.iy_max() == grid.ny() + halo);
+          EXPECT(local_orca.ix_min() == -std::max(grid.haloWest(), halo));
           EXPECT(local_orca.ix_max() == 90 + halo);
-          EXPECT(local_orca.nx() == 91 + grid.haloWest() + 2*halo);
-          EXPECT(local_orca.ny() == grid.ny() + grid.haloSouth() + grid.haloNorth() + halo);
+          EXPECT(local_orca.nx() == 91 + halo + std::max(grid.haloWest(), halo));
+          EXPECT(local_orca.ny() == grid.ny() + grid.haloSouth() + halo + 1);
         }
         if (cfg.mypart == 1) {
           EXPECT(local_orca.iy_min() == -grid.haloSouth());
-          EXPECT(local_orca.iy_max() == grid.ny() + grid.haloNorth() - 1 + halo);
+          EXPECT(local_orca.iy_max() == grid.ny() + halo);
           EXPECT(local_orca.ix_min() == 90 - halo);
-          EXPECT(local_orca.ix_max() == grid.nx() + grid.haloEast() - 1 + halo);
-          EXPECT(local_orca.nx() == 90 + grid.haloEast() + 2*halo);
-          EXPECT(local_orca.ny() == grid.ny() + grid.haloSouth() + grid.haloNorth() + halo);
+          EXPECT(local_orca.ix_max() == grid.nx() + halo);
+          EXPECT(local_orca.nx() == grid.nx() + 2 * halo - 89);
+          EXPECT(local_orca.ny() == grid.ny() + grid.haloSouth() + halo + 1);
         }
       }
     }

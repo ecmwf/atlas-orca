@@ -26,31 +26,26 @@ namespace atlas::orca::meshgenerator {
 LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& rectangle) :
         orca_(grid) {
 
+  // Starting point for local orca grid size is the surrounding rectangle.
   ix_orca_min_ = rectangle.ix_min();
   ix_orca_max_ = rectangle.ix_max();
   iy_orca_min_ = rectangle.iy_min();
   iy_orca_max_ = rectangle.iy_max();
 
-//  std::cout << " rectangle.nx() " << rectangle.nx()
-//            << " rectangle.ny() " << rectangle.ny()
-//            << " rectangle.ix_min() " << rectangle.ix_min()
-//            << " rectangle.ix_max() " << rectangle.ix_max()
-//            << " rectangle.iy_min() " << rectangle.iy_min()
-//            << " rectangle.iy_max() " << rectangle.iy_max() << std::endl;
-
   // Ensure we include the orca halo points if we are at the edge of the orca grid.
   if (rectangle.ix_min() <= 0) {
-    ix_orca_min_ += -orca_.haloWest();
+    ix_orca_min_ = std::min(rectangle.ix_min(), -orca_.haloWest());
   }
-  if (rectangle.ix_max() >= orca_.nx()) {
-    ix_orca_max_ += orca_.haloEast() - 1;
+  if (rectangle.ix_max() >= orca_.nx() - 1) {
+    ix_orca_max_ = std::max(rectangle.ix_max(), orca_.nx() + orca_.haloEast() - 1);
   }
   // no halo at the Southern boundary of orca grid (closed boundary we think?)
   if (rectangle.iy_min() <= 0) {
     iy_orca_min_ = -orca_.haloSouth();
   }
-  if (rectangle.iy_max() >= orca_.ny()) {
-    iy_orca_max_ += orca_.haloNorth() - 1;
+
+  if (rectangle.iy_max() >= orca_.ny() - 1) {
+    iy_orca_max_ = std::max(rectangle.iy_max(), orca_.ny() + orca_.haloNorth() - 1);
   }
 
   std::cout << " orca_.nx() " << orca_.nx()
@@ -61,20 +56,24 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
             << " iy_orca_min_ " <<  iy_orca_min_
             << " iy_orca_max_ " <<  iy_orca_max_ << std::endl;
 
-  // dimensions of the rectangle including the ORCA halo points
   // NOTE: +1 because the size of the dimension is one bigger than index of the last element
   nx_orca_ = ix_orca_max_ - ix_orca_min_ + 1;
   ny_orca_ = iy_orca_max_ - iy_orca_min_ + 1;
   size_ = nx_orca_ * ny_orca_;
+
   std::cout << "nx_orca_ " << nx_orca_ << " ny_orca_ " << ny_orca_ << " size_ " << size_ << std::endl;
 
-  // partitions and local indices in surrounding rectangle
+
+  // Partitions and local indices in surrounding rectangle
   parts.resize( size_, -1 );
   halo.resize( size_, 0 );
   is_node.resize( size_, false );
+  is_cell.resize(size_, false);
   is_ghost.resize( size_, 1 );
   nb_used_real_nodes_ = 0;
   nb_used_ghost_nodes_ = 0;
+  nb_used_real_cells_ = 0;
+  nb_used_ghost_cells_ = 0;
   uint16_t nb_used_halo_nodes = 0;
   {
     //atlas_omp_parallel_for( idx_t iy = 0; iy < ny_; iy++ )
@@ -84,25 +83,38 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
         const auto ij_glb_haloed = this->global_ij( ix, iy );
         idx_t ix_reg = ij_glb_haloed.i;
         idx_t iy_reg = ij_glb_haloed.j;
-        if (ix_reg < rectangle.ix_min()) {
-          ix_reg = rectangle.ix_min();
-        } else if (ix_reg > rectangle.ix_max()) {
-          ix_reg = rectangle.ix_max();
+        idx_t reg_ii = -1;
+        // Are we in the ORCA halo? If so we use those points instead of wrapping to the
+        // other side of the grid.
+        if ( this->orca_halo( ix, iy ) ) {
+          // Find the information for the closest node to the ORCA halo point
+          // that is inside the grid.
+          idx_t ix_reg_h = ix_reg;
+          idx_t iy_reg_h = iy_reg;
+          if ( ix_reg < 0 ) {
+            ix_reg_h = 0;
+          } else if ( ix_reg >= orca_.nx() ) {
+            ix_reg_h = orca_.nx() - 1;
+          }
+          if ( iy_reg < 0 ) {
+            iy_reg_h = 0;
+          } else if ( iy_reg >= orca_.ny() ) {
+            iy_reg_h = orca_.ny() - 1;
+          }
+          ix_reg_h -= rectangle.ix_min();
+          iy_reg_h -= rectangle.iy_min();
+          reg_ii = rectangle.index( ix_reg_h, iy_reg_h );
+        } else {
+          ix_reg -= rectangle.ix_min();
+          iy_reg -= rectangle.iy_min();
+          reg_ii = rectangle.index( ix_reg, iy_reg );
         }
-        if (iy_reg < rectangle.iy_min()) {
-          iy_reg = rectangle.iy_min();
-        } else if (iy_reg >= rectangle.iy_max()) {
-          iy_reg = rectangle.iy_max();
-        }
-        ix_reg -= rectangle.ix_min();
-        iy_reg -= rectangle.iy_min();
-        idx_t reg_ii = rectangle.index(ix_reg, iy_reg);
+        ASSERT(reg_ii >= 0);
         ASSERT(reg_ii < rectangle.parts.size());
         ASSERT(reg_ii < rectangle.halo.size());
         ASSERT(reg_ii < rectangle.is_ghost.size());
         parts.at( ii ) = rectangle.parts.at( reg_ii );
         halo.at( ii ) = rectangle.halo.at( reg_ii );
-        //const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
         is_ghost.at( ii ) = rectangle.is_ghost.at( reg_ii );
       }
     }
@@ -111,7 +123,6 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
 
   // determine number of cells and number of nodes
   {
-    std::vector<int> is_cell(size_, false);
     auto mark_node_used = [&]( int ix, int iy ) {
       idx_t ii = index( ix, iy );
       if ( !is_node.at(ii) ) {
@@ -131,6 +142,11 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
       if ( !is_cell.at(ii) ) {
         ++nb_cells_;
         is_cell.at(ii) = true;
+        if ( is_ghost.at( ii ) ) {
+          ++nb_used_ghost_cells_;
+        } else {
+          ++nb_used_real_cells_;
+        }
       }
     };
     // Loop over all elements to determine which are required
@@ -138,13 +154,14 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
     nb_used_nodes_ = 0;
     for ( idx_t iy = 0; iy < ny_orca_-1; iy++ ) {
       for ( idx_t ix = 0; ix < nx_orca_-1; ix++ ) {
-        if ( ! is_ghost[index( ix, iy )]) {
+        idx_t ii = index( ix, iy );
+        if ( halo[ii] <= rectangle.halosize() ) {
           mark_cell_used( ix, iy );
           mark_node_used( ix, iy );
           mark_node_used( ix + 1, iy );
           mark_node_used( ix + 1, iy + 1 );
           mark_node_used( ix, iy + 1 );
-        } // if not ghost index
+        }
       }
     }
   }
@@ -156,14 +173,18 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
       idx_t ii = index( ix, iy );
       if ( is_node.at( ii ) ) {
         is_ghost_including_orca_halo.at( ii ) = static_cast<bool>(is_ghost.at( ii ));
+        const auto ij_glb_haloed = this->orca_haloed_global_grid_ij( ix, iy );
+        // The southern boundary does not contain halo points apart from at the
+        // east and west limits.
+        if ( this->orca_halo( ix, iy ) && 
+             ((ij_glb_haloed.j >= 0) || 
+              (ij_glb_haloed.i < 0) || 
+              (ij_glb_haloed.i >= orca_.nx())) ) {
         // this one should wrap when we have a standard halo, but still
         // preserve the orca halo as though points in the orca are real points
         // for the purposes of the wrapping. But it isn't working quite right
-        const auto ij_glb_haloed = this->orca_haloed_global_grid_ij( ix, iy );
-        //const auto ij_glb_haloed = this->global_ij( ix, iy );
         // The southern boundary does not contain halo points apart from at the
         // east and west limits.
-        if ( (ij_glb_haloed.j >= 0) || (ij_glb_haloed.i < 0) || (ij_glb_haloed.i >= orca_.nx()) ) {
           if ( (ij_glb_haloed.i > orca_.nx() + orca_.haloWest()) ||
                (ij_glb_haloed.j > orca_.ny() + orca_.haloNorth()) ||
                (ij_glb_haloed.i < - orca_.haloEast()) ||
@@ -226,10 +247,9 @@ PointXY LocalOrcaGrid::normalised_grid_xy( idx_t ix, idx_t iy ) const {
   }
 }
 
-// unique global index of the orca grid excluding orca grid halos (orca halo points are wrapped to their master index).
+// Unique global index of the orca grid excluding orca grid halos (orca halo points are wrapped to their master index).
 // Note: right now need to add +1 to this to fill the field with corresponding name.
 gidx_t LocalOrcaGrid::master_global_index( idx_t ix, idx_t iy ) const {
-  //const auto ij = this->orca_haloed_global_grid_ij( ix, iy );
   const auto ij = this->global_ij( ix, iy );
   return orca_.periodicIndex( ij.i, ij.j );
 }
@@ -272,9 +292,9 @@ PointLonLat LocalOrcaGrid::normalised_grid_master_lonlat( idx_t ix, idx_t iy ) c
   }
 }
 
-// unique global index of the orca grid including orca grid halos.  This needs
+// Unique global index of the orca grid including orca grid halos.  This needs
 // to wrap points back into the orca grid, but is subtly different from
-// OrcaGrid.PeriodicIndex as it will only wrap points that are outside of the
+// OrcaGrid.periodicIndex as it will only wrap points that are outside of the
 // orca grid halos
 PointIJ LocalOrcaGrid::orca_haloed_global_grid_ij( idx_t ix, idx_t iy ) const {
   // global grid properties
@@ -287,26 +307,29 @@ PointIJ LocalOrcaGrid::orca_haloed_global_grid_ij( idx_t ix, idx_t iy ) const {
 
   auto ij = this->global_ij( ix, iy );
 
+  ATLAS_ASSERT_MSG( ij.j >= -orca_.haloSouth(),
+                    std::string("Cannot extend below the southern ORCA halo: j = ") +
+                    std::to_string(ij.j) + std::string(", orca_.haloSouth() = ") + 
+                    std::to_string(orca_.haloSouth()) );
+
   // wrap points outside of orca_grid halo back into the orca grid.
-  if ( (ij.i > ix_glb_min + nx_orca_glb) || (ij.j > iy_glb_min + ny_orca_glb)
-    || (ij.i < ix_glb_min) || (ij.j < iy_glb_min) ) {
-    std::cout << "ij.i, ij.j "  << ij.i << ", " << ij.j << std::endl;
-    //gidx_t p_idx = orca_.periodicIndex(ij.i, ij.j);
-    //idx_t i, j;
-    //orca_.index2ij(p_idx, i, j);
-    //ij.i = i;
-    //ij.j = j;
-    ij = orca_.periodicIJ(ij.i, ij.j);
-    std::cout << "adjusted i, j "  << ij.i << ", " << ij.j << std::endl;
+  if ( (ij.i >= ix_glb_min + nx_orca_glb) || (ij.j >= iy_glb_min + ny_orca_glb)
+    || (ij.i < ix_glb_min) ) {
+    gidx_t p_idx = orca_.periodicIndex(ij.i, ij.j);
+    idx_t i, j;
+    orca_.index2ij(p_idx, i, j);
+    ij.i = i;
+    ij.j = j;
+    //ij = orca_.periodicIJ(ij.i, ij.j);
   }
 
-  ATLAS_ASSERT_MSG( ij.i >= ix_glb_min,
+  ATLAS_ASSERT_MSG( ij.i > ix_glb_min,
                     std::to_string(ij.i) + std::string(" < ") + std::to_string(ix_glb_min) );
-  ATLAS_ASSERT_MSG( ij.j >= iy_glb_min,
+  ATLAS_ASSERT_MSG( ij.j > iy_glb_min,
                     std::to_string(ij.j) + std::string(" < ") + std::to_string(iy_glb_min) );
-  ATLAS_ASSERT_MSG( ij.i <= ix_glb_min + nx_orca_glb,
+  ATLAS_ASSERT_MSG( ij.i < ix_glb_min + nx_orca_glb,
                     std::to_string(ij.i) + std::string(" > ") + std::to_string(ix_glb_min + nx_orca_glb) );
-  ATLAS_ASSERT_MSG( ij.j <= iy_glb_min + ny_orca_glb,
+  ATLAS_ASSERT_MSG( ij.j < iy_glb_min + ny_orca_glb,
                     std::to_string(ij.j) + std::string(" > ") + std::to_string(iy_glb_min + ny_orca_glb) );
   return ij;
 }
@@ -324,8 +347,9 @@ idx_t LocalOrcaGrid::orca_haloed_global_grid_index( idx_t ix, idx_t iy ) const {
 
 void LocalOrcaGrid::flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& flag_view ) const {
   flag_view.reset();
-  const auto ij_glb = this->global_ij( ix, iy );
-  //const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
+
+  const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
+
   if ( (ij_glb.i > orca_.nx() + orca_.haloWest()) ||
        (ij_glb.j > orca_.ny() + orca_.haloNorth()) ||
        (ij_glb.i < - orca_.haloEast()) ||
@@ -333,6 +357,7 @@ void LocalOrcaGrid::flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& 
       std::cout << ij_glb << " out of bounds when calling orca_.flags." << std::endl;
       ASSERT(false);
   }
+
   if ( this->is_ghost[this->index(ix, iy)] ) {
     flag_view.set( util::Topology::GHOST );
     if( this->orca_haloed_global_grid_index( ix, iy ) !=
@@ -378,7 +403,9 @@ void LocalOrcaGrid::flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& 
   }
 }
 bool LocalOrcaGrid::water( idx_t ix, idx_t iy ) const {
-  //const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
+
+  const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
+
   const auto ij_glb = this->global_ij( ix, iy );
   if ( (ij_glb.i > orca_.nx() + orca_.haloWest()) ||
        (ij_glb.j > orca_.ny() + orca_.haloNorth()) ||
@@ -387,6 +414,17 @@ bool LocalOrcaGrid::water( idx_t ix, idx_t iy ) const {
       std::cout << ij_glb << " out of bounds when calling orca_.water." << std::endl;
       ASSERT(false);
   }
+
   return orca_.water( ij_glb.i, ij_glb.j );
+}
+bool LocalOrcaGrid::orca_halo( idx_t ix, idx_t iy ) const {
+  const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
+  if ( ((ij_glb.i < 0) && (ij_glb.i >= -orca_.haloWest())) ||
+       ((ij_glb.i >= orca_.nx()) && (ij_glb.i < (orca_.nx() + orca_.haloEast()))) ||
+       ((ij_glb.j < 0) && (ij_glb.j >= -orca_.haloSouth())) ||
+       ((ij_glb.j >= orca_.ny()) && (ij_glb.j < (orca_.ny() + orca_.haloNorth()))) ) {
+    return true;
+  }
+  return false;
 }
 }  // namespace atlas::orca::meshgenerator

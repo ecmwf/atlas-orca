@@ -79,6 +79,7 @@ class SurroundingRectangle {
     int iy_min() const { return iy_min_; };
     int ix_max() const { return ix_max_; };
     int iy_max() const { return iy_max_; };
+    int halosize() const { return halosize_; };
     uint64_t nb_real_nodes_owned_by_rectangle;
 
  private:
@@ -88,5 +89,6 @@ class SurroundingRectangle {
     uint64_t nx_, ny_;
     int ix_min_, ix_max_;
     int iy_min_, iy_max_;
+    int halosize_;
 };
 }  // namespace atlas::orca::meshgenerator 
