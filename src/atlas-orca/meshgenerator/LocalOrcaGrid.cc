@@ -323,13 +323,13 @@ PointIJ LocalOrcaGrid::orca_haloed_global_grid_ij( idx_t ix, idx_t iy ) const {
     //ij = orca_.periodicIJ(ij.i, ij.j);
   }
 
-  ATLAS_ASSERT_MSG( ij.i > ix_glb_min,
+  ATLAS_ASSERT_MSG( ij.i >= ix_glb_min,
                     std::to_string(ij.i) + std::string(" < ") + std::to_string(ix_glb_min) );
-  ATLAS_ASSERT_MSG( ij.j > iy_glb_min,
+  ATLAS_ASSERT_MSG( ij.j >= iy_glb_min,
                     std::to_string(ij.j) + std::string(" < ") + std::to_string(iy_glb_min) );
-  ATLAS_ASSERT_MSG( ij.i < ix_glb_min + nx_orca_glb,
+  ATLAS_ASSERT_MSG( ij.i <= ix_glb_min + nx_orca_glb,
                     std::to_string(ij.i) + std::string(" > ") + std::to_string(ix_glb_min + nx_orca_glb) );
-  ATLAS_ASSERT_MSG( ij.j < iy_glb_min + ny_orca_glb,
+  ATLAS_ASSERT_MSG( ij.j <= iy_glb_min + ny_orca_glb,
                     std::to_string(ij.j) + std::string(" > ") + std::to_string(iy_glb_min + ny_orca_glb) );
   return ij;
 }
@@ -406,7 +406,6 @@ bool LocalOrcaGrid::water( idx_t ix, idx_t iy ) const {
 
   const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
 
-  const auto ij_glb = this->global_ij( ix, iy );
   if ( (ij_glb.i > orca_.nx() + orca_.haloWest()) ||
        (ij_glb.j > orca_.ny() + orca_.haloNorth()) ||
        (ij_glb.i < - orca_.haloEast()) ||
