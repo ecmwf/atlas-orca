@@ -140,7 +140,7 @@ CASE("test surrounding local_orca ") {
           local_orca.flags( i, j, flags_view );
 
           // check points in the orca halo behave as expected.
-          if (local_orca.orca_halo( i, j ) &&
+          if (local_orca.orca_edge( i, j ) &&
               ((ix_glb >= grid.nx()) || (ix_glb > grid.nx()/2 && iy_glb > grid.ny()))) {
             // this grid point should be a ghost point.
             if ( ohgg_ij.j >= 0 or ohgg_ij.i < 0 or ohgg_ij.i >= grid.nx() ) {

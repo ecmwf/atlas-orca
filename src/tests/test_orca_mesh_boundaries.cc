@@ -60,8 +60,8 @@ CASE( "test haloExchange " ) {
 
     for ( auto distributionName : distributionNames ) {
         for ( auto gridname : gridnames ) {
-            for ( int64_t halo = 0; halo < 1; ++halo ) {
-                if ( distributionName == "serial" && halo != 0 )
+            for ( int64_t halo = 0; halo < 2; ++halo ) {
+                if ( ((distributionName == "serial") || (mpi::size() == 1)) && (halo != 0) )
                   continue;
                 SECTION( gridname + "_" + distributionName + "_halo" + std::to_string(halo) ) {
                     auto grid = Grid(gridname);

@@ -72,7 +72,7 @@ class LocalOrcaGrid {
     idx_t orca_haloed_global_grid_index( idx_t ix, idx_t iy ) const;
     void flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& flag_view ) const;
     bool water( idx_t ix, idx_t iy ) const;
-    bool orca_halo( idx_t ix, idx_t iy ) const;
+    bool orca_edge( idx_t ix, idx_t iy ) const;
 
  private:
     const OrcaGrid orca_;

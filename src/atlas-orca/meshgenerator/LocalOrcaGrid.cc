@@ -84,9 +84,9 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
         idx_t ix_reg = ij_glb_haloed.i;
         idx_t iy_reg = ij_glb_haloed.j;
         idx_t reg_ii = -1;
-        // Are we in the ORCA halo? If so we use those points instead of wrapping to the
-        // other side of the grid.
-        if ( this->orca_halo( ix, iy ) ) {
+        // Are we in the ORCA edge points? If so we use those points instead of wrapping
+        // to the other side of the grid.
+        if ( this->orca_edge( ix, iy ) ) {
           // Find the information for the closest node to the ORCA halo point
           // that is inside the grid.
           idx_t ix_reg_h = ix_reg;
@@ -116,6 +116,11 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
         parts.at( ii ) = rectangle.parts.at( reg_ii );
         halo.at( ii ) = rectangle.halo.at( reg_ii );
         is_ghost.at( ii ) = rectangle.is_ghost.at( reg_ii );
+        // If this is a periodic point, then it is always a ghost point.
+        const auto ij_wrapped = this->orca_haloed_global_grid_ij( ix, iy );
+        if ( (ij_wrapped.i != ij_glb_haloed.i) || (ij_wrapped.j != ij_glb_haloed.j) ) {
+          is_ghost.at(ii) = 1;
+        }
       }
     }
   }
@@ -174,17 +179,18 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
       if ( is_node.at( ii ) ) {
         is_ghost_including_orca_halo.at( ii ) = static_cast<bool>(is_ghost.at( ii ));
         const auto ij_glb_haloed = this->orca_haloed_global_grid_ij( ix, iy );
-        // The southern boundary does not contain halo points apart from at the
-        // east and west limits.
-        if ( this->orca_halo( ix, iy ) &&
-             ((ij_glb_haloed.j >= 0) ||
-              (ij_glb_haloed.i < 0) ||
-              (ij_glb_haloed.i >= orca_.nx())) ) {
-        // this one should wrap when we have a standard halo, but still
-        // preserve the orca halo as though points in the orca are real points
-        // for the purposes of the wrapping. But it isn't working quite right
-        // The southern boundary does not contain halo points apart from at the
-        // east and west limits.
+
+        // the southern boundary of the grid does not contain ghost points except at
+        // the east-west boundary.
+        if ( (ij_glb_haloed.j >= 0) ||
+             (ij_glb_haloed.i < 0)  ||
+             (ij_glb_haloed.i >= orca_.nx()) ) {
+
+          // this one should wrap when we have a standard halo, but still
+          // preserve the orca halo as though points in the orca are real points
+          // for the purposes of the wrapping. But it isn't working quite right
+          // The southern boundary does not contain halo points apart from at the
+          // east and west limits.
           if ( (ij_glb_haloed.i > orca_.nx() + orca_.haloWest()) ||
                (ij_glb_haloed.j > orca_.ny() + orca_.haloNorth()) ||
                (ij_glb_haloed.i < - orca_.haloEast()) ||
@@ -358,18 +364,18 @@ void LocalOrcaGrid::flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& 
       ASSERT(false);
   }
 
-  if ( this->is_ghost[this->index(ix, iy)] ) {
+  if ( this->is_ghost_including_orca_halo[this->index(ix, iy)] ) {
     flag_view.set( util::Topology::GHOST );
     if( this->orca_haloed_global_grid_index( ix, iy ) !=
         this->master_global_index( ix, iy ) ) {
       const auto normalised_xy = this->normalised_grid_xy( ix, iy );
-      if ( ij_glb.i >= orca_.nx() - orca_.haloWest() ) {
+      if ( ij_glb.i >= orca_.nx() ) {
         flag_view.set( util::Topology::PERIODIC );
       }
-      else if ( ij_glb.i < orca_.haloEast() - 1 ) {
+      else if ( ij_glb.i < 0 ) {
         flag_view.set( util::Topology::PERIODIC );
       }
-      if ( ij_glb.j >= orca_.ny() - orca_.haloNorth() - 1 ) {
+      if ( ij_glb.j >= orca_.ny() ) {
           flag_view.set( util::Topology::PERIODIC );
           if ( normalised_xy.x() > lon00_ + 90. ) {
               flag_view.set( util::Topology::EAST );
@@ -416,7 +422,7 @@ bool LocalOrcaGrid::water( idx_t ix, idx_t iy ) const {
 
   return orca_.water( ij_glb.i, ij_glb.j );
 }
-bool LocalOrcaGrid::orca_halo( idx_t ix, idx_t iy ) const {
+bool LocalOrcaGrid::orca_edge( idx_t ix, idx_t iy ) const {
   const auto ij_glb = this->orca_haloed_global_grid_ij( ix, iy );
   if ( ((ij_glb.i < 0) && (ij_glb.i >= -orca_.haloWest())) ||
        ((ij_glb.i >= orca_.nx()) && (ij_glb.i < (orca_.nx() + orca_.haloEast()))) ||

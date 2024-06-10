@@ -489,8 +489,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
     Unique2Node global2local;
     for ( idx_t jnode = 0; jnode < nodes.size(); ++jnode ) {
         gidx_t uid = master_glb_idx( jnode );
-        if ( ( part( jnode ) != mypart ) ||
-             ( ( master_glb_idx( jnode ) != glb_idx( jnode ) ) && ( part( jnode ) == mypart ) ) ) {
+        if ( ghost( jnode ) ) {
             send_uid[part( jnode )].push_back( uid );
             req_lidx[part( jnode )].push_back( jnode );
             ridx( jnode ) = -1;
