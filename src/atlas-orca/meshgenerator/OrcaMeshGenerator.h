@@ -13,6 +13,10 @@
 #include "atlas/meshgenerator/MeshGenerator.h"
 #include "atlas/meshgenerator/detail/MeshGeneratorImpl.h"
 #include "atlas/util/Config.h"
+#include "atlas/grid/Distribution.h"
+#include "atlas-orca/grid/OrcaGrid.h"
+#include "atlas-orca/meshgenerator/SurroundingRectangle.h"
+
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 namespace eckit {
@@ -51,13 +55,13 @@ public:
 
 private:
     void hash( eckit::Hash& ) const override;
-    static void build_remote_index( Mesh& mesh );
+    void build_remote_index(Mesh& mesh) const;
 
     bool include_pole_{ false };
     bool fixup_{ true };
     int nparts_;
     int mypart_;
-    int halo_;
+    int halosize_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

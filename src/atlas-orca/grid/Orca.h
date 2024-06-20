@@ -18,6 +18,7 @@
 #include "atlas/runtime/Exception.h"
 #include "atlas/util/Config.h"
 #include "atlas/util/Point.h"
+#include "atlas-orca/util/PointIJ.h"
 
 namespace atlas {
 class Mesh;
@@ -165,7 +166,6 @@ public:  // methods
     /// Constructor taking a name/uid and a configuration (spec)
     Orca( const std::string& name_or_uid, const Config& );
 
-public:
     idx_t size() const override;
 
     Spec spec() const override;
@@ -196,6 +196,7 @@ public:
     bool invalidElement( idx_t i, idx_t j ) const { return invalid_element_[( imin_ + i ) + ( jmin_ + j ) * jstride_]; }
 
     gidx_t periodicIndex( idx_t i, idx_t j ) const;
+    atlas::orca::PointIJ periodicIJ( idx_t i, idx_t j ) const;
 
     void index2ij( gidx_t gidx, idx_t& i, idx_t& j ) const {
         //gidx = jstride_ * (jmin_+j) + (imin_+i);
