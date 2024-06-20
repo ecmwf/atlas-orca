@@ -76,7 +76,8 @@ CASE( "test generate orca mesh" ) {
                         has_invalid_quads = true;
                         Log::info() << "Invalid quad [" << elem_glb_idx( e ) << "] : [ " << connectivity( e, 0 ) + 1
                                     << ", " << connectivity( e, 1 ) + 1 << ", " << connectivity( e, 2 ) + 1 << ", "
-                                    << connectivity( e, 3 ) + 1 << " ]" << std::endl;
+                                    << connectivity( e, 3 ) + 1 << " ] at lon/lats: " << pll[0] << " " << pll[1]
+                                    << " " << pll[2] << " " << pll[3] << std::endl;
                     }
                 }
             }

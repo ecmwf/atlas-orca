@@ -375,7 +375,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
                     cells.node_connectivity.set( jcell, quad_nodes.data() );
                     cells.part( jcell )    = nodes.part( quad_nodes[0] );
-                    cells.glb_idx( jcell ) = ( iy_glb - iy_glb_min ) * ( nx_orca_halo - 1 ) + ( ix_glb - ix_glb_min ) + 1;
+                    cells.glb_idx( jcell ) = ( iy_glb - iy_glb_min ) * nx_orca_halo + ( ix_glb - ix_glb_min ) + 1;
 
                     if ( iy_glb >= SR_cfg.ny_glb - 1 ) {
                         cells.flags( jcell ).set( Topology::GHOST );
@@ -427,7 +427,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     if ( elem_contains_land_point ) {
                         cells.flags( jcell ).set( Topology::LAND );
                     }
-                    if ( orca_grid.invalidElement( local_orca.ix_min() + ix, local_orca.iy_min() + iy ) ) {
+                    const auto ij_glb = local_orca.orca_haloed_global_grid_ij( ix, iy );
+                    if ( orca_grid.invalidElement( ij_glb.i, ij_glb.j ) ) {
                         cells.flags( jcell ).set( Topology::INVALID );
                     }
                 }
