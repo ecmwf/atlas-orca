@@ -1,7 +1,13 @@
 build:
   modules:
     - ninja
+  modules_package:
+    # Test without openmpi as this repository should not behave differently 
+    - atlas:fftw,eigen
   dependencies:
     - ecmwf/ecbuild@develop
+    - ecmwf/eckit@develop
+    - ecmwf/fckit@develop
     - ecmwf/atlas@develop
   parallel: 64
+ 

@@ -1,4 +1,7 @@
 dependencies: |
+  ecmwf/ecbuild
+  ecmwf/eckit
+  ecmwf/fckit
   ecmwf/atlas
 dependency_branch: develop
 parallelism_factor: 8
