@@ -25,7 +25,7 @@ jobs:
     name: downstream-ci
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     # uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
-    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@add-atlas-orca
+    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       atlas-orca: ecmwf/atlas-orca@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
@@ -37,7 +37,7 @@ jobs:
     name: downstream-ci-hpc
     if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
     # uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
-    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@add-atlas-orca
+    uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       atlas-orca: ecmwf/atlas-orca@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
