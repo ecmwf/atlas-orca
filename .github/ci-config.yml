@@ -5,4 +5,8 @@ dependencies: |
   ecmwf/atlas
 dependency_branch: develop
 parallelism_factor: 8
-self_build: false
+# self_build: false
+env: |
+    ATLAS_ORCA_CACHING=1
+    CTEST_PARALLEL_LEVEL=1
+    AUTO_LOAD_PLUGINS=1
