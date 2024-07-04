@@ -72,10 +72,6 @@ CASE("test surrounding local_orca ") {
       cfg.nx_glb = grid.nx();
       cfg.ny_glb = grid.ny();
       orca::meshgenerator::SurroundingRectangle rectangle(distribution, cfg);
-      std::cout << "[" << cfg.mypart << "] rectangle.ix_min " <<  rectangle.ix_min()
-                << " rectangle.ix_max " <<  rectangle.ix_max()
-                << " rectangle.iy_min " <<  rectangle.iy_min()
-                << " rectangle.iy_max " <<  rectangle.iy_max() << std::endl;
       orca::meshgenerator::LocalOrcaGrid local_orca(grid, rectangle);
 
       std::vector<idx_t> indices;
@@ -165,34 +161,6 @@ CASE("test surrounding local_orca ") {
         EXPECT(local_orca.nb_used_nodes() == local_orca.nx() * local_orca.ny());
       EXPECT(total_is_ghost >= local_orca.nb_used_ghost_nodes());
       EXPECT(indices.size() == local_orca.nx() * local_orca.ny());
-
-      {
-        // diagnostics
-        auto total_on_partition =
-            std::count(this_partition.begin(), this_partition.end(), true);
-        auto not_on_partition =
-            std::count(this_partition.begin(), this_partition.end(), false);
-
-        std::cout << "[" << cfg.mypart << "] grid.haloWest() " << grid.haloWest()
-                  << " grid.haloEast() " << grid.haloEast()
-                  << " grid.haloNorth() " << grid.haloNorth()
-                  << " grid.haloSouth() " << grid.haloSouth()
-                  << std::endl;
-        std::cout << "[" << cfg.mypart << "]"
-                  << " ix_orca_min " << local_orca.ix_min() << " ix_orca_max "
-                  << local_orca.ix_max() << " iy_orca_min " << local_orca.iy_min()
-                  << " iy_orca_max " << local_orca.iy_max() << " indices.size() "
-                  << indices.size() << " nx * ny " << local_orca.nx() << " * " << local_orca.ny()
-                  << " " << local_orca.nx() * local_orca.ny()
-                  << " number on this partition " << total_on_partition
-                  << " number not on partition " << not_on_partition << std::endl;
-
-        output::Gmsh gmsh(std::string("surroundingRect") +
-                              std::to_string(cfg.nparts) + "_" + gridname + "_" +
-                              distributionName + "_" + std::to_string(halo) +
-                              ".msh",
-                          Config("coordinates", "xy") | Config("info", true));
-      }
 
       const idx_t cell_width = 1;
       // Values below are for ORCA2_T grid.
