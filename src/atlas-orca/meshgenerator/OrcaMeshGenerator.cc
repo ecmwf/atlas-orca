@@ -53,39 +53,6 @@
 
 namespace atlas::orca::meshgenerator {
 
-// ORCA2 interesting indices
-static const std::vector<std::pair<int, int>> glb_ij_pairs{
-    {0, 148},
-    {1, 148},
-    {0, 147},
-    {89, 148},
-    {90, 148},
-    {91, 148},
-    {92, 148},
-    {93, 148},
-    //89-90, 147
-    {89, 147},
-    {90, 147},
-    //92-101, 147
-    {92, 147},
-    {93, 147},
-    {94, 147},
-    {95, 147},
-    {96, 147},
-    {97, 147},
-    {98, 147},
-    {99, 147},
-    {100, 147},
-    {101, 147},
-    //89-90, 146
-    {89, 146},
-    {90, 146},
-    //180-181, 148
-    {180, 148},
-    {181, 148},
-    {181, 146},
-};
-
 namespace {
 
 StructuredGrid equivalent_regular_grid( const OrcaGrid& orca ) {
