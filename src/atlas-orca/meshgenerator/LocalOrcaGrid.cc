@@ -257,8 +257,6 @@ gidx_t LocalOrcaGrid::master_global_index( idx_t ix, idx_t iy ) const {
 }
 
 PointIJ LocalOrcaGrid::master_global_ij( idx_t ix, idx_t iy ) const {
-  //const auto ij = this->global_ij( ix, iy );
-  //return orca_.periodicIJ( ij.i, ij.j );
   const auto master_idx = this->master_global_index( ix, iy );
   idx_t ix_glb_master, iy_glb_master;
   orca_.index2ij( master_idx, ix_glb_master, iy_glb_master );
@@ -275,7 +273,6 @@ PointLonLat LocalOrcaGrid::normalised_grid_master_lonlat( idx_t ix, idx_t iy ) c
       std::cout << ij << " out of bounds when calling normalised_grid_master_lonlat." << std::endl;
       ASSERT(false);
   }
-  //const auto ij = this->orca_haloed_global_grid_ij( ix, iy );
   const auto master_ij = this->master_global_ij( ix, iy );
 
   const PointLonLat lonlat = orca_.lonlat( master_ij.i, master_ij.j );
@@ -387,9 +384,6 @@ void LocalOrcaGrid::flags( idx_t ix, idx_t iy, util::detail::BitflagsView<int>& 
         auto lonlat_master = this->normalised_grid_master_lonlat(ix, iy);
         if( std::abs(lonlat_master.lon() - normalised_xy.x()) < 1.e-12 ) {
             flag_view.unset( util::Topology::PERIODIC );
-            // if (( std::abs(lonlat_master.lat() - normalised_xy.y()) < 1.e-12 ) &&
-            //     ( ij_glb.j >= orca_.ny() - orca_.haloNorth() - 1 ))
-            //     grid_fold_inodes.push_back(inode);
         }
       }
     }
