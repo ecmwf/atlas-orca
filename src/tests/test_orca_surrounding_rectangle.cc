@@ -91,7 +91,6 @@ CASE("test surrounding rectangle ") {
         }
         EXPECT(regular_grid.nx(ix) == grid.nx());
       }
-      std::cout << " last index? " << regular_grid.index(grid.nx()-1, grid.ny()-1) << std::endl;
 
       orca::meshgenerator::SurroundingRectangle rectangle(distribution, cfg);
 
@@ -101,18 +100,6 @@ CASE("test surrounding rectangle ") {
           array::make_view<double, 2>(regular_mesh.nodes().lonlat());
       auto fview_glb_idx =
           array::make_view<gidx_t, 1>(regular_mesh.nodes().global_index());
-
-      std::ofstream ghostFile(std::string("is_ghost_") + distribution.type() + "-"
-          + std::to_string(cfg.halosize) + "_p"
-          + std::to_string(cfg.mypart) + ".csv");
-
-      std::ofstream haloFile(std::string("is_halo_") + distribution.type() + "-"
-          + std::to_string(cfg.halosize) + "_p"
-          + std::to_string(cfg.mypart) + ".csv");
-
-      std::ofstream partFile(std::string("parts_") + distribution.type() + "-"
-          + std::to_string(cfg.halosize) + "_p"
-          + std::to_string(cfg.mypart) + ".csv");
 
       functionspace::NodeColumns regular_fs(regular_mesh);
       std::vector<int> indices;
@@ -129,10 +116,6 @@ CASE("test surrounding rectangle ") {
           ATLAS_ASSERT(ij.i < cfg.nx_glb);
           ATLAS_ASSERT(ij.j < cfg.ny_glb);
 
-          haloFile  << i << ", " << j << ", " << rectangle.halo.at(ii) << std::endl;
-          ghostFile << i << ", " << j << ", " << rectangle.is_ghost.at(ii) << std::endl;
-          partFile << i << ", " << j << ", " << rectangle.parts.at(ii) << std::endl;
-
           idx_t reg_grid_glb_idx  = regular_grid.index(ix_glb, iy_glb);
           idx_t orca_grid_glb_idx = grid.periodicIndex(ix_glb, iy_glb);
           idx_t reg_grid_remote_idx = 0;
@@ -147,18 +130,8 @@ CASE("test surrounding rectangle ") {
           } else {
             this_partition.emplace_back(false);
           }
-
-          // If it is not a ghost node, it must be a node, however some ghost
-          // nodes are also nodes.
-          // TODO: Understand what is going on with this!
-          //if (!rectangle.is_ghost.at(ii)) {
-          //    std::cout << "[" << cfg.mypart << "] i " << i << " j " << j << " ii " << ii << std::endl;
-          //}
         }
       }
-      haloFile.close();
-      ghostFile.close();
-      partFile.close();
 
       int total_is_ghost =
           std::count(rectangle.is_ghost.begin(), rectangle.is_ghost.end(), true);
@@ -171,19 +144,6 @@ CASE("test surrounding rectangle ") {
             std::count(this_partition.begin(), this_partition.end(), true);
         auto not_on_partition =
             std::count(this_partition.begin(), this_partition.end(), false);
-
-        std::cout << "[" << cfg.mypart << "] grid.haloWest() " << grid.haloWest()
-                  << " grid.haloEast() " << grid.haloEast()
-                  << " grid.haloNorth() " << grid.haloNorth()
-                  << " grid.haloSouth() " << grid.haloSouth()
-                  << std::endl;
-        std::cout << "[" << cfg.mypart << "]"
-                  << " ix_min " << rectangle.ix_min() << " ix_max "
-                  << rectangle.ix_max() << " iy_min " << rectangle.iy_min()
-                  << " iy_max " << rectangle.iy_max() << " indices.size() "
-                  << indices.size() << " nx*ny " << rectangle.nx() * rectangle.ny()
-                  << " number on this partition " << total_on_partition
-                  << " number not on partition " << not_on_partition << std::endl;
 
         //output::Gmsh gmsh(std::string("surroundingRect") +
         //                      std::to_string(cfg.nparts) + "_" + gridname + "_" +
