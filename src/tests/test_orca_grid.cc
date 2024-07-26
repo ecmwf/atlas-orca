@@ -123,7 +123,7 @@ CASE("test matchup between orca and regular ij indexing ") {
     const std::array<std::int32_t, 2> dimensions{nx_orca_halo, ny_orca_halo};
     const std::array<std::int32_t, 4> halo{orca_grid.haloNorth(), orca_grid.haloWest(),
                                            orca_grid.haloSouth(), orca_grid.haloEast()};
-    const std::array<double, 2> pivot{orca_grid.nx()/2 + 1, orca_grid.ny()};
+    const std::array<double, 2> pivot{static_cast<double>(orca_grid.nx()/2 + 1), static_cast<double>(orca_grid.ny())};
 
     if (gridname == "ORCA2_T") {
       EXPECT(nx_orca_halo == 182);
