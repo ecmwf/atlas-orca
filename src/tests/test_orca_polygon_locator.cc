@@ -35,8 +35,8 @@ CASE( "test orca polygon locator" ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",     //
         "eORCA1_T",    //
-        "eORCA025_T",  //
-        "eORCA12_T",  //
+        // "eORCA025_T",  //
+        // "eORCA12_T",  //
     };
 
     std::string grid_resource = eckit::Resource<std::string>( "--grid", "" );

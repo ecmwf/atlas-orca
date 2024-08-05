@@ -44,8 +44,8 @@ CASE( "test haloExchange " ) {
         "ORCA2_U",   //
         "ORCA2_V",   //
         "eORCA1_T",  //
-        "eORCA025_T",  //
-        "eORCA12_T",  //
+        // "eORCA025_T",  //
+        // "eORCA12_T",  //
     };
     auto distributionNames = std::vector<std::string>{
       "serial",

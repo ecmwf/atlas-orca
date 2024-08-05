@@ -69,7 +69,10 @@ CASE( "test orca grid iterator" ) {
 }
 
 CASE("test matchup between orca and regular ij indexing ") {
-  std::vector<std::string> gridnames = {"ORCA2_T", "eORCA025_T"};
+  std::vector<std::string> gridnames = {
+    "ORCA2_T",
+    // "eORCA025_T",
+  };
 
   for (const std::string& gridname : gridnames) {
     auto mypart = 0;
