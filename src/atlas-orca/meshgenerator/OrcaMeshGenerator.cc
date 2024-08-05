@@ -241,9 +241,11 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
                     // grid ij coordinates
                     {
-                      const auto ij_glb = local_orca.orca_haloed_global_grid_ij( ix, iy );
-                      nodes.ij( inode, XX ) = ij_glb.i;
-                      nodes.ij( inode, YY ) = ij_glb.j;
+                      //   const auto ij_glb = local_orca.orca_haloed_global_grid_ij( ix, iy );
+                      //   nodes.ij( inode, XX ) = ij_glb.i;
+                      //   nodes.ij( inode, YY ) = ij_glb.j;
+                      nodes.ij( inode, XX ) = ix + local_orca.ix_min();
+                      nodes.ij( inode, YY ) = iy + local_orca.iy_min();
                     }
 
                     const auto normalised_xy = local_orca.normalised_grid_xy( ix, iy );
