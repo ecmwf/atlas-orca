@@ -240,7 +240,7 @@ PointXY LocalOrcaGrid::normalised_grid_xy( idx_t ix, idx_t iy ) const {
       west = lon00_ - 20.;
   }
 
-  if ( ij.i < nx_orca_ / 2 ) {
+  if ( ix + ix_orca_min_ < orca_.nx() / 2 ) {
     auto lon_first_half_normaliser  = util::NormaliseLongitude{west};
     return PointXY( lon_first_half_normaliser( xy.x() ), xy.y() );
   } else {
