@@ -47,20 +47,20 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
     iy_orca_max_ = std::max(rectangle.iy_max(), orca_.ny() + orca_.haloNorth() - 1);
   }
 
-  std::cout << " orca_.nx() " << orca_.nx()
-            << " orca_.ny() " << orca_.ny() << std::endl;
+  // std::cout << " orca_.nx() " << orca_.nx()
+  //           << " orca_.ny() " << orca_.ny() << std::endl;
 
-  std::cout << " ix_orca_min_ " <<  ix_orca_min_
-            << " ix_orca_max_ " <<  ix_orca_max_
-            << " iy_orca_min_ " <<  iy_orca_min_
-            << " iy_orca_max_ " <<  iy_orca_max_ << std::endl;
+  // std::cout << " ix_orca_min_ " <<  ix_orca_min_
+  //           << " ix_orca_max_ " <<  ix_orca_max_
+  //           << " iy_orca_min_ " <<  iy_orca_min_
+  //           << " iy_orca_max_ " <<  iy_orca_max_ << std::endl;
 
   // NOTE: +1 because the size of the dimension is one bigger than index of the last element
   nx_orca_ = ix_orca_max_ - ix_orca_min_ + 1;
   ny_orca_ = iy_orca_max_ - iy_orca_min_ + 1;
   size_ = nx_orca_ * ny_orca_;
 
-  std::cout << "nx_orca_ " << nx_orca_ << " ny_orca_ " << ny_orca_ << " size_ " << size_ << std::endl;
+  // std::cout << "nx_orca_ " << nx_orca_ << " ny_orca_ " << ny_orca_ << " size_ " << size_ << std::endl;
 
 
   // Partitions and local indices in surrounding rectangle
@@ -123,7 +123,7 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
       }
     }
   }
-  std::cout << "determine number of cells and number of nodes"<< std::endl;
+  // std::cout << "determine number of cells and number of nodes"<< std::endl;
 
   // determine number of cells and number of nodes
   {

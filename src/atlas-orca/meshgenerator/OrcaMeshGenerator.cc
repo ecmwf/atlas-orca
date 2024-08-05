@@ -404,7 +404,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
     }
-    ATLAS_DEBUG_VAR( serial_distribution );
+    // ATLAS_DEBUG_VAR( serial_distribution );
     if ( serial_distribution ) {
         // Bypass for "BuildParallelFields"
         mesh.nodes().metadata().set( "parallel", true );
@@ -413,7 +413,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         mesh.metadata().set( "periodic", true );
     }
     else {
-        ATLAS_DEBUG( "build_remote_index" );
+        // ATLAS_DEBUG( "build_remote_index" );
         build_remote_index( mesh );
     }
 
@@ -436,7 +436,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
     nodes.metadata().get( "parallel", parallel );
     mesh.metadata().get( "periodic", periodic );
     if ( parallel || periodic ) {
-        ATLAS_DEBUG( "build_remote_index: already parallel, return" );
+        // ATLAS_DEBUG( "build_remote_index: already parallel, return" );
         return;
     }
 

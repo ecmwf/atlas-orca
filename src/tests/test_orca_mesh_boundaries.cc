@@ -71,7 +71,7 @@ CASE( "test haloExchange " ) {
                     partitioner_config.set( "type", distributionName );
                     auto partitioner = grid::Partitioner( partitioner_config );
                     auto mesh        = meshgen.generate( grid, partitioner );
-                    std::cout << "mesh generator finished " << std::endl;
+                    Log::info() << "mesh generator finished " << std::endl;
                     REQUIRE( mesh.grid() );
                     EXPECT( mesh.grid().name() == gridname );
                     idx_t count{ 0 };
@@ -88,7 +88,7 @@ CASE( "test haloExchange " ) {
                     auto f2           = array::make_view<double, 1>( field2 );
                     const auto ghosts = atlas::array::make_view<int32_t, 1>( mesh.nodes().ghost() );
                     const auto lonlat = array::make_view<double, 2>( mesh.nodes().lonlat() );
-                    std::cout << "begin loop over mesh nodes " << std::endl;
+                    Log::info() << "begin loop over mesh nodes " << std::endl;
                     for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
                         if ( ghosts( jnode ) ) {
                             f( jnode ) = 0;
@@ -122,17 +122,22 @@ CASE( "test haloExchange " ) {
                             sumSquares += std::pow( std::abs( f( jnode ) - rollup_plus( lon, lat ) ), 2 );
                             ++count;
                         }
+                        bool DEBUGGING = false;
                         if ( remote_idxs( jnode ) < 0 ) {
-                            std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode << " : ghost "
-                                      << ghosts( jnode ) << " master_global_index " << master_glb_idxs( jnode )
-                                      << " lon " << lonlat( jnode, 0 ) << " lat " << lonlat( jnode, 1 ) << std::endl;
+                            if( DEBUGGING ) {
+                                std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode << " : ghost "
+                                        << ghosts( jnode ) << " master_global_index " << master_glb_idxs( jnode )
+                                        << " lon " << lonlat( jnode, 0 ) << " lat " << lonlat( jnode, 1 ) << std::endl;
+                            }
                             f2( jnode ) = 1;
                         }
                         if (halos(jnode) > 0) {
-                          std::cout << "[" << mpi::rank() << "] i " << ij(jnode, 0) << " j " << ij(jnode, 1)
-                                    << " halo(" << jnode << ") " << halos(jnode)
-                                    << " ghost " << ghosts(jnode) << " master_global_index " << master_glb_idxs(jnode)
-                                    << " lon " << lonlat(jnode, 0) << " lat " << lonlat(jnode, 1) << std::endl;
+                            if( DEBUGGING ) {
+                                std::cout << "[" << mpi::rank() << "] i " << ij(jnode, 0) << " j " << ij(jnode, 1)
+                                          << " halo(" << jnode << ") " << halos(jnode)
+                                          << " ghost " << ghosts(jnode) << " master_global_index " << master_glb_idxs(jnode)
+                                          << " lon " << lonlat(jnode, 0) << " lat " << lonlat(jnode, 1) << std::endl;
+                            }
                           halocount++;
                         }
                     }
