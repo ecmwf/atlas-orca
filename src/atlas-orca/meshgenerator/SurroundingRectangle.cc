@@ -160,7 +160,7 @@ SurroundingRectangle::SurroundingRectangle(
   ny_ = iy_max_ - iy_min_ + 1;
 
   // upper estimate for number of nodes
-  uint64_t size = ny_ * nx_;
+  int64_t size = ny_ * nx_;
 
   // partitions and local indices in SR
   parts.resize( size, -1 );

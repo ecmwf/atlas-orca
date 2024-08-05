@@ -40,25 +40,25 @@ class LocalOrcaGrid {
     std::vector<int> is_ghost;
     std::vector<int> is_node;
     std::vector<int> is_cell;
-    uint64_t size() const {return size_;}
+    int64_t size() const {return size_;}
     int ix_min() const {return ix_orca_min_;}
     int ix_max() const {return ix_orca_max_;}
     int iy_min() const {return iy_orca_min_;}
     int iy_max() const {return iy_orca_max_;}
-    uint64_t nx() const {return nx_orca_;}
-    uint64_t ny() const {return ny_orca_;}
+    int64_t nx() const {return nx_orca_;}
+    int64_t ny() const {return ny_orca_;}
     // number of real nodes on this partition
-    uint64_t nb_used_real_nodes() const {return nb_used_real_nodes_;}
+    int64_t nb_used_real_nodes() const {return nb_used_real_nodes_;}
     // number of ghost nodes on this partition
-    uint64_t nb_used_ghost_nodes() const {return nb_used_ghost_nodes_;}
+    int64_t nb_used_ghost_nodes() const {return nb_used_ghost_nodes_;}
     // number of nodes used by cells on this partition
-    uint64_t nb_used_nodes() const {return nb_used_nodes_;}
+    int64_t nb_used_nodes() const {return nb_used_nodes_;}
     // number of cells on this partition
-    uint64_t nb_cells() const {return nb_cells_;}
+    int64_t nb_cells() const {return nb_cells_;}
     // number of ghost cells on this partition
-    uint64_t nb_used_ghost_cells() const {return nb_used_ghost_cells_;}
+    int64_t nb_used_ghost_cells() const {return nb_used_ghost_cells_;}
     // number of real cells on this paritition
-    uint64_t nb_used_real_cells() const {return nb_used_real_cells_;}
+    int64_t nb_used_real_cells() const {return nb_used_real_cells_;}
 
     int index( idx_t ix, idx_t iy ) const;
     LocalOrcaGrid( const OrcaGrid& grid, const SurroundingRectangle& rectangle );
@@ -76,19 +76,19 @@ class LocalOrcaGrid {
 
  private:
     const OrcaGrid orca_;
-    uint64_t size_;
+    int64_t size_;
     int ix_orca_min_;
     int ix_orca_max_;
     int iy_orca_min_;
     int iy_orca_max_;
-    uint64_t nx_orca_;
-    uint64_t ny_orca_;
-    uint64_t nb_used_nodes_;
-    uint64_t nb_used_real_nodes_;
-    uint64_t nb_used_ghost_nodes_;
-    uint64_t nb_cells_;
-    uint64_t nb_used_ghost_cells_;
-    uint64_t nb_used_real_cells_;
+    int64_t nx_orca_;
+    int64_t ny_orca_;
+    int64_t nb_used_nodes_;
+    int64_t nb_used_real_nodes_;
+    int64_t nb_used_ghost_nodes_;
+    int64_t nb_cells_;
+    int64_t nb_used_ghost_cells_;
+    int64_t nb_used_real_cells_;
     double lon00_;
     util::NormaliseLongitude lon00_normaliser_;
 };

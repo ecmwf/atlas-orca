@@ -73,20 +73,20 @@ class SurroundingRectangle {
     std::vector<int> parts;
     std::vector<int> halo;
     std::vector<int> is_ghost;
-    uint64_t nx() const { return nx_; };
-    uint64_t ny() const { return ny_; };
+    int64_t nx() const { return nx_; };
+    int64_t ny() const { return ny_; };
     int ix_min() const { return ix_min_; };
     int iy_min() const { return iy_min_; };
     int ix_max() const { return ix_max_; };
     int iy_max() const { return iy_max_; };
     int halosize() const { return halosize_; };
-    uint64_t nb_real_nodes_owned_by_rectangle;
+    int64_t nb_real_nodes_owned_by_rectangle;
 
  private:
     const grid::Distribution distribution_;
     const OrcaGrid orca_;
     const Configuration cfg_;
-    uint64_t nx_, ny_;
+    int64_t nx_, ny_;
     int ix_min_, ix_max_;
     int iy_min_, iy_max_;
     int halosize_;

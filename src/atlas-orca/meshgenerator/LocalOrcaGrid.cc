@@ -73,7 +73,7 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
   nb_used_ghost_nodes_ = 0;
   nb_used_real_cells_ = 0;
   nb_used_ghost_cells_ = 0;
-  uint16_t nb_used_halo_nodes = 0;
+  int16_t nb_used_halo_nodes = 0;
   {
     //atlas_omp_parallel_for( idx_t iy = 0; iy < ny_; iy++ )
     for( size_t iy = 0; iy < ny_orca_; iy++ ) {
