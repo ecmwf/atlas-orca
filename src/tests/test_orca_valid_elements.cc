@@ -39,8 +39,8 @@ namespace atlas::test {
 CASE( "test generate orca mesh" ) {
     std::vector<std::string> gridnames{
         "ORCA2_T", "ORCA2_F", "ORCA2_U", "ORCA2_V", "eORCA1_T", "eORCA1_F", "eORCA1_U", "eORCA1_V",
-        //"ORCA1_T", "ORCA1_F", "ORCA1_U", "ORCA1_V",
-        //"eORCA025_T", "eORCA025_F", "eORCA025_U", "eORCA025_V",
+        "ORCA1_T", "ORCA1_F", "ORCA1_U", "ORCA1_V",
+        // "eORCA025_T", "eORCA025_F", "eORCA025_U", "eORCA025_V",
     };
 
     bool gmsh_output          = eckit::Resource<bool>( "--gmsh", false );
@@ -76,7 +76,8 @@ CASE( "test generate orca mesh" ) {
                         has_invalid_quads = true;
                         Log::info() << "Invalid quad [" << elem_glb_idx( e ) << "] : [ " << connectivity( e, 0 ) + 1
                                     << ", " << connectivity( e, 1 ) + 1 << ", " << connectivity( e, 2 ) + 1 << ", "
-                                    << connectivity( e, 3 ) + 1 << " ]" << std::endl;
+                                    << connectivity( e, 3 ) + 1 << " ] at lon/lats: " << pll[0] << " " << pll[1]
+                                    << " " << pll[2] << " " << pll[3] << std::endl;
                     }
                 }
             }

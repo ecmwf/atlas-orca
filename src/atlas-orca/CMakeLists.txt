@@ -24,6 +24,10 @@ ecbuild_add_library(
         grid/OrcaGridBuilder.cc
         meshgenerator/OrcaMeshGenerator.cc
         meshgenerator/OrcaMeshGenerator.h
+        meshgenerator/SurroundingRectangle.cc
+        meshgenerator/SurroundingRectangle.h
+        meshgenerator/LocalOrcaGrid.cc
+        meshgenerator/LocalOrcaGrid.h
         util/AtlasIOReader.h
         util/ComputeCachedPath.h
         util/ComputeUid.h

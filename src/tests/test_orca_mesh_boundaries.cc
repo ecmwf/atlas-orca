@@ -44,12 +44,14 @@ CASE( "test haloExchange " ) {
         "ORCA2_U",   //
         "ORCA2_V",   //
         "eORCA1_T",  //
-                     //        "eORCA025_T",  //
-                     //        "eORCA12_T",  //
+        // "eORCA025_T",  //
+        // "eORCA12_T",  //
     };
     auto distributionNames = std::vector<std::string>{
-        "serial", "checkerboard",
-        "equal_regions",  //
+      "serial",
+      "checkerboard",
+      "equal_regions",
+      // "equal_area",
     };
 
     auto rollup_plus = []( const double lon, const double lat ) {
@@ -58,15 +60,18 @@ CASE( "test haloExchange " ) {
 
     for ( auto distributionName : distributionNames ) {
         for ( auto gridname : gridnames ) {
-            for ( int64_t halo = 0; halo < 1; ++halo ) {
-                SECTION( gridname + "_" + distributionName + "_halo" + std::to_string( halo ) ) {
-                    auto grid           = Grid( gridname );
-                    auto meshgen_config = grid.meshgenerator() | option::halo( halo );
-                    atlas::MeshGenerator meshgen( meshgen_config );
+            for ( int64_t halo = 0; halo <= 2; ++halo ) {
+                if ( ((distributionName == "serial") || (mpi::size() == 1)) && (halo != 0) )
+                  continue;
+                SECTION( gridname + "_" + distributionName + "_halo" + std::to_string(halo) ) {
+                    auto grid = Grid(gridname);
+                    auto meshgen_config = grid.meshgenerator() | option::halo(halo);
+                    atlas::MeshGenerator meshgen(meshgen_config);
                     auto partitioner_config = grid.partitioner();
                     partitioner_config.set( "type", distributionName );
                     auto partitioner = grid::Partitioner( partitioner_config );
                     auto mesh        = meshgen.generate( grid, partitioner );
+                    Log::info() << "mesh generator finished " << std::endl;
                     REQUIRE( mesh.grid() );
                     EXPECT( mesh.grid().name() == gridname );
                     idx_t count{ 0 };
@@ -83,6 +88,7 @@ CASE( "test haloExchange " ) {
                     auto f2           = array::make_view<double, 1>( field2 );
                     const auto ghosts = atlas::array::make_view<int32_t, 1>( mesh.nodes().ghost() );
                     const auto lonlat = array::make_view<double, 2>( mesh.nodes().lonlat() );
+                    Log::info() << "begin loop over mesh nodes " << std::endl;
                     for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
                         if ( ghosts( jnode ) ) {
                             f( jnode ) = 0;
@@ -106,6 +112,7 @@ CASE( "test haloExchange " ) {
                     const auto ij = array::make_view<idx_t, 2>( mesh.nodes().field( "ij" ) );
 
                     double sumSquares{ 0.0 };
+                    int halocount = 0;
                     for ( idx_t jnode = 0; jnode < mesh.nodes().size(); ++jnode ) {
                         f2( jnode )      = 0;
                         const double lon = lonlat( jnode, 0 );
@@ -115,24 +122,36 @@ CASE( "test haloExchange " ) {
                             sumSquares += std::pow( std::abs( f( jnode ) - rollup_plus( lon, lat ) ), 2 );
                             ++count;
                         }
+                        bool DEBUGGING = false;
                         if ( remote_idxs( jnode ) < 0 ) {
-                            std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode << " : ghost "
-                                      << ghosts( jnode ) << " master_global_index " << master_glb_idxs( jnode )
-                                      << " lon " << lonlat( jnode, 0 ) << " lat " << lonlat( jnode, 1 ) << std::endl;
+                            if( DEBUGGING ) {
+                                std::cout << "[" << mpi::rank() << "] remote_idx < 0 " << jnode << " : ghost "
+                                        << ghosts( jnode ) << " master_global_index " << master_glb_idxs( jnode )
+                                        << " lon " << lonlat( jnode, 0 ) << " lat " << lonlat( jnode, 1 ) << std::endl;
+                            }
                             f2( jnode ) = 1;
                         }
+                        if (halos(jnode) > 0) {
+                            if( DEBUGGING ) {
+                                std::cout << "[" << mpi::rank() << "] i " << ij(jnode, 0) << " j " << ij(jnode, 1)
+                                          << " halo(" << jnode << ") " << halos(jnode)
+                                          << " ghost " << ghosts(jnode) << " master_global_index " << master_glb_idxs(jnode)
+                                          << " lon " << lonlat(jnode, 0) << " lat " << lonlat(jnode, 1) << std::endl;
+                            }
+                          halocount++;
+                        }
                     }
-                    if ( count != 0 ) {
-                        Log::info() << "count nonzero and norm of differences is: " << std::sqrt( sumSquares )
-                                    << std::endl;
+                    //if ( count != 0 ) {
+                        Log::info() << "count nonzero and norm of differences is: " << std::sqrt(sumSquares) << std::endl;
+                        Log::info() << "count nonzero halo points: " << halocount << std::endl;
                         Log::info() << "To diagnose problem, uncomment mesh writing here: " << Here() << std::endl;
-                        // output::Gmsh gmsh(
-                        //     std::string("haloExchange_")+gridname+"_"+distributionName+"_"+std::to_string(halo)+".msh",
-                        //     Config("coordinates","ij")|Config("info",true));
-                        // gmsh.write(mesh);
-                        // gmsh.write(field);
-                        // gmsh.write(field2);
-                    }
+                        //output::Gmsh gmsh(
+                        //    std::string("haloExchange_")+gridname+"_"+distributionName+"_"+std::to_string(halo)+".msh",
+                        //    Config("coordinates","ij")|Config("info",true));
+                        //gmsh.write(mesh);
+                        //gmsh.write(field);
+                        //gmsh.write(field2);
+                    //}
                     EXPECT_EQ( count, 0 );
                 }
             }

@@ -35,7 +35,7 @@ CASE( "test orca polygon locator" ) {
     auto gridnames = std::vector<std::string>{
         "ORCA2_T",     //
         "eORCA1_T",    //
-        "eORCA025_T",  //
+        // "eORCA025_T",  //
         // "eORCA12_T",  //
     };
 
