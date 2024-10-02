@@ -20,9 +20,9 @@
 // Backward compatibility, DEPRECATED!
 #include "atlas/io/atlas-io.h"
 namespace eckit::codec {
-using RecordReader = atlas::io::RecordReader;
+using RecordReader  = atlas::io::RecordReader;
 using InvalidRecord = atlas::io::InvalidRecord;
-}
+}  // namespace eckit::codec
 #endif
 
 #include "atlas/runtime/AtlasTool.h"
