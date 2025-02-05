@@ -19,8 +19,6 @@
 
 namespace atlas::orca {
 
-//------------------------------------------------------------------------------------------------------
-
 class OrcaData;
 
 class OrcaPeriodicity {
@@ -33,7 +31,7 @@ private:
     idx_t iend_;
 
 public:
-    explicit OrcaPeriodicity( const OrcaData& orca );
+    explicit OrcaPeriodicity( const OrcaData& );
 
     OrcaPeriodicity( const std::array<std::int32_t, 2>& dimensions, const std::array<std::int32_t, 4>& halo,
                      const std::array<double, 2>& pivot );
