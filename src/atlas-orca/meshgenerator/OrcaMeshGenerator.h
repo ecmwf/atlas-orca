@@ -57,8 +57,8 @@ private:
     void hash( eckit::Hash& ) const override;
     void build_remote_index(Mesh& mesh) const;
 
-    bool include_pole_{ false };
-    bool fixup_{ true };
+    // bool include_pole_{ false };
+    // bool fixup_{ true };
     int nparts_;
     int mypart_;
     int halosize_{0};

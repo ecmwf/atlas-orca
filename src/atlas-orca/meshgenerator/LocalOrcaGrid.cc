@@ -301,8 +301,6 @@ PointIJ LocalOrcaGrid::orca_haloed_global_grid_ij( idx_t ix, idx_t iy ) const {
   const auto ix_glb_min = -orca_.haloWest();
   const auto nx_orca_glb = orca_.nx() + orca_.haloEast() + orca_.haloWest();
   const auto ny_orca_glb = orca_.ny() + orca_.haloSouth() + orca_.haloNorth();
-  const idx_t glbarray_offset  = -( nx_orca_glb * iy_glb_min ) - ix_glb_min;
-  const idx_t glbarray_jstride = nx_orca_glb;
 
   auto ij = this->global_ij( ix, iy );
 
@@ -338,7 +336,6 @@ idx_t LocalOrcaGrid::orca_haloed_global_grid_index( idx_t ix, idx_t iy ) const {
   const auto iy_glb_min = -orca_.haloSouth();
   const auto ix_glb_min = -orca_.haloWest();
   const auto nx_orca_glb = orca_.nx() + orca_.haloEast() + orca_.haloWest();
-  const auto ny_orca_glb = orca_.ny() + orca_.haloSouth() + orca_.haloNorth();
   const idx_t glbarray_offset  = -( nx_orca_glb * iy_glb_min ) - ix_glb_min;
   const idx_t glbarray_jstride = nx_orca_glb;
   return glbarray_offset + ij.j * glbarray_jstride + ij.i;

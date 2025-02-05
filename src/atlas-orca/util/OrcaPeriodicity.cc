@@ -10,13 +10,8 @@
 
 #include "OrcaPeriodicity.h"
 
-#include <array>
-#include <cstdint>
-
 #include "atlas-orca/util/Enums.h"
 #include "atlas-orca/util/OrcaData.h"
-#include "atlas-orca/util/PointIJ.h"
-#include "atlas/library/config.h"
 
 namespace atlas::orca {
 
@@ -24,15 +19,11 @@ OrcaPeriodicity::OrcaPeriodicity( const OrcaData& orca ) : OrcaPeriodicity( orca
 
 OrcaPeriodicity::OrcaPeriodicity( const std::array<std::int32_t, 2>& dimensions,
                                   const std::array<std::int32_t, 4>& halo, const std::array<double, 2>& pivot ) :
+    pivot_{ pivot },
+    halo_{ halo },
     nx_{ dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST] },
     ny_{ dimensions[0] - halo_[HALO_WEST] - halo_[HALO_EAST] },
     ibegin_( halo_[HALO_WEST] ),
-    iend_( ibegin_ + nx_ ),
-    halo_{ halo },
-    pivot_{ pivot } {}
-
-//------------------------------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------------------------------
+    iend_( ibegin_ + nx_ ) {}
 
 }  // namespace atlas::orca
