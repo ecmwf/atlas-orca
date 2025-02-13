@@ -34,17 +34,17 @@ LocalOrcaGrid::LocalOrcaGrid(const OrcaGrid& grid, const SurroundingRectangle& r
 
   // Ensure we include the orca halo points if we are at the edge of the orca grid.
   if (rectangle.ix_min() <= 0) {
-    ix_orca_min_ = std::min(rectangle.ix_min(), -orca_.haloWest());
+    ix_orca_min_ = std::min<idx_t>(rectangle.ix_min(), -orca_.haloWest());
   }
   if (rectangle.ix_max() >= orca_.nx() - 1) {
-    ix_orca_max_ = std::max(rectangle.ix_max(), orca_.nx() + orca_.haloEast() - 1);
+    ix_orca_max_ = std::max<idx_t>(rectangle.ix_max(), orca_.nx() + orca_.haloEast() - 1);
   }
   // no halo at the Southern boundary of orca grid (closed boundary we think?)
   if (rectangle.iy_min() <= 0) {
     iy_orca_min_ = -orca_.haloSouth();
   }
   if (rectangle.iy_max() >= orca_.ny() - 1) {
-    iy_orca_max_ = std::max(rectangle.iy_max(), orca_.ny() + orca_.haloNorth() - 1);
+    iy_orca_max_ = std::max<idx_t>(rectangle.iy_max(), orca_.ny() + orca_.haloNorth() - 1);
   }
 
   // std::cout << " orca_.nx() " << orca_.nx()

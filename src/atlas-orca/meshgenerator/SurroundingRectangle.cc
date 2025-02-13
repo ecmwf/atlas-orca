@@ -179,7 +179,7 @@ SurroundingRectangle::SurroundingRectangle(
         PointIJ pij = global_periodic_ij( ix_min_ + ix, iy_min_ + iy );
         bool periodic_point = ( (pij.i != (ix_min_ + ix) ) || (pij.j != (iy_min_ + iy)) );
         bool halo_found = false;
-        int halo_dist = halosize_;
+        idx_t halo_dist = halosize_;
         if ((halosize_ > 0) && ((parts.at( ii ) != cfg_.mypart) || periodic_point) ) {
           // search the surrounding halosize index square for a node on my
           // partition to determine the halo distance
@@ -194,8 +194,8 @@ SurroundingRectangle::SurroundingRectangle(
                 if (partition(ix + dhx, iy + dhy) == cfg_.mypart) {
                   // find the minimum distance from this halo node to
                   // a node on the partition
-                  auto dist = std::max(std::abs(dhx), std::abs(dhy));
-                  halo_dist = std::min(dist, halo_dist);
+                  auto dist = std::max<idx_t>(std::abs(dhx), std::abs(dhy));
+                  halo_dist = std::min<idx_t>(dist, halo_dist);
                   halo_found = true;
                 }
               }

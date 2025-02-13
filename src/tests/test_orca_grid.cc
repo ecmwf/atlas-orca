@@ -123,7 +123,7 @@ CASE("test matchup between orca and regular ij indexing ") {
     auto nx_orca_halo = orca_grid.haloWest() + orca_grid.nx() + orca_grid.haloEast();
     auto ny_orca_halo = orca_grid.haloSouth() + orca_grid.ny() + orca_grid.haloNorth();
 
-    const std::array<std::int32_t, 2> dimensions{nx_orca_halo, ny_orca_halo};
+    const std::array<std::int32_t, 2> dimensions{static_cast<std::int32_t>(nx_orca_halo), static_cast<std::int32_t>(ny_orca_halo)};
     const std::array<std::int32_t, 4> halo{orca_grid.haloNorth(), orca_grid.haloWest(),
                                            orca_grid.haloSouth(), orca_grid.haloEast()};
     const std::array<double, 2> pivot{static_cast<double>(orca_grid.nx()/2 + 1), static_cast<double>(orca_grid.ny())};
