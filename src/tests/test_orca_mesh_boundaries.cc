@@ -102,9 +102,6 @@ CASE( "test haloExchange " ) {
 
                     fs.haloExchange( field );
 
-                    const auto xy        = array::make_view<double, 2>( mesh.nodes().xy() );
-                    const auto glb_idxs  = array::make_view<gidx_t, 1>( mesh.nodes().global_index() );
-                    const auto partition = array::make_view<int32_t, 1>( mesh.nodes().partition() );
                     const auto halos     = array::make_view<int32_t, 1>( mesh.nodes().halo() );
 
                     const auto master_glb_idxs =

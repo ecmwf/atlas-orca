@@ -77,8 +77,8 @@ public:
     }
 
 private:
-    std::vector<std::string> known_urls_;
     std::vector<std::string> search_paths_;
+    std::vector<std::string> known_urls_;
 };
 
 class ComputeCachedPath {
