@@ -17,9 +17,9 @@
 #include "atlas/io/atlas-io.h"
 namespace eckit::codec {
 using RecordWriter = atlas::io::RecordWriter;
-using atlas::io::ArrayReference;
 using atlas::io::ref;
-}  // namespace eckit::codec
+using atlas::io::ArrayReference;
+}
 #endif
 
 #include "eckit/log/ProgressTimer.h"

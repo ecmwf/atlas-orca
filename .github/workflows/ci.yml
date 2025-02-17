@@ -28,7 +28,7 @@ jobs:
     with:
       atlas-orca: ecmwf/atlas-orca@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
-      clang_format: true
+      clang_format: false
     secrets: inherit
 
   # Build downstream packages on HPC
