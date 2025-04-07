@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 
 #include "eckit/utils/Hash.h"
 
@@ -20,6 +21,7 @@
 #include "atlas/runtime/Log.h"
 #include "atlas/runtime/Trace.h"
 #include "atlas/util/Config.h"
+#include "atlas/parallel/mpi/mpi.h"
 
 #include "atlas-orca/Library.h"
 #include "atlas-orca/util/AtlasIOReader.h"
@@ -149,6 +151,17 @@ Orca::Orca( const std::string& name, const Config& config ) :
     else if ( compute_uid() ) {
         Log::debug() << "Computing uid of ORCA grid" << std::endl;
         spec_.set( "uid", data.computeUid( spec_ ) );
+    }
+
+    // DO NOT MERGE!!!
+    // DIRTY HACK, just for obtaining quick results, never to be merged in develop!
+    // Write orca_mask file that contains the mask for orca grid
+    // Atlas app can then read this back in.
+    if (atlas::mpi::rank() == 0) {
+        std::ofstream orca_mask("orca_mask");
+        for( idx_t n=0; n<water_.size(); ++n) {
+            orca_mask << " " << water_[n];
+        }
     }
 
     domain_      = GlobalDomain();
