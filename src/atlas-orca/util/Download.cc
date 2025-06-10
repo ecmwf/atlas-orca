@@ -79,7 +79,7 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
             length = curl_download( url, path_tmp );
         }
     }
-    catch ( eckit::SeriousBug ) {
+    catch ( eckit::SeriousBug& ) {
         Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call." << std::endl;
 #else
     try {
