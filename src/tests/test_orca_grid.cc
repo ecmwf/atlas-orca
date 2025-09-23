@@ -224,6 +224,102 @@ CASE("test matchup between orca and regular ij indexing ") {
   }
 }
 
+CASE("periodicity") {
+  SECTION("ORCA2_T") {
+    OrcaGrid g("ORCA2_T");
+    EXPECT_EQ(g.nx(), 180);
+    EXPECT_EQ(g.ny(), 147);
+    EXPECT_EQ(g.periodicIndex(-1,-1), 180);
+    EXPECT_EQ(g.periodicIndex(g.nx()-1,-1), 180);
+    EXPECT_EQ(g.periodicIndex(0,-1), 1);
+    EXPECT_EQ(g.periodicIndex(0,0), 183);
+    EXPECT_EQ(g.periodicIndex(g.nx(),0), 183);
+    EXPECT_EQ(g.periodicIndex(g.nx()-1,0), 362);
+    EXPECT_EQ(g.periodicIndex(-1,0), 362);
+
+    // now go outside of built-in halo, which should wrap around into core region points
+    EXPECT_EQ(g.periodicIndex(-10,0), g.periodicIndex(-1,0) - 9);
+    EXPECT_EQ(g.periodicIndex(-10,0), 353); // and evaluated
+    EXPECT_EQ(g.periodicIndex(g.nx()+10,0), g.periodicIndex(0,0) + 10);
+    EXPECT_EQ(g.periodicIndex(g.nx()+10,0), 193); // and evaluated
+
+    // north fold for ORCA2_T already starts in row ny-1
+    int ny = g.ny();
+    EXPECT_EQ(g.periodicIndex(0,  ny-1), 26755); // Beginning of row
+    EXPECT_EQ(g.periodicIndex(90, ny-1), 26845); // pivot center point
+    EXPECT_EQ(g.periodicIndex(91, ny-1), 26844); // Just right of pivot, folding back
+    EXPECT_EQ(g.periodicIndex(92, ny-1), 26843); // ..
+    EXPECT_EQ(g.periodicIndex(179,ny-1), 26756); // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIndex(g.nx(),ny-1), 26755); // Periodic point of row must return beginning of row
+    EXPECT_EQ(g.periodicIndex(-1,  ny-1), 26756);   // Periodic point must return last of row (179,ny-1), which folds back to second point of row
+
+    // North halo
+    EXPECT_EQ(g.periodicIJ(180, ny), g.periodicIJ(0,  ny));    // Periodic within fold
+    EXPECT_EQ(g.periodicIJ(0,  ny), g.periodicIJ(180, ny-2));  // This also folds back but into halo in core rows
+    EXPECT_EQ(g.periodicIJ(180, ny-2), g.periodicIJ(0, ny-2)); // And this is periodic with core point
+    EXPECT_EQ(g.periodicIndex(0, ny-2), 26573);
+    EXPECT_EQ(g.periodicIJ(-1,  ny), g.periodicIJ(179, ny));
+    EXPECT_EQ(g.periodicIJ(179, ny), g.periodicIJ(1,ny-2));
+    EXPECT_EQ(g.periodicIndex(1,ny-2), 26574);
+    // extra halo:
+    EXPECT_EQ(g.periodicIJ(180+10, ny), g.periodicIJ(0+10,  ny));       // Periodic within fold
+    EXPECT_EQ(g.periodicIJ(0+10, ny),   g.periodicIJ(180-10,  ny-2));   // Folds back into core region
+    EXPECT_EQ(g.periodicIndex(180+10, ny-2),26583);   
+
+    // Extra North halo not part of grid definition
+    EXPECT_EQ(g.periodicIJ(0, (ny-1)+10), g.periodicIJ(180,(ny-1)-10));
+    EXPECT_EQ(g.periodicIJ(180, (ny-1)-10), g.periodicIJ(0,(ny-1)-10));
+    EXPECT_EQ(g.periodicIndex(0,(ny-1)-10), 24935);
+    EXPECT_EQ(g.periodicIndex(0,(ny-1)+10), 24935);
+  }
+
+  SECTION("ORCA1_T") {
+    OrcaGrid g("ORCA1_T");
+    EXPECT_EQ(g.nx(), 360);
+    EXPECT_EQ(g.ny(), 290);
+    EXPECT_EQ(g.periodicIndex(-1,-1), 360);
+    EXPECT_EQ(g.periodicIndex(g.nx()-1,-1), 360);
+    EXPECT_EQ(g.periodicIndex(0,-1), 1);
+    EXPECT_EQ(g.periodicIndex(0,0), 363);
+    EXPECT_EQ(g.periodicIndex(g.nx(),0), 363);
+    EXPECT_EQ(g.periodicIndex(g.nx()-1,0), 722);
+    EXPECT_EQ(g.periodicIndex(-1,0), 722);
+
+    // now go outside of built-in halo, which should wrap around into core region points
+    EXPECT_EQ(g.periodicIndex(-10,0), g.periodicIndex(-1,0) - 9);
+    EXPECT_EQ(g.periodicIndex(-10,0), 713); // and evaluated
+    EXPECT_EQ(g.periodicIndex(g.nx()+10,0), g.periodicIndex(0,0) + 10);
+    EXPECT_EQ(g.periodicIndex(g.nx()+10,0), 373); // and evaluated
+
+    // north fold for ORCA1_T does not start in row ny-1, but half increment above
+    int ny = g.ny();
+    int nx = g.nx();
+    EXPECT_EQ(g.periodicIndex(0,   ny-1), 104981); // Beginning of row
+    EXPECT_EQ(g.periodicIndex(180, ny-1), 105161); // pivot center point
+    EXPECT_EQ(g.periodicIndex(181, ny-1), 105162); // Just right of pivot, folding back
+    EXPECT_EQ(g.periodicIndex(182, ny-1), 105163); // ..
+    EXPECT_EQ(g.periodicIndex(359, ny-1), 105340);  // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIndex(g.nx(),ny-1), 104981); // Periodic point of row must return beginning of row
+    EXPECT_EQ(g.periodicIndex(-1,  ny-1), 105340);   // Periodic point must return last of row (179,ny-1), which folds back to second point of row
+
+    // North halo folds
+    EXPECT_EQ(g.periodicIndex(0,   ny), 105340); // Beginning of row folds to last point of owned (nx-1,ny-1)
+    EXPECT_EQ(g.periodicIndex(1,   ny), 105339); // Second of row folds to (nx-1 -1,ny-1)
+    EXPECT_EQ(g.periodicIndex(2,   ny), 105338); // Third of row folds to (nx-1 -2,ny-1)
+    EXPECT_EQ(g.periodicIndex(180, ny), 105160); // Just left of pivot center point
+    EXPECT_EQ(g.periodicIndex(181, ny), 105159); // Just right of pivot center point
+    EXPECT_EQ(g.periodicIndex(182, ny), 105158); // ..
+    EXPECT_EQ(g.periodicIndex(359, ny), 104981);  // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIJ(359, ny), g.periodicIJ(0, ny-1));  // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIJ(nx, ny), g.periodicIJ(0, ny));  // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIndex(nx,ny), 105340); // Periodic point of row must return beginning of row
+    EXPECT_EQ(g.periodicIJ(-1, ny), g.periodicIJ(nx-1, ny));  // Last of row folds back to second point of row
+    EXPECT_EQ(g.periodicIndex(-1,  ny), 104981);   // Periodic point must return last of row (179,ny-1), which folds back to second point of row
+  }
+
+
+}
+
 //-----------------------------------------------------------------------------
 
 }  // namespace atlas::test
