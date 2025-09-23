@@ -75,16 +75,16 @@ CASE("test matchup between orca and regular ij indexing ") {
   };
 
   for (const std::string& gridname : gridnames) {
-    auto mypart = 0;
-    auto orca_grid = OrcaGrid(gridname);
+    SECTION(gridname + ": is the regular grid ij index unique?") {
+      auto mypart = 0;
+      auto orca_grid = OrcaGrid(gridname);
 
-    StructuredGrid::YSpace yspace{grid::LinearSpacing{
-        {-80., 90.}, orca_grid.ny(), true}};
-    StructuredGrid::XSpace xspace{
-        grid::LinearSpacing{{0., 360.}, orca_grid.nx(), false}};
-    StructuredGrid regular_grid{xspace, yspace};
+      StructuredGrid::YSpace yspace{grid::LinearSpacing{
+          {-80., 90.}, orca_grid.ny(), true}};
+      StructuredGrid::XSpace xspace{
+          grid::LinearSpacing{{0., 360.}, orca_grid.nx(), false}};
+      StructuredGrid regular_grid{xspace, yspace};
 
-    SECTION("is the regular grid ij index unique?") {
       const idx_t size = regular_grid.size();
       std::set<gidx_t> ij_uid;
       for (gidx_t node = 0; node < size; ++node) {
@@ -101,7 +101,10 @@ CASE("test matchup between orca and regular ij indexing ") {
       EXPECT(size == ij_uid.size());
     }
 
-    SECTION("are the orca grid internal ij indices unique?") {
+    SECTION(gridname + ": are the orca grid internal ij indices unique?") {
+      auto mypart = 0;
+      auto orca_grid = OrcaGrid(gridname);
+
       const idx_t size = orca_grid.size();
       std::set<gidx_t> ij_uid;
       for (gidx_t node = 0; node < size; ++node) {
@@ -120,30 +123,30 @@ CASE("test matchup between orca and regular ij indexing ") {
       EXPECT(internal_size == ij_uid.size());
     }
 
-    auto nx_orca_halo = orca_grid.haloWest() + orca_grid.nx() + orca_grid.haloEast();
-    auto ny_orca_halo = orca_grid.haloSouth() + orca_grid.ny() + orca_grid.haloNorth();
 
-    const std::array<std::int32_t, 2> dimensions{static_cast<std::int32_t>(nx_orca_halo), static_cast<std::int32_t>(ny_orca_halo)};
-    const std::array<std::int32_t, 4> halo{orca_grid.haloNorth(), orca_grid.haloWest(),
-                                           orca_grid.haloSouth(), orca_grid.haloEast()};
-    const std::array<double, 2> pivot{static_cast<double>(orca_grid.nx()/2 + 1), static_cast<double>(orca_grid.ny())};
+    SECTION(gridname + ": ORCA periodicity satisfies symmetries") {
+      auto orca_grid = OrcaGrid(gridname);
 
-    if (gridname == "ORCA2_T") {
-      EXPECT(nx_orca_halo == 182);
-      EXPECT(ny_orca_halo == 149);
-      EXPECT(orca_grid.haloNorth() == 1);
-      EXPECT(orca_grid.haloWest() == 1);
-      EXPECT(orca_grid.haloSouth() == 1);
-      EXPECT(orca_grid.haloEast() == 1);
-      std::cout << "pivot[0]: " << pivot[0] << " =? " << 91 << std::endl;
-      std::cout << "pivot[1]: " << pivot[1] << " =? " << 147 << std::endl;
-      EXPECT(pivot[0] == 91);
-      EXPECT(pivot[1] == 147);
-    }
+      auto nx_orca_halo = orca_grid.haloWest() + orca_grid.nx() + orca_grid.haloEast();
+      auto ny_orca_halo = orca_grid.haloSouth() + orca_grid.ny() + orca_grid.haloNorth();
 
-    atlas::orca::OrcaPeriodicity periodicity(dimensions, halo, pivot);
+      const std::array<std::int32_t, 2> dimensions{static_cast<std::int32_t>(nx_orca_halo), static_cast<std::int32_t>(ny_orca_halo)};
+      const std::array<std::int32_t, 4> halo{orca_grid.haloNorth(), orca_grid.haloWest(),
+                                            orca_grid.haloSouth(), orca_grid.haloEast()};
+      const std::array<double, 2> pivot{static_cast<double>(orca_grid.nx()/2 + 1), static_cast<double>(orca_grid.ny())};
 
-    SECTION("ORCA periodicity satisfies symmetries") {
+      if (gridname == "ORCA2_T") {
+        EXPECT_EQ(nx_orca_halo, 182);
+        EXPECT_EQ(ny_orca_halo, 149);
+        EXPECT_EQ(orca_grid.haloNorth(), 1);
+        EXPECT_EQ(orca_grid.haloWest(), 1);
+        EXPECT_EQ(orca_grid.haloSouth(), 1);
+        EXPECT_EQ(orca_grid.haloEast(), 1);
+        EXPECT_EQ(pivot[0], 91);
+        EXPECT_EQ(pivot[1], 147);
+      }
+  
+      atlas::orca::OrcaPeriodicity periodicity(dimensions, halo, pivot);
 
       for (idx_t i = 0; i < dimensions[0]; ++i) {
         for (idx_t j = 0; j < dimensions[1]; ++j) {
@@ -162,46 +165,60 @@ CASE("test matchup between orca and regular ij indexing ") {
       }
     }
 
-    SECTION("Are the boundary symmetries present in the orca grid ij indices?") {
+    SECTION(gridname + ": Are the boundary symmetries present in the orca grid ij indices?") {
+      auto orca_grid = OrcaGrid(gridname);
+      auto pivot = orca_grid.nx() / 2 + 1;
+      if (gridname.back() == 'U') {
+        pivot = orca_grid.nx() / 2;
+      }
+
       const idx_t size = orca_grid.size();
       atlas::PointLonLat lonlat, lonlat_halo;
       for (gidx_t node = 0; node < size; ++node) {
         idx_t i, j;
         orca_grid.index2ij(node, i, j);
-        auto pivot = orca_grid.nx() / 2 + 1;
-        if (gridname.back() == 'U') {
-          pivot = orca_grid.nx() / 2;
-        }
-        if (j == orca_grid.ny() && i > 2) {
-          // check northfold boundary
-          //     - second row is swapped version of second from top row
-          lonlat = orca_grid.lonlat(i, j);
-          lonlat_halo = orca_grid.lonlat(orca_grid.nx() - i, j - 2);
-          EXPECT(orca_grid.periodicIndex(i, j) ==
-                 orca_grid.periodicIndex(orca_grid.nx() - i, j - 2));
-          EXPECT(lonlat[0] == lonlat_halo[0]);
-          EXPECT(lonlat[1] == lonlat_halo[1]);
-        }
-        if (j == orca_grid.ny() - 1) {
-          // check northfold boundary - centre fold row is mirrored about the central pivot
-          if (i <= pivot) continue; // halo points are right of pivot on this row.
-          // count from right-hand-side of grid.
-          lonlat = orca_grid.lonlat(i, j);
-          lonlat_halo = orca_grid.lonlat(orca_grid.nx() - i, j);
-          EXPECT(orca_grid.periodicIndex(i, j) ==
-                 orca_grid.periodicIndex(orca_grid.nx() - i, j));
-          EXPECT(lonlat[0] == lonlat_halo[0]);
-          EXPECT(lonlat[1] == lonlat_halo[1]);
+        if (gridname == "ORCA2_T") {
+          if (j == orca_grid.ny() && i > 2) {
+            // check northfold boundary
+            //     - second row is swapped version of second from top row
+            lonlat = orca_grid.lonlat(i, j);
+            lonlat_halo = orca_grid.lonlat(orca_grid.nx() - i, j - 2);
+            EXPECT_EQ(orca_grid.periodicIndex(i, j),
+                      orca_grid.periodicIndex(orca_grid.nx() - i, j - 2));
+            EXPECT_EQ(lonlat[0], lonlat_halo[0]);
+            EXPECT_EQ(lonlat[1], lonlat_halo[1]);
+          }
+          if (j == orca_grid.ny() - 1) {
+            // check northfold boundary - centre fold row is mirrored about the central pivot
+            if (i <= pivot) continue; // halo points are right of pivot on this row.
+            // count from right-hand-side of grid.
+            lonlat = orca_grid.lonlat(i, j);
+            lonlat_halo = orca_grid.lonlat(orca_grid.nx() - i, j);
+            EXPECT_EQ(orca_grid.periodicIndex(i, j),
+                      orca_grid.periodicIndex(orca_grid.nx() - i, j));
+            EXPECT_EQ(lonlat[0], lonlat_halo[0]);
+            EXPECT_EQ(lonlat[1], lonlat_halo[1]);
+          }
         }
         if (i > orca_grid.nx()) {
           // check east-west boundary
           lonlat = orca_grid.lonlat(i, j);
           lonlat_halo = orca_grid.lonlat(orca_grid.nx() - i, j);
-          EXPECT(orca_grid.periodicIndex(i, j) ==
-                 orca_grid.periodicIndex(orca_grid.nx() - i, j));
-          EXPECT(lonlat[0] == lonlat_halo[0]);
-          EXPECT(lonlat[1] == lonlat_halo[1]);
+          EXPECT_EQ(orca_grid.periodicIndex(i, j),
+                    orca_grid.periodicIndex(orca_grid.nx() - i, j));
+          EXPECT_EQ(lonlat[0], lonlat_halo[0]);
+          EXPECT_EQ(lonlat[1], lonlat_halo[1]);
         }
+        if (i < 0) {
+          // check east-west boundary
+          lonlat_halo = orca_grid.lonlat(i, j);
+          lonlat = orca_grid.lonlat(orca_grid.nx() + i, j);
+          EXPECT_EQ(orca_grid.periodicIndex(i, j),
+                    orca_grid.periodicIndex(orca_grid.nx() + i, j));
+          EXPECT_EQ(lonlat[0], lonlat_halo[0]);
+          EXPECT_EQ(lonlat[1], lonlat_halo[1]);
+        }
+
       }
     }
   }
