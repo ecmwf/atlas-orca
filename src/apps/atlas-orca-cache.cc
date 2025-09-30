@@ -85,7 +85,7 @@ int Tool::execute( const Args& args ) {
         }
     }
     ComputeCachedPath compute_cached_path(
-        { "https://get.ecmwf.int/repository/atlas/grids/orca", "http://get.ecmwf.int/repository/atlas/grids/orca" } );
+        { "https://sites.ecmwf.int/repository/atlas/grids/orca", "http://sites.ecmwf.int/repository/atlas/grids/orca" } );
 
     std::vector<std::string> failed_urls;
     for ( const auto& url : urls ) {
