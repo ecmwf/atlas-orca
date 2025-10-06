@@ -21,6 +21,9 @@ namespace atlas::orca {
 
 class OrcaData;
 
+// Given a point {i,j} find the actual {i,j} owner of this point
+// Note that input and output {i,j} in this class are counting from zero inside the halo region
+// so the halo-point most south-west starts at {i,j} = {0,0}
 class OrcaPeriodicity {
 private:
     std::array<double, 2> pivot_;

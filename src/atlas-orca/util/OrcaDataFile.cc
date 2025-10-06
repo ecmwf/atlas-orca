@@ -28,8 +28,8 @@ namespace atlas::orca {
 
 OrcaDataFile::OrcaDataFile( const std::string& uri, const std::string& checksum ) : uri_( uri ), checksum_( checksum ) {
     static const std::vector<std::string> KNOWN_URLS{
-        "http://get.ecmwf.int/repository/atlas/grids/orca",
-        "https://get.ecmwf.int/repository/atlas/grids/orca",
+        "http://sites.ecmwf.int/repository/atlas/grids/orca",
+        "https://sites.ecmwf.int/repository/atlas/grids/orca",
     };
 
     static const std::vector<std::string> SEARCH_PATHS = []() {

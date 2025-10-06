@@ -85,7 +85,10 @@ gidx_t Orca::periodicIndex( idx_t i, idx_t j ) const {
 }
 
 orca::PointIJ Orca::periodicIJ( idx_t i, idx_t j ) const {
-    return periodicity_->compute( i + imin_, j + jmin_ );
+    auto p = periodicity_->compute( i + imin_, j + jmin_ );
+    p.i -= imin_;
+    p.j -= jmin_;
+    return p;
 }
 
 Orca::Orca( const Config& config ) :
