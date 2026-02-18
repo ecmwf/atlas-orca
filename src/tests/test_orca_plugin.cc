@@ -8,6 +8,8 @@
  * nor does it submit to any jurisdiction.
  */
 
+#include "eckit/system/LibraryManager.h"
+
 #include "atlas/grid.h"
 #include "atlas/meshgenerator.h"
 
@@ -24,7 +26,7 @@ CASE( "test plugin" ) {
     // ATLAS_PLUGINS_SEARCH_PATHS=<path-to-binary-dir>
     // ATLAS_PLUGINS=orca
 
-    EXPECT( eckit::system::Library::exists( "atlas-orca" ) );
+    EXPECT( eckit::system::LibraryManager::exists( "atlas-orca" ) );
     EXPECT( bool( MeshGenerator( "orca" ) ) );
 }
 
