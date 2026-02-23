@@ -11,6 +11,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cctype>  // ::tolower
 #include <chrono>
 #include <exception>
 #include <iomanip>
@@ -21,11 +22,11 @@
 #include "eckit/config/LibEcKit.h"
 #include "eckit/config/Resource.h"
 #include "eckit/eckit.h"
-#include "eckit/system/LibraryManager.h"
 #include "eckit/log/FileTarget.h"
 #include "eckit/log/PrefixTarget.h"
 #include "eckit/mpi/Comm.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/system/LibraryManager.h"
 #include "eckit/testing/Test.h"
 #include "eckit/types/Types.h"
 
