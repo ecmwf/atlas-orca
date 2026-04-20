@@ -68,10 +68,10 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
     ATLAS_ASSERT( parent_directory.exists() );
     Log::info() << "Downloading " << url << " to " << path << " ..." << std::endl;
     AutoIndent indent;
-    eckit::PathName path_tmp = path + ".download";
+    eckit::PathName path_tmp = eckit::PathName::unique(path);
     eckit::Length length;
-#ifdef ATLAS_ORCA_HAVE_ECKIT_URLHANDLE
     try {
+#ifdef ATLAS_ORCA_HAVE_ECKIT_URLHANDLE
         length = eckit::URLHandle( url ).saveInto( path_tmp );
         if ( length <= 0 && eckit_version_int() <= 11601 /*1.16.1*/ ) {
             // Problems with eckit::URLHandle fixed in further version
@@ -81,8 +81,6 @@ size_t download( const std::string& url, const eckit::PathName& path ) {
     }
     catch ( eckit::SeriousBug& ) {
         Log::warning() << "Download failed with eckit::URLHandle. Trying again with curl system call." << std::endl;
-#else
-    try {
 #endif
         length = curl_download( url, path_tmp );
     }
