@@ -65,6 +65,11 @@ if (eckit_HAVE_CURL)
                             PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_HAVE_ECKIT_URLHANDLE")
 endif()
 
+if( DEFINED ARTIFACTS_DIR )
+    set_source_files_properties( util/OrcaDataFile.cc
+        PROPERTIES COMPILE_DEFINITIONS "ATLAS_ORCA_ARTIFACTS_DIR=\"${ARTIFACTS_DIR}\"" )
+endif()
+
 if( TARGET eckit_codec )
   target_link_libraries(atlas-orca PUBLIC eckit_codec)
   target_compile_definitions(atlas-orca PUBLIC ATLAS_ORCA_HAVE_ECKIT_CODEC=1)

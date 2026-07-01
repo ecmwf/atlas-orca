@@ -69,6 +69,10 @@ if( CMAKE_CXX_COMPILER_ID MATCHES NVHPC )
     # For all the variables with side effects (constructor/dectructor functionality)
   endif()
 
+if (DEFINED ARTIFACTS_DIR)
+    message(STATUS "Using artifacts directory to search for data files: ${ARTIFACTS_DIR}")
+endif()
+
 add_subdirectory(etc)
 add_subdirectory(share)
 add_subdirectory(src)
