@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+# (C) Copyright 2026- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
+set -Eeuo pipefail
+
+usage() {
+        cat <<'EOF'
+Usage:
+    populate [--artifacts-dir <path>] [--grids <grid1,grid2,...>] [--help]
+
+Description:
+    Populate ORCA grid cache artifacts by running src/apps/atlas-orca-cache.py.
+    If python3 already provides 'yaml' and 'requests', run directly.
+    Otherwise create a temporary venv, install dependencies, and run with it.
+
+Options:
+    --artifacts-dir <path>  Cache output directory.
+    --grids <list>          Grid list (space/comma/semicolon separated).
+    --help                  Show this help and exit.
+
+Environment:
+    ARTIFACTS_DIR           Alternative to --artifacts-dir.
+    ATLAS_ORCA_GRIDS        Alternative to --grids.
+EOF
+}
+
+on_error() {
+    local exit_code=$?
+    echo "ERROR: command failed at line ${BASH_LINENO[0]} with exit code ${exit_code}: ${BASH_COMMAND}" >&2
+}
+
+on_interrupt() {
+    echo "populate interrupted by SIGINT" >&2
+    exit 130
+}
+
+on_terminate() {
+    echo "populate terminated by SIGTERM" >&2
+    exit 143
+}
+
+cleanup_and_report() {
+    local exit_code=$?
+    if [[ -n "${VENV_DIR}" ]]; then
+        echo "+ cleanup venv: rm -rf \"${VENV_DIR}\""
+        rm -rf "${VENV_DIR}"
+    fi
+    if [[ ${exit_code} -ne 0 ]]; then
+        echo "populate failed with exit code ${exit_code}" >&2
+    fi
+    exit ${exit_code}
+}
+
+trap on_error ERR
+trap cleanup_and_report EXIT
+trap on_interrupt INT
+trap on_terminate TERM
+
+VENV_DIR=""
+
+if [[ $BASH_SOURCE = */* ]]; then
+    SOURCE_DIR=${BASH_SOURCE%/*}
+else
+    SOURCE_DIR=.
+fi
+
+CLI_ARTIFACTS_DIR=""
+CLI_GRIDS=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --artifacts-dir)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --artifacts-dir requires a value" >&2
+                usage
+                exit 2
+            fi
+            CLI_ARTIFACTS_DIR="$2"
+            shift 2
+            ;;
+        --grids)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --grids requires a value" >&2
+                usage
+                exit 2
+            fi
+            CLI_GRIDS="$2"
+            shift 2
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: unknown option '$1'" >&2
+            usage
+            exit 2
+            ;;
+    esac
+done
+
+if [[ -n "${CLI_ARTIFACTS_DIR}" ]]; then
+    ARTIFACTS_DIR="${CLI_ARTIFACTS_DIR}"
+else
+    ARTIFACTS_DIR=${ARTIFACTS_DIR:-"${SOURCE_DIR}/artifacts"}
+fi
+
+echo "atlas-orca/populate into ARTIFACTS_DIR: ${ARTIFACTS_DIR}"
+
+PYTHON_BIN="python3"
+if python3 -c "import yaml, requests" >/dev/null 2>&1; then
+    echo "python3 already has required module dependencies; skipping temporary venv"
+else
+    # Create a temporary local venv with required Python dependencies
+    VENV_DIR=$(mktemp -d)
+
+    echo "+ create venv: python3 -m venv \"${VENV_DIR}\""
+    python3 -m venv "${VENV_DIR}"
+
+    echo "+ install dependencies: ${VENV_DIR}/bin/python3 -m pip --disable-pip-version-check install --quiet PyYAML Requests"
+    "${VENV_DIR}/bin/python3" -m pip --disable-pip-version-check install --quiet "PyYAML" "Requests"
+    PYTHON_BIN="${VENV_DIR}/bin/python3"
+fi
+
+if [[ -n "${CLI_GRIDS}" ]]; then
+    ATLAS_ORCA_GRIDS="${CLI_GRIDS}"
+else
+    ATLAS_ORCA_GRIDS=${ATLAS_ORCA_GRIDS:-"all"}
+fi
+
+# Accept space/comma/semicolon separated grid lists and pass as argv items
+GRID_LIST=${ATLAS_ORCA_GRIDS//,/ }
+GRID_LIST=${GRID_LIST//;/ }
+read -r -a GRID_ARGS <<< "${GRID_LIST}"
+if [[ ${#GRID_ARGS[@]} -eq 0 ]]; then
+    GRID_ARGS=("all")
+fi
+CMD=("${PYTHON_BIN}" "${SOURCE_DIR}/src/apps/atlas-orca-cache.py" --cache-path "${ARTIFACTS_DIR}" --grid "${GRID_ARGS[@]}")
+printf "+ "; printf "%q " "${CMD[@]}"; printf "\n"
+"${CMD[@]}"
