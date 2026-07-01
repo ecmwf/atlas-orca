@@ -101,11 +101,13 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Create binary grid data files")
     p.add_argument(
         "--config",
+        type=Path,
         default=CONFIG_PATH,
         help=f"Path to the YAML configuration file (default: {CONFIG_PATH})",
     )
     p.add_argument(
         "--cache-path",
+        type=Path,
         default=CACHE_PATH,
         help=f"Path to the cache directory (default: {CACHE_PATH})",
     )
