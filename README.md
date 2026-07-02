@@ -85,3 +85,50 @@ In order to proceed, configure the build with following CMake arguments:
 ```
 This could lead to several minutes of download times for each build. That is not a problem for central deployment.
 However the use of a centralised ATLAS_DATA_PATH could be more beneficial, in a development environment with multiple users (e.g. prepIFS experiments).
+
+
+Offline Population With populate
+--------------------------------
+
+The repository provides a `populate` helper script that downloads ORCA cache data into an artifacts directory.
+This is useful when preparing data on an online machine and then reusing it in an offline build/install environment.
+
+Basic usage:
+
+```bash
+./populate
+```
+
+By default this populates `./artifacts` (relative to the repository root).
+
+You can select a different output directory and/or a subset of grids:
+
+```bash
+./populate --artifacts-dir /path/to/artifacts --grids "ORCA1_T,ORCA025_T"
+```
+
+The same values can also be provided with environment variables:
+
+```bash
+ARTIFACTS_DIR=/path/to/artifacts ATLAS_ORCA_GRIDS="ORCA1_T;ORCA025_T" ./populate
+```
+
+The `--grids`/`ATLAS_ORCA_GRIDS` value accepts space-, comma-, or semicolon-separated lists.
+If not provided, `all` is used.
+
+To use these pre-populated artifacts during installation, configure CMake with:
+
+```bash
+-DARTIFACTS_DIR=/path/to/artifacts
+```
+
+This will become a hardcoded search-path for ORCA grids, both for build-dirs and install-dirs.
+If it is envisioned the ARTIFACTS_DIR will not be available in a installed context, also set
+```bash
+-DENABLE_INSTALL_ORCA_DATA=ON
+```
+
+When `ENABLE_INSTALL_ORCA_DATA` is enabled and `ARTIFACTS_DIR` is defined, installation uses a merged view of:
+
+- `${ARTIFACTS_DIR}/atlas/grids/orca/`
+- `${CMAKE_BINARY_DIR}/share/atlas/grids/orca/`

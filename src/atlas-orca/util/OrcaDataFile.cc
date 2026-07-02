@@ -38,6 +38,9 @@ OrcaDataFile::OrcaDataFile( const std::string& uri, const std::string& checksum 
         if ( Library::instance().caching() ) {
             paths.emplace_back( Library::instance().cachePath() );
         }
+#ifdef ATLAS_ORCA_ARTIFACTS_DIR
+        paths.emplace_back( ATLAS_ORCA_ARTIFACTS_DIR );
+#endif
         return paths;
     }();
 
