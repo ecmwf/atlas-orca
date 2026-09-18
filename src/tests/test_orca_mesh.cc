@@ -54,6 +54,13 @@ CASE( "test generate orca mesh" ) {
 
         EXPECT_EQ( mesh.nodes().size(), grid.size() );
 
+        double d_min = 0.;
+        double d_max = 0.;
+        EXPECT( mesh.metadata().get( "cell_minimum_diagonal_on_unit_sphere", d_min ) );
+        EXPECT( mesh.metadata().get( "cell_maximum_diagonal_on_unit_sphere", d_max ) );
+        EXPECT( d_min > 0. );
+        EXPECT( d_max >= d_min );
+
         if ( static_cast<double>( mesh.footprint() ) < 25.e6 ) {  // less than 25 Mb
             output::Gmsh{ "orca_2d.msh", Config( "coordinates", "lonlat" ) }.write( mesh );
             output::Gmsh{ "orca_3d.msh", Config( "coordinates", "xyz" ) }.write( mesh );
