@@ -46,6 +46,7 @@
 #include "atlas/util/Geometry.h"
 #include "atlas/util/NormaliseLongitude.h"
 #include "atlas/util/Topology.h"
+#include "atlas/util/vector.h"
 
 #include "atlas-orca/meshgenerator/SurroundingRectangle.h"
 #include "atlas-orca/meshgenerator/LocalOrcaGrid.h"
@@ -198,7 +199,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     int ix_pivot = SR_cfg.nx_glb / 2;
     bool patch   = not orca_grid.ghost( ix_pivot + 1, SR_cfg.ny_glb - 1 );
 
-    std::vector<idx_t> node_index( local_orca.nx()*local_orca.ny(), -1 );
+    atlas::vector<idx_t> node_index( local_orca.nx()*local_orca.ny(), -1 );
 
     {
         ATLAS_TRACE( "nodes" );
@@ -308,19 +309,21 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
             }
         }
     }
-    std::vector<idx_t> cell_index( local_orca.nx()*local_orca.ny() );
+    atlas::vector<idx_t> cell_index( local_orca.nx()*local_orca.ny() );
     // loop over nodes and define cells, putting non-ghost cells first
     {
         ATLAS_TRACE( "elements" );
         idx_t jcell = 0;
         idx_t jcell_ghost = local_orca.nb_used_real_cells();
-        ATLAS_TRACE_SCOPE( "indexing" );
+        ATLAS_TRACE_SCOPE( "indexing" )
         for ( idx_t iy = 0; iy < local_orca.ny() - 1; iy++ ) {      // don't loop into ghost/periodicity row
             for ( idx_t ix = 0; ix < local_orca.nx() - 1; ix++ ) {  // don't loop into ghost/periodicity column
                 idx_t ii = local_orca.index( ix, iy );
-                std::stringstream assert_msg;
-                assert_msg << ii << " > " << cell_index.size() << std::endl;
-                ATLAS_ASSERT(ii <  cell_index.size(), assert_msg.str());
+                if ( ii >= cell_index.size() ) {
+                    std::stringstream assert_msg;
+                    assert_msg << ii << " > " << cell_index.size() << std::endl;
+                    ATLAS_ASSERT(ii <  cell_index.size(), assert_msg.str());
+                }
                 if ( local_orca.is_ghost[ii] ) {
                     cell_index[ii] = jcell_ghost++;
                 } else {
