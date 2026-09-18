@@ -114,6 +114,11 @@ struct Cells {
 };
 
 void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& distribution, Mesh& mesh ) const {
+    generate( grid, distribution, mesh, mpi_comm_, nparts_, mypart_ );
+}
+
+void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& distribution, Mesh& mesh,
+                                  const std::string& mpi_comm, int nparts, int mypart ) const {
     ATLAS_TRACE( "OrcaMeshGenerator::generate" );
     using Topology = util::Topology;
 
@@ -123,8 +128,8 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // global (all processor) configuration information about ORCA grid for the ORCA mesh under construction
     SurroundingRectangle::Configuration SR_cfg;
-    SR_cfg.mypart = mypart_;
-    SR_cfg.nparts = nparts_;
+    SR_cfg.mypart = mypart;
+    SR_cfg.nparts = nparts;
     SR_cfg.halosize = halosize_;
     SR_cfg.nx_glb = orca_grid.nx();
     SR_cfg.ny_glb = orca_grid.ny();
@@ -142,6 +147,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 
     // clone some grid properties
     setGrid( mesh, grid, distribution );
+    mesh.metadata().set( "mpi_comm", mpi_comm );
 
     const bool serial_distribution = (SR_cfg.nparts == 1 || distribution.type() == "serial");
     if ( serial_distribution && (halosize_ > 0) ) {
@@ -273,7 +279,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
                     if ( nodes.ghost( inode ) ) {
                       gidx_t master_idx             = local_orca.master_global_index( ix, iy );
                       nodes.master_glb_idx( inode ) = master_idx + 1;
-                      if ( nparts_ == 1 ) {
+                      if ( nparts == 1 ) {
                         nodes.part( inode ) = 0;
                       } else {
                         PointIJ master_ij = local_orca.master_global_ij( ix, iy );
@@ -414,7 +420,7 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
     }
     else {
         // ATLAS_DEBUG( "build_remote_index" );
-        build_remote_index( mesh );
+        build_remote_index( mesh, mpi_comm );
     }
 
     // Degenerate points in the ORCA mesh mean that the standard BuildHalo
@@ -426,9 +432,10 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
 }
 
 using Unique2Node = std::map<gidx_t, idx_t>;
-void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
+void OrcaMeshGenerator::build_remote_index( Mesh& mesh, const std::string& mpi_comm ) const {
     ATLAS_TRACE();
 
+    auto& comm = mpi::comm( mpi_comm );
     mesh::Nodes& nodes = mesh.nodes();
 
     bool parallel = false;
@@ -440,7 +447,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
         return;
     }
 
-    auto mpi_size = mpi::size();
+    auto mpi_size = comm.size();
     int nb_nodes  = nodes.size();
 
     // get the indices and partition data
@@ -475,7 +482,7 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
     std::vector<std::vector<gidx_t>> recv_uid( mpi_size );
 
     // Request data from those indices
-    mpi::comm().allToAll( send_uid, recv_uid );
+    comm.allToAll( send_uid, recv_uid );
 
     // Find and populate send vector with indices to send
     std::vector<std::vector<int>> send_ridx( mpi_size );
@@ -500,9 +507,9 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
     std::vector<std::vector<int>> recv_gidx( mpi_size );
     std::vector<std::vector<int>> recv_part( mpi_size );
 
-    mpi::comm().allToAll( send_ridx, recv_ridx );
-    mpi::comm().allToAll( send_gidx, recv_gidx );
-    mpi::comm().allToAll( send_part, recv_part );
+    comm.allToAll( send_ridx, recv_ridx );
+    comm.allToAll( send_gidx, recv_gidx );
+    comm.allToAll( send_part, recv_part );
 
     // Fill out missing remote indices
     for ( idx_t p = 0; p < mpi_size; ++p ) {
@@ -524,8 +531,11 @@ void OrcaMeshGenerator::build_remote_index(Mesh& mesh) const {
 }
 
 OrcaMeshGenerator::OrcaMeshGenerator( const eckit::Parametrisation& config ) {
-    config.get( "partition", mypart_ = mpi::rank() );
-    config.get( "partitions", nparts_ = mpi::size() );
+    mpi_comm_ = mpi::comm().name();
+    config.get( "mpi_comm", mpi_comm_ );
+    auto& comm = mpi::comm( mpi_comm_ );
+    config.get( "partition", mypart_ = comm.rank() );
+    config.get( "partitions", nparts_ = comm.size() );
     config.get( "halo", halosize_);
     if ( halosize_ < 0 ) {
       throw_NotImplemented("Halo size must be >= 0", Here());
@@ -541,11 +551,17 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Partitioner& par
       throw_NotImplemented("halo size must be zero for 'serial' distribution type ORCA grids", Here());
     auto regular_grid = equivalent_regular_grid( grid );
     auto distribution = grid::Distribution( regular_grid, partitioner );
-    generate( grid, distribution, mesh );
+        const std::string mpi_comm = partitioner.mpi_comm();
+        auto& comm = mpi::comm( mpi_comm );
+        generate( grid, distribution, mesh, mpi_comm, partitioner.nb_partitions(), comm.rank() );
 }
 
 void OrcaMeshGenerator::generate( const Grid& grid, Mesh& mesh ) const {
-    generate( grid, grid::Partitioner( grid.partitioner() ), mesh );
+    auto partitioner = [&]() {
+        mpi::Scope scope( mpi_comm_ );
+        return grid::Partitioner( grid.partitioner() );
+    }();
+    generate( grid, partitioner, mesh );
 }
 
 void OrcaMeshGenerator::hash( eckit::Hash& h ) const {
