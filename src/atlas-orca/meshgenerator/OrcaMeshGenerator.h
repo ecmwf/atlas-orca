@@ -55,10 +55,12 @@ public:
 
 private:
     void hash( eckit::Hash& ) const override;
-    void build_remote_index(Mesh& mesh) const;
+    void generate( const Grid&, const grid::Distribution&, Mesh&, const std::string&, int, int ) const;
+    void build_remote_index( Mesh&, const std::string& ) const;
 
     // bool include_pole_{ false };
     // bool fixup_{ true };
+    std::string mpi_comm_;
     int nparts_;
     int mypart_;
     int halosize_{0};
