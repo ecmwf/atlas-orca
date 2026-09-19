@@ -11,6 +11,10 @@ ecbuild_add_executable( TARGET atlas-orca-cache
                         SOURCES atlas-orca-cache.cc
                         LIBS atlas-orca )
 
+ecbuild_add_executable( TARGET atlas-orca-mask
+                        SOURCES atlas-orca-mask.cc
+                        LIBS atlas-orca )
+
 add_subdirectory( atlas-orca-convert )
 
 set( atlas_orca_scripts
