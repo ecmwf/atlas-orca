@@ -14,18 +14,28 @@
 #include <memory>
 #include <vector>
 
+#include "atlas/library/config.h"
+#include "atlas/library/version.h"
 #include "atlas/grid/detail/grid/Grid.h"
 #include "atlas/runtime/Exception.h"
 #include "atlas/util/Config.h"
 #include "atlas/util/Point.h"
 #include "atlas-orca/util/PointIJ.h"
 
+#if ATLAS_VERSION_AT_LEAST(0, 47, 0)
+#define ATLAS_GRID_HAVE_FLAGS 1
+#elif __has_include("atlas/grid/GridPointFlags.h")
+#define ATLAS_GRID_HAVE_FLAGS 1
+#else
+#define ATLAS_GRID_HAVE_FLAGS 0
+#endif
+
 namespace atlas {
 class Mesh;
-namespace orca {
+}
+namespace atlas::orca {
 class OrcaPeriodicity;
 }
-}  // namespace atlas
 namespace eckit {
 class PathName;
 }
@@ -167,6 +177,17 @@ public:  // methods
     Orca( const std::string& name_or_uid, const Config& );
 
     idx_t size() const override;
+
+#if ATLAS_GRID_HAVE_FLAGS
+    // This is for sure the case starting with atlas 0.47.0
+    int flags( gidx_t index ) const override;
+    gidx_t masterIndex( gidx_t index ) const override;
+#else
+    // For older versions of Atlas that do not have GridPointFlags support,
+    // we cannot use override here, and use custom definition above
+    int flags( gidx_t index ) const;
+    gidx_t masterIndex( gidx_t index ) const;
+#endif
 
     Spec spec() const override;
 

@@ -227,8 +227,25 @@ CASE("test matchup between orca and regular ij indexing ") {
 CASE("periodicity") {
   SECTION("ORCA2_T") {
     OrcaGrid g("ORCA2_T");
+    Grid grid = g;
     EXPECT_EQ(g.nx(), 180);
     EXPECT_EQ(g.ny(), 147);
+
+    auto has_flag = [](int flags, int bit) -> bool { return (flags & bit) == bit; };
+    auto has_extension = [&has_flag](int flags) -> bool {
+#if ATLAS_GRID_HAVE_FLAGS
+      return has_flag(flags, GridPointFlags::extension);
+#else
+      constexpr int extension_bit = 1u << 1;
+      return has_flag(flags, extension_bit);
+#endif
+    };
+
+    EXPECT(has_extension(g->flags(0)));
+    EXPECT_EQ(g->masterIndex(0), 180);
+    EXPECT(!has_extension(g->flags(183)));
+    EXPECT_EQ(g->masterIndex(183), 183);
+
     EXPECT_EQ(g.periodicIndex(-1,-1), 180);
     EXPECT_EQ(g.periodicIndex(g.nx()-1,-1), 180);
     EXPECT_EQ(g.periodicIndex(0,-1), 1);
