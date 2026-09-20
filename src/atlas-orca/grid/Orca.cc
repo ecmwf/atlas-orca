@@ -168,6 +168,32 @@ idx_t Orca::size() const {
     return nx_halo_ * ny_halo_;
 }
 
+int Orca::flags( gidx_t index ) const {
+#if !ATLAS_GRID_HAVE_FLAGS
+    enum class GridPointFlags : int {
+        none      = 0,
+        duplicate = 1 << 0,
+        extension = 1 << 1,
+        invalid   = 1 << 2
+    };
+#endif
+    idx_t i;
+    idx_t j;
+    index2ij( index, i, j );
+    int flags = ghost( i, j ) ? static_cast<int>( GridPointFlags::extension ) : static_cast<int>( GridPointFlags::none );
+    if ( periodicIndex( i, j ) != index ) {
+        flags |= static_cast<int>( GridPointFlags::duplicate );
+    }
+    return flags;
+}
+
+gidx_t Orca::masterIndex( gidx_t index ) const {
+    idx_t i;
+    idx_t j;
+    index2ij( index, i, j );
+    return periodicIndex( i, j );
+}
+
 RectangularLonLatDomain Orca::lonlatBoundingBox() const {
     return domain_;
 }
