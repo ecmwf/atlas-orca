@@ -16,6 +16,8 @@
 
 #include "atlas/grid.h"
 #include "atlas/grid/Spacing.h"
+#include "atlas/functionspace/PointCloud.h"
+#include "atlas/option.h"
 #include "atlas/util/Config.h"
 
 #include "atlas-orca/grid/OrcaGrid.h"
@@ -336,6 +338,38 @@ CASE("periodicity") {
 
 
 }
+
+#if ATLAS_GRID_HAVE_FLAGS
+CASE("PointCloud uses intrinsic ORCA ghosts") {
+  Grid grid = OrcaGrid("ORCA2_T");
+  grid::Distribution distribution(grid, grid::Partitioner("serial"));
+  functionspace::PointCloud pointcloud(grid, distribution);
+
+  auto ghost        = array::make_view<int, 1>(pointcloud.ghost());
+  auto remote_index = array::make_indexview<idx_t, 1>(pointcloud.remote_index());
+  EXPECT(ghost(0));
+  EXPECT_EQ(remote_index(0), 180);
+  EXPECT(!ghost(180));
+  EXPECT_EQ(remote_index(180), 180);
+
+  auto global = pointcloud.createField<double>(option::global());
+  auto local  = pointcloud.createField<double>();
+  auto global_view = array::make_view<double, 1>(global);
+  auto local_view  = array::make_view<double, 1>(local);
+  global_view.assign(0.);
+  global_view(180) = 42.;
+
+  pointcloud.scatter(global, local);
+  EXPECT_EQ(local_view(180), 42.);
+  pointcloud.haloExchange(local);
+  EXPECT_EQ(local_view(0), 42.);
+
+  auto gathered = pointcloud.createField<double>(option::global());
+  pointcloud.gather(local, gathered);
+  auto gathered_view = array::make_view<double, 1>(gathered);
+  EXPECT_EQ(gathered_view(180), 42.);
+}
+#endif
 
 //-----------------------------------------------------------------------------
 
