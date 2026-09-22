@@ -223,6 +223,9 @@ public:  // methods
     int haloWest() const { return halo_west_; }
     int haloEast() const { return halo_east_; }
 
+    double cellMinimumDiagonalInDegrees() const { return cell_minimum_diagonal_in_degrees_; }
+    double cellMaximumDiagonalInDegrees() const { return cell_maximum_diagonal_in_degrees_; }
+
     size_t footprint() const override;
 
     Config meshgenerator() const override;
@@ -263,6 +266,9 @@ private:
     std::vector<bool> water_;
     std::vector<bool> ghost_;
     std::vector<bool> invalid_element_;
+
+    double cell_minimum_diagonal_in_degrees_{ -1. };
+    double cell_maximum_diagonal_in_degrees_{ -1. };
 
     /// Grid spec
     Spec spec_;

@@ -426,47 +426,15 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         build_remote_index( mesh, mpi_comm );
     }
 
-    ATLAS_TRACE_SCOPE("Compute cell_{maximum,mininum}_diagonal_on_unit_sphere") {
-        // Instead of computing, this could become part of the grid spec
-        atlas::Geometry geometry("UnitSphere");
-        double d2_max{0};
-        double d2_min{4. * geometry.radius() * geometry.radius()};
-        auto lonlat = array::make_view<double, 2>(mesh.nodes().lonlat());
-        auto flags = array::make_view<int, 1>(mesh.cells().flags());
-        auto invalid_cell = [&flags]( idx_t i ) { return util::Topology::view(flags( i )).check(Topology::INVALID); };
-
-        atlas::mesh::HybridElements::Connectivity& node_connectivity = mesh.cells().node_connectivity();
-        for( size_t i=0; i<mesh.cells().size(); ++i) {
-            if (invalid_cell(i)) {
-                continue;
-            }
-            auto p0_ll = PointLonLat{ lonlat(node_connectivity(i,0),LON), lonlat(node_connectivity(i,0),LAT) };
-            auto p1_ll = PointLonLat{ lonlat(node_connectivity(i,1),LON), lonlat(node_connectivity(i,1),LAT) };
-            auto p2_ll = PointLonLat{ lonlat(node_connectivity(i,2),LON), lonlat(node_connectivity(i,2),LAT) };
-            auto p3_ll = PointLonLat{ lonlat(node_connectivity(i,3),LON), lonlat(node_connectivity(i,3),LAT) };
-            PointXYZ p0 = geometry.xyz( p0_ll );
-            PointXYZ p1 = geometry.xyz( p1_ll );
-            PointXYZ p2 = geometry.xyz( p2_ll );
-            PointXYZ p3 = geometry.xyz( p3_ll );
-            auto update_d2_min_max = [&](const PointXYZ& x, const PointXYZ& y) {
-                double d2 = PointXYZ::distance2(x,y);
-                if (d2 > 0.) {
-                    d2_max = std::max(d2_max, d2);
-                    d2_min = std::min(d2_min, d2);
-                }
-            };
-            update_d2_min_max(p0, p2);
-            update_d2_min_max(p1, p3);
-        }
-        double d_max = std::sqrt( d2_max );
-        double d_min = std::sqrt( d2_min );
-        auto& comm = mpi::comm( mpi_comm );
-        comm.allReduceInPlace( d_max, eckit::mpi::max() );
-        comm.allReduceInPlace( d_min, eckit::mpi::min() );
+    double d_max{0};
+    double d_min{0};
+    if ( orca_grid.cellMinimumDiagonalInDegrees() >= 0. &&
+        orca_grid.cellMaximumDiagonalInDegrees() >= 0. ) {
+        constexpr double degrees_to_half_radians = M_PI / 360.;
+        d_min = 2. * std::sin( orca_grid.cellMinimumDiagonalInDegrees() * degrees_to_half_radians );
+        d_max = 2. * std::sin( orca_grid.cellMaximumDiagonalInDegrees() * degrees_to_half_radians );
         mesh.metadata().set( "cell_minimum_diagonal_on_unit_sphere", d_min );
         mesh.metadata().set( "cell_maximum_diagonal_on_unit_sphere", d_max );
-        Log::debug() << grid.name() << " cell_minimum_diagonal_on_unit_sphere = " << d_min
-                     << ", cell_maximum_diagonal_on_unit_sphere = " << d_max << std::endl;
     }
 
     // Degenerate points in the ORCA mesh mean that the standard BuildHalo

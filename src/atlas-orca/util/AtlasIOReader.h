@@ -41,10 +41,14 @@ public:
 
         int version = 0;
         reader.read( "version", version ).wait();
-        if ( version == 0 ) {
+        if ( version == 0 || version == 1 ) {
             reader.read( "dimensions", data.dimensions );
             reader.read( "pivot", data.pivot );
             reader.read( "halo", data.halo );
+            if ( version == 1 ) {
+                reader.read( "cell_diagonal_in_degrees_min", data.cell_diagonal_in_degrees_min );
+                reader.read( "cell_diagonal_in_degrees_max", data.cell_diagonal_in_degrees_max );
+            }
             reader.read( "longitude", data.lon );
             reader.read( "latitude", data.lat );
             reader.read( "flags", data.flags );
