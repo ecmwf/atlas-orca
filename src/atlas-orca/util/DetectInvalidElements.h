@@ -19,17 +19,44 @@ namespace atlas::orca {
 
 class DetectInvalidElement {
 public:
+    enum class Reason {
+        none,
+        invalid_quad_2d,
+        invalid_quad_3d,
+        diagonal_too_large,
+        zero_diagonal,
+        zero_edge,
+        self_intersecting,
+        invalid_jacobian,
+        poor_quality,
+        southern_edge_aspect,
+        eorca025_southern_cap,
+        orca2_longitude_aspect,
+        western_europe_edge_aspect
+    };
+
     struct Statistics {
+        Reason last_reason{ Reason::none };
         size_t invalid_elements{ 0 };
         size_t invalid_quads_3d{ 0 };
         size_t invalid_quads_2d{ 0 };
         size_t diagonal_too_large{ 0 };
+        size_t zero_diagonal{ 0 };
+        size_t zero_edge{ 0 };
+        size_t self_intersecting{ 0 };
+        size_t invalid_jacobian{ 0 };
+        size_t poor_quality{ 0 };
+        size_t southern_edge_aspect{ 0 };
+        size_t western_europe_edge_aspect{ 0 };
+        double average_diagonal{ 0 };
+        double minimum_diagonal{ 1.e30 };
+        double maximum_diagonal{ 0 };
+        size_t num_diagonals{ 0 };
     };
 
-    explicit DetectInvalidElement( const util::Config& config ) {
-        config.get( "ORCA2", orca2_ );
-        config.get( "diagonal", largest_diatonal_ );
-    }
+    static const char* reasonString( Reason reason );
+
+    explicit DetectInvalidElement( const util::Config& config );
 
     bool invalid_quad_2d( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE,
                           const PointLonLat& p_NW ) const;
@@ -37,8 +64,14 @@ public:
     bool invalid_quad_3d( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE,
                           const PointLonLat& p_NW ) const;
 
+    bool invalid_quad_3d( const PointXYZ& p_SW, const PointXYZ& p_SE, const PointXYZ& p_NE,
+                          const PointXYZ& p_NW ) const;
+
     bool diagonal_too_large( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE,
                              const PointLonLat& p_NW, double largest_diagonal ) const;
+
+    bool diagonal_too_large( const PointXYZ& p_SW, const PointXYZ& p_SE, const PointXYZ& p_NE,
+                             const PointXYZ& p_NW, double largest_diagonal ) const;
 
     bool diagonal_too_large( const PointLonLat& p_SW, const PointLonLat& p_SE, const PointLonLat& p_NE,
                              const PointLonLat& p_NW ) const;
@@ -51,8 +84,10 @@ public:
 
 private:
     geometry::Earth sphere_;
-    double largest_diatonal_{ 0 };
-    bool orca2_{ false };
+    double length_tolerance_;
+    double largest_diagonal_{ 0 };
+    bool ORCA2_{ false };
+    bool eORCA025_{ false };
 };
 
 }  // namespace atlas::orca

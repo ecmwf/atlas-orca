@@ -32,6 +32,8 @@ public:
     std::array<std::int32_t, 2> dimensions{ -1, -1 };
     std::array<std::int32_t, 4> halo{ -1, -1, -1, -1 };
     std::array<double, 2> pivot{ -1, -1 };
+    double cell_diagonal_in_degrees_min{ -1. };
+    double cell_diagonal_in_degrees_max{ -1. };
     std::vector<double> lon;
     std::vector<double> lat;
     std::vector<std::byte> flags;
