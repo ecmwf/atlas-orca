@@ -53,6 +53,9 @@ public:
     int haloNorth() const { return grid_->haloNorth(); }
     int haloSouth() const { return grid_->haloSouth(); }
 
+    double cellMinimumDiagonalInDegrees() const { return grid_->cellMinimumDiagonalInDegrees(); }
+    double cellMaximumDiagonalInDegrees() const { return grid_->cellMaximumDiagonalInDegrees(); }
+
     gidx_t periodicIndex( idx_t i, idx_t j ) const { return grid_->periodicIndex( i, j ); }
     orca::PointIJ periodicIJ( idx_t i, idx_t j ) const { return grid_->periodicIJ( i, j ); }
 
