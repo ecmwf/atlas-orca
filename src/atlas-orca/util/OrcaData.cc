@@ -120,6 +120,7 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
 
     util::Config detection_config;
     detection_config.set( "ORCA2", ( std::abs( resolution - 2. ) < 0.1 ) );
+    detection_config.set( "eORCA025", ( ni*nj == 1740494 ) );
     detection_config.set( "diagonal", resolution * diagonal_factor );
     DetectInvalidElement detect( detection_config );
 
@@ -136,7 +137,17 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
 
             Flag{ flags[n_SW] }.unset( Flag::INVALID_ELEMENT );
 
-            bool element_contains_water = is_water( n_SW ) || is_water( n_SE ) || is_water( n_NW ) || is_water( n_NE );
+            std::array<bool,4> element_contains_water_array = {{
+                is_water( n_SW ),
+                is_water( n_SE ),
+                is_water( n_NW ),
+                is_water( n_NE )
+            }};
+
+            bool element_contains_water = element_contains_water_array[0]
+                                       || element_contains_water_array[1]
+                                       || element_contains_water_array[2]
+                                       || element_contains_water_array[3];
 
             PointLonLat p_SW{ lon[n_SW], lat[n_SW] };
             PointLonLat p_SE{ lon[n_SE], lat[n_SE] };
@@ -148,33 +159,32 @@ DetectInvalidElement::Statistics atlas::orca::OrcaData::detectInvalidElements( c
 
             if ( detect.invalid_element( p_SW, p_SE, p_NE, p_NW, stats ) ) {
                 if ( element_contains_water ) {
-                    // So far this only occurs for ORCA2_F grid
-                    int invalid_factor = 10;
-                    if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW, invalid_factor * resolution ) ) {
+                    if (std::count(element_contains_water_array.begin(), element_contains_water_array.end(), true) == 4) {
                         Log::warning() << "Element {I,J} = {" << i << "," << j
-                                       << "} is invalidated although it contains water!" << std::endl;
+                                       << "} was marked as invalid although all points are in water: "
+                                       << DetectInvalidElement::reasonString( stats.last_reason ) << std::endl;
                         Log::warning() << "  South-West point: {lon,lat} = " << p_SW << std::endl;
-                        Log::warning() << "  diagonal > " << invalid_factor << " * ref_length" << std::endl;
+                        Log::warning() << "  South-East point: {lon,lat} = " << p_SE << std::endl;
+                        Log::warning() << "  North-West point: {lon,lat} = " << p_NW << std::endl;
+                        Log::warning() << "  North-East point: {lon,lat} = " << p_NE << std::endl;
                     }
-                    else {
-                        for ( int k = invalid_factor - 1; k >= diagonal_factor; --k ) {
-                            if ( detect.diagonal_too_large( p_SW, p_SE, p_NE, p_NW,
-                                                            static_cast<double>( k ) * resolution ) ) {
-                                Log::warning() << "Element {I,J} = {" << i << "," << j
-                                               << "} is not invalidated as it contains water, even though (diagonal > "
-                                               << diagonal_factor << " * ref_length)." << std::endl;
-                                Log::warning() << "  South-West point: {lon,lat} = " << p_SW << std::endl;
-                                Log::warning() << "  diagonal > " << k << " * ref_length" << std::endl;
-                                break;
-                            }
-                        }
-                        continue;
+                    else if(std::count(element_contains_water_array.begin(), element_contains_water_array.end(), true) >= 1 ) {
+                        Log::warning() << "Element {I,J} = {" << i << "," << j
+                                       << "} is invalidated because "
+                                       << DetectInvalidElement::reasonString( stats.last_reason )
+                                       << ". One or more points (but not all) contains water." << std::endl;
+                        Log::warning() << "  South-West point: {lon,lat} = " << p_SW << " is_water = " << is_water( n_SW ) << std::endl;
+                        Log::warning() << "  South-East point: {lon,lat} = " << p_SE << " is_water = " << is_water( n_SE ) << std::endl;
+                        Log::warning() << "  North-West point: {lon,lat} = " << p_NW << " is_water = " << is_water( n_NW ) << std::endl;
+                        Log::warning() << "  North-East point: {lon,lat} = " << p_NE << " is_water = " << is_water( n_NE ) << std::endl;
                     }
                 }
                 Flag{ flags[n_SW] }.set( Flag::INVALID_ELEMENT );
             }
         }
     }
+    cell_diagonal_in_degrees_min = stats.minimum_diagonal;
+    cell_diagonal_in_degrees_max = stats.maximum_diagonal;
     return stats;
 }
 
@@ -200,10 +210,13 @@ size_t atlas::orca::OrcaData::write( const eckit::PathName& path, const util::Co
     checkSetup();
     eckit::codec::RecordWriter record;
     record.compression( config.getString( "compression", "none" ) );
-    record.set( "version", 0 );
-    record.set( "dimensions", eckit::codec::ref( dimensions ) );
-    record.set( "halo", eckit::codec::ref( halo ) );
-    record.set( "pivot", eckit::codec::ref( pivot ) );
+    const util::Config metadata_config( "compression", "none" );
+    record.set( "version", 1 );
+    record.set( "dimensions", eckit::codec::ref( dimensions ), metadata_config );
+    record.set( "halo", eckit::codec::ref( halo ), metadata_config );
+    record.set( "pivot", eckit::codec::ref( pivot ), metadata_config );
+    record.set( "cell_diagonal_in_degrees_min", cell_diagonal_in_degrees_min, metadata_config );
+    record.set( "cell_diagonal_in_degrees_max", cell_diagonal_in_degrees_max, metadata_config );
     record.set( "longitude", eckit::codec::ArrayReference( lon.data(), dimensions ) );
     record.set( "latitude", eckit::codec::ArrayReference( lat.data(), dimensions ) );
     record.set( "flags", eckit::codec::ArrayReference( flags.data(), dimensions ) );

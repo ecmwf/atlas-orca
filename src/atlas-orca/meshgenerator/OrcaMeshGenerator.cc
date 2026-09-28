@@ -426,6 +426,17 @@ void OrcaMeshGenerator::generate( const Grid& grid, const grid::Distribution& di
         build_remote_index( mesh, mpi_comm );
     }
 
+    double d_max{0};
+    double d_min{0};
+    if ( orca_grid.cellMinimumDiagonalInDegrees() >= 0. &&
+        orca_grid.cellMaximumDiagonalInDegrees() >= 0. ) {
+        constexpr double degrees_to_half_radians = M_PI / 360.;
+        d_min = 2. * std::sin( orca_grid.cellMinimumDiagonalInDegrees() * degrees_to_half_radians );
+        d_max = 2. * std::sin( orca_grid.cellMaximumDiagonalInDegrees() * degrees_to_half_radians );
+        mesh.metadata().set( "cell_minimum_diagonal_on_unit_sphere", d_min );
+        mesh.metadata().set( "cell_maximum_diagonal_on_unit_sphere", d_max );
+    }
+
     // Degenerate points in the ORCA mesh mean that the standard BuildHalo
     // methods for updating halo sizes will not work.
     mesh.metadata().set("halo_locked", true);
