@@ -160,6 +160,18 @@ int Tool::execute( const Args& args ) {
             Log::info() << "    quad2d       : " << invalid_element_statistics.invalid_quads_2d << std::endl;
             Log::info() << "    quad3d       : " << invalid_element_statistics.invalid_quads_3d << std::endl;
             Log::info() << "    large diag   : " << invalid_element_statistics.diagonal_too_large << std::endl;
+            Log::info() << "    zero diag    : " << invalid_element_statistics.zero_diagonal << std::endl;
+            Log::info() << "    zero edge    : " << invalid_element_statistics.zero_edge << std::endl;
+            Log::info() << "    self-crossing: " << invalid_element_statistics.self_intersecting << std::endl;
+            Log::info() << "    bad Jacobian : " << invalid_element_statistics.invalid_jacobian << std::endl;
+            Log::info() << "    poor quality : " << invalid_element_statistics.poor_quality << std::endl;
+            Log::info() << "    south aspect : " << invalid_element_statistics.southern_edge_aspect << std::endl;
+            Log::info() << "    W Europe asp.: " << invalid_element_statistics.western_europe_edge_aspect << std::endl;
+            Log::info() << "    average diag : " << invalid_element_statistics.average_diagonal << std::endl;
+            Log::info() << "    minimum diag : " << invalid_element_statistics.minimum_diagonal << std::endl;
+            Log::info() << "    maximum diag : " << invalid_element_statistics.maximum_diagonal << std::endl;
+            Log::info() << "    num diagonals: " << invalid_element_statistics.num_diagonals << std::endl;
+
         }
         Log::info() << "uid              : " << uid << std::endl;
         Log::info() << "pivot            : " << data.pivot << std::endl;

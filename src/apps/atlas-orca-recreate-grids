@@ -1,0 +1,320 @@
+#!/usr/bin/env bash
+
+# (C) Copyright 2026- ECMWF.
+#
+# This software is licensed under the terms of the Apache Licence Version 2.0
+# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+# In applying this licence, ECMWF does not waive the privileges and immunities
+# granted to it by virtue of its status as an intergovernmental organisation
+# nor does it submit to any jurisdiction.
+
+set -Eeuo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage:
+    atlas-orca-recreate-grids [--grids <grid1,grid2,...>] [--data-prefix <prefix>]
+                              [--output-dir <directory>] [--overwrite] [--dryrun]
+                              [--help]
+
+Downloads selected registered ORCA grid data into /tmp/cache/atlas/grids/orca/v0,
+then recreates each unique .atlas grid data file with LZ4 compression and the current
+invalid-element detection. A grids.yaml file containing the selected registrations
+is created alongside the recreated .atlas grid data files. Multiple grid
+registrations may refer to the same .atlas grid data file.
+
+Options:
+    --grids <list>  Grid IDs separated by spaces, commas, or semicolons
+                    (default: all). With all grids, grids.yaml preserves the
+                    complete source file and replaces only data: values. With
+                    selected grids, it contains only their registration blocks,
+                    preserving each block except for its data: value.
+    --data-prefix <prefix>
+                    Data URI prefix written before each <gridname>.atlas in the
+                    grids.yaml file. (default: absolute output directory).
+    --output-dir <directory>
+                    Directory for recreated .atlas grid data files and grids.yaml
+                    (default: a new directory under TMPDIR or /tmp).
+    --overwrite     Replace selected .atlas grid data files that already exist.
+    --dryrun        Print planned commands without downloading or writing files.
+    --help          Show this help and exit.
+
+Environment:
+    ATLAS_CACHE_PATH  Override the cache root (default: /tmp/cache).
+    ATLAS_ORCA_GRIDS  Alternative to --grids.
+EOF
+}
+
+overwrite=false
+dryrun=false
+cli_grids=""
+data_prefix=""
+output_dir=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --grids)
+            if [[ $# -lt 2 ]]; then
+                echo "ERROR: --grids requires a value" >&2
+                usage >&2
+                exit 2
+            fi
+            cli_grids=$2
+            shift 2
+            ;;
+        --data-prefix)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "ERROR: --data-prefix requires a non-empty value" >&2
+                usage >&2
+                exit 2
+            fi
+            data_prefix=$2
+            shift 2
+            ;;
+        --output-dir)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "ERROR: --output-dir requires a non-empty value" >&2
+                usage >&2
+                exit 2
+            fi
+            output_dir=$2
+            shift 2
+            ;;
+        --overwrite)
+            overwrite=true
+            shift
+            ;;
+        --dryrun)
+            dryrun=true
+            shift
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: unknown option '$1'" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+runtime_prefix=$(cd "${script_dir}/.." && pwd)
+cache_tool="${script_dir}/atlas-orca-cache"
+convert_tool="${script_dir}/atlas-orca-convert"
+source_grids_file="${runtime_prefix}/share/atlas/grids/orca/grids.yaml"
+
+cache_root=${ATLAS_CACHE_PATH:-/tmp/cache}
+if [[ "${cache_root}" != /* ]]; then
+    cache_root="${PWD}/${cache_root}"
+fi
+if [[ -z "${output_dir}" ]]; then
+    temporary_root=${TMPDIR:-/tmp}
+    output_dir=$(mktemp -d "${temporary_root%/}/atlas-orca-recreate-grids.XXXXXX")
+elif [[ "${output_dir}" != /* ]]; then
+    output_dir="${PWD}/${output_dir}"
+fi
+selected_grids=${cli_grids:-${ATLAS_ORCA_GRIDS:-all}}
+output_grids_file="${output_dir}/grids.yaml"
+
+data_prefix=${data_prefix:-${output_dir}}
+if [[ "${data_prefix}" != "/" ]]; then
+    data_prefix=${data_prefix%/}
+fi
+
+for tool in "${cache_tool}" "${convert_tool}"; do
+    if [[ ! -x "${tool}" ]]; then
+        echo "ERROR: executable not found: ${tool}" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -f "${source_grids_file}" ]]; then
+    echo "ERROR: grid registry not found: ${source_grids_file}" >&2
+    exit 1
+fi
+
+payload_data() {
+    awk -v grid_id="$1" '
+        $0 == grid_id ": &" grid_id { in_grid = 1 }
+        in_grid && $1 == "data:" {
+            print $2
+            exit
+        }
+    ' "${source_grids_file}"
+}
+
+cached_payload_path() {
+    local data=$1
+    local repository_url
+    for repository_url in \
+        "https://sites.ecmwf.int/repository/atlas/grids/orca" \
+        "http://sites.ecmwf.int/repository/atlas/grids/orca"; do
+        if [[ "${data}" == "${repository_url}"* ]]; then
+            printf '%s/atlas/grids/orca%s\n' "${cache_root}" "${data#${repository_url}}"
+            return
+        fi
+    done
+    if [[ "${data}" == http* ]]; then
+        printf '%s/atlas/grids/orca/unknown/%s\n' "${cache_root}" "${data##*/}"
+    else
+        printf '%s\n' "${data}"
+    fi
+}
+
+shopt -s nullglob
+input_files=()
+grid_ids=()
+
+if [[ "${selected_grids}" == "all" ]]; then
+    echo "+ cache all registered ORCA grids in ${cache_root}"
+    if [[ "${dryrun}" == true ]]; then
+        printf '  ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=%q %q --grid=all\n' "${cache_root}" "${cache_tool}"
+    else
+        ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH="${cache_root}" "${cache_tool}" --grid=all
+    fi
+    while IFS= read -r grid_id; do
+        grid_ids+=("${grid_id}")
+    done < <(sed -n 's/^\([A-Za-z0-9]*_[FTUVW]\): &.*$/\1/p' "${source_grids_file}")
+    while IFS= read -r data; do
+        input_files+=("$(cached_payload_path "${data}")")
+    done < <(awk '$1 == "data:" { print $2 }' "${source_grids_file}" | sort -u)
+else
+    grid_list=${selected_grids//,/ }
+    grid_list=${grid_list//;/ }
+    read -r -a grid_ids <<< "${grid_list}"
+    if [[ ${#grid_ids[@]} -eq 0 ]]; then
+        echo "ERROR: --grids must contain at least one grid ID" >&2
+        exit 2
+    fi
+
+    for grid_id in "${grid_ids[@]}"; do
+        data=$(payload_data "${grid_id}")
+        if [[ -z "${data}" ]]; then
+            echo "ERROR: grid is not registered: ${grid_id}" >&2
+            exit 1
+        fi
+        echo "+ cache ${grid_id} in ${cache_root}"
+        if [[ "${dryrun}" == true ]]; then
+            printf '  ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH=%q %q --grid=%q\n' \
+                "${cache_root}" "${cache_tool}" "${grid_id}"
+        else
+            ATLAS_ORCA_CACHING=1 ATLAS_CACHE_PATH="${cache_root}" "${cache_tool}" --grid="${grid_id}"
+        fi
+
+        input_file=$(cached_payload_path "${data}")
+        if [[ "${dryrun}" != true && ! -f "${input_file}" ]]; then
+            echo "ERROR: cached .atlas grid data file not found: ${input_file}" >&2
+            exit 1
+        fi
+
+        already_selected=false
+        if [[ ${#input_files[@]} -gt 0 ]]; then
+            for selected_file in "${input_files[@]}"; do
+                if [[ "${selected_file}" == "${input_file}" ]]; then
+                    already_selected=true
+                    break
+                fi
+            done
+        fi
+        if [[ "${already_selected}" == false ]]; then
+            input_files+=("${input_file}")
+        fi
+    done
+fi
+
+if [[ ${#input_files[@]} -eq 0 ]]; then
+    echo "ERROR: no .atlas grid data files registered in ${source_grids_file}" >&2
+    exit 1
+fi
+
+if [[ "${dryrun}" != true ]]; then
+    mkdir -p "${output_dir}"
+    if [[ -e "${output_grids_file}" && "${overwrite}" != true ]]; then
+        echo "ERROR: output already exists: ${output_grids_file}; use --overwrite to replace it" >&2
+        exit 1
+    fi
+fi
+
+for input_file in "${input_files[@]}"; do
+    filename=${input_file##*/}
+    grid_id=${filename%.atlas}
+    arrangement=${grid_id##*_}
+    grid_name=${grid_id%_*}
+    output_file="${output_dir}/${filename}"
+
+    case "${arrangement}" in
+        F|T|U|V|W) ;;
+        *)
+            echo "ERROR: cannot determine arrangement from ${filename}" >&2
+            exit 1
+            ;;
+    esac
+
+    if [[ "${dryrun}" != true && -e "${output_file}" && "${overwrite}" != true ]]; then
+        echo "ERROR: output already exists: ${output_file}; use --overwrite to replace it" >&2
+        exit 1
+    fi
+
+    echo "+ convert ${filename} -> ${output_file}"
+    convert_command=(
+        "${convert_tool}" "${input_file}"
+        --input-format=atlas-io
+        --name="${grid_name}"
+        --arrangement="${arrangement}"
+        --compression=lz4
+        --output="${output_file}"
+    )
+    if [[ "${dryrun}" == true ]]; then
+        printf '  '
+        printf '%q ' "${convert_command[@]}"
+        printf '\n'
+    else
+        "${convert_command[@]}"
+    fi
+done
+
+if [[ "${dryrun}" == true ]]; then
+    echo "Would create ${#input_files[@]} files in ${output_dir}"
+    echo "Would create ${output_grids_file} with data prefix ${data_prefix}"
+else
+    temporary_grids_file=$(mktemp "${output_dir}/grids.yaml.XXXXXX")
+    trap 'rm -f "${temporary_grids_file}"' EXIT
+    if [[ "${selected_grids}" == "all" ]]; then
+        awk -v data_prefix="${data_prefix}" '
+            $1 == "data:" {
+                filename = $2
+                sub(/^.*\//, "", filename)
+            print "    data: " data_prefix "/" filename
+                next
+            }
+            { print }
+        ' "${source_grids_file}" > "${temporary_grids_file}"
+    else
+        printf '%s\n\n' '---' > "${temporary_grids_file}"
+        for grid_id in "${grid_ids[@]}"; do
+            data=$(payload_data "${grid_id}")
+            filename=${data##*/}
+            awk -v grid_id="${grid_id}" -v data_prefix="${data_prefix}" -v filename="${filename}" '
+                $0 == grid_id ": &" grid_id { in_grid = 1 }
+                in_grid {
+                    if ($1 == "data:") {
+                        print "    data: " data_prefix "/" filename
+                    }
+                    else {
+                        print
+                    }
+                    if ($0 ~ ": \\*" grid_id "$") {
+                        exit
+                    }
+                }
+            ' "${source_grids_file}" >> "${temporary_grids_file}"
+            printf '\n' >> "${temporary_grids_file}"
+        done
+    fi
+    mv "${temporary_grids_file}" "${output_grids_file}"
+    trap - EXIT
+    echo "Created ${#input_files[@]} files in ${output_dir}"
+    echo "Created ${output_grids_file} with data prefix ${data_prefix}"
+fi

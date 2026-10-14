@@ -10,10 +10,6 @@
 
 #include "Orca.h"
 
-
-#include <algorithm>
-#include <cctype>
-
 #include "eckit/utils/Hash.h"
 
 #include "atlas/domain/Domain.h"
@@ -115,6 +111,8 @@ Orca::Orca( const std::string& name, const Config& config ) :
     halo_west_  = data.halo[orca::HALO_WEST];
     halo_east_  = data.halo[orca::HALO_EAST];
     halo_south_ = data.halo[orca::HALO_SOUTH];
+    cell_minimum_diagonal_in_degrees_ = data.cell_diagonal_in_degrees_min;
+    cell_maximum_diagonal_in_degrees_ = data.cell_diagonal_in_degrees_max;
     nx_halo_    = data.dimensions[0];
     ny_halo_    = data.dimensions[1];
     nx_         = nx_halo_ - halo_west_ - halo_east_;
