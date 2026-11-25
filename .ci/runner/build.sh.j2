@@ -1,0 +1,7 @@
+{# SPDX-FileCopyrightText: 2021- European Centre for Medium-Range Weather Forecasts (ECMWF)
+   SPDX-License-Identifier: Apache-2.0 #}
+{% extends "ci-infrastructure/cmake-runner.sh.j2" %}
+{% block set_environment %}
+# atlas, in its own prefix, finds the plugin's manifest in the build tree only through this.
+export ATLAS_PLUGIN_PATH="$build"
+{% endblock %}
