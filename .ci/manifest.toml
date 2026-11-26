@@ -1,0 +1,48 @@
+[package]
+name = "atlas-orca"
+repo = "ecmwf/atlas-orca"
+visibility = "public"
+compiler-inputs = ["cxx-compiler"]
+allow-stale-deps = true
+ci-pre-commit = false
+ci-schedule = "from-dependencies+17"
+
+[[deps]]
+repo = "ecmwf/atlas"
+package = "atlas"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+options-input = "options"
+
+[matrix.build]
+triggers = ["upstream-change", "rebuild-request"]
+
+[matrix.build.defaults]
+job-script = "./.ci/runner/build.sh.j2"
+build-type = "RelWithDebInfo"
+# ARC runners off: GitHub-hosted until they are back.
+runs-on = "ubuntu-latest"
+options = ""
+
+[[matrix.build.include]]
+cxx-compiler = "clang++-18"
+c-compiler = "clang-18"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-clang18:latest"
+platform = "ubuntu-24.04"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13:latest"
+platform = "ubuntu-24.04"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+options = "mpi"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-openmpi:latest"
+platform = "ubuntu-24.04"
+
+[[trigger-downstream]]
+repo = "ecmwf/multio"
+ref = "develop"
